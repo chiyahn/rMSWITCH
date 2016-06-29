@@ -1,0 +1,5 @@
+PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS)
+# The above version gives a warning but you can build the package successfully. 
+# The following version is the "correct" one but returns an error message
+# because of some issues in gfortran in Mac. 
+# PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

@@ -1,0 +1,4 @@
+useDynLib(rMSWITCH)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
+

@@ -1,0 +1,76 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,fullpage,amsthm,verbatim,hyperref}
+%\renewcommand*\rmdefault{ppl}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\cA}{\mathcal A}
+\newcommand{\cF}{\mathcal F}
+
+\newcommand{\vone}{\mathbf 1}
+\newcommand{\simple}{\mathbbm{1}}
+\newcommand{\fisher}{\mathbb{I}}
+\newcommand{\vA}{\mathbf A}
+\newcommand{\ve}{\mathbf e}
+\newcommand{\vH}{\mathbf H}
+\newcommand{\vt}{\mathbf t}
+\newcommand{\vy}{\mathbf y}
+\newcommand{\vyhat}{\hat{\mathbf y}}
+\newcommand{\vX}{\mathbf X}
+\newcommand{\vY}{\mathbf Y}
+\newcommand{\vbeta}{\boldsymbol \beta}
+\newcommand{\vbetahat}{\hat{\boldsymbol \beta}}
+
+\newcommand{\vmu}{\boldsymbol \mu}
+\newcommand{\vu}{\mathbf u}
+\newcommand{\vx}{\mathbf x}
+\newcommand{\vzero}{\mathbf 0}
+
+\newcommand{\eps}{\varepsilon}
+\newcommand{\xbar}{\overline{x}}
+\newcommand{\Xbar}{\overline{X}}
+\newcommand{\ybar}{\overline{y}}
+\newcommand{\Ybar}{\overline{Y}}
+\newcommand{\sigmahat}{\widetilde{\sigma}}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Poi}{Poi}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\Exp}{Exp}
+\DeclareMathOperator{\Geom}{Geom}
+
+\linespread{1.4}
+
+
+\begin{document}  
+\noindent{\bf Using rMRSM\hfill %
+	Chiyoung Ahn} 
+\noindent\rule{\textwidth}{.1mm}
+
+\section{Settings}
+Consider the following MS-VAR model with $M$ regimes on $K$-dimensional data: let $Y = (Y_1, Y_2, ..., Y_n)$ be the target time series where each $Y_i$ ($1 \leq i \leq n$) is a subset of $\R^K$. Denoting the state of the series at time $t$ as $s_t$, suppose that each observation is generated from the model
+\begin{equation*}
+Y_t (s_t) = \vmu_{s_t} + \sum_{i=1}^{s} A_{i} (s_t) Y_{t - i} + \vu_{s_t}
+\end{equation*}
+in state $s_t$. With exogeneous variables, the model can be also expressed as 
+
+\begin{equation*}
+Y_t (s_t) = \vmu_{s_t} + \sum_{i=1}^{s} A_{i} (s_t) Y_{t - i} + \Gamma_0 \vx_0 + \Gamma_{s(t)} \vx_1 + \vu_{s_t}
+\end{equation*}
+
+where $\vx_0$ is a column of length $p_0$ that has corresponding coefficients that are not switching, $\vx_1$ is a column of length $p_1$ with coefficients that are switching. Parameters of each model include
+
+$A_i(s_t)$ is a $K \times K$ matrix
+
+$\vmu_{s_t}$ is a $K \times 1$ column
+
+$\Gamma_0$ is a $K \times p_0$ matrix
+
+$\Gamma_{s_1}$ is a $K \times p_1$ matrix
+
+$\vu_{s_t}$ is a $K \times 1$ random vector that follows $\mathcal{N}(\vzero, \Sigma_{s_t})$ for some positive-definite square matrix $\Sigma_{s_t}$.
+
+
+\end{document}
