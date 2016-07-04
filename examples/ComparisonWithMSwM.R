@@ -10,89 +10,6 @@ library(Rcpp)
 library(RcppArmadillo)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-# Generates a sample for M = 2
-GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
-                             z.dependent = NULL,
-                             z.independent = NULL,
-                             gamma.dependent = matrix(rep(0,2), ncol = 2),
-                             gamma.independent = as.matrix(0))
-{
-  y <- as.list(rnorm(s))
-  s <- length(beta)
-  states <- as.list(rep(1,s))
-  if (is.null(z.dependent))
-    z.dependent <- as.matrix(rep(0,n),ncol=1)
-  if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,n),ncol=1)
-
-  for (i in (s+1):n)
-  {
-    prob <- runif(1,0,1) # decision to switch
-    if (states[[i-1]] == 1)
-      states[[i]] = (prob < p12) + 1
-    else
-      states[[i]] = 2 - (prob < p21)
-
-    if (states[[i]] == 1)
-      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) +
-        z.independent[i,] %*% as.matrix(gamma.independent) +
-        rnorm(1,sd=sigma1)
-    else
-      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) +
-        z.independent[i,] %*% as.matrix(gamma.independent) +
-        rnorm(1,sd=sigma2)
-  }
-  return (as.numeric(y))
-}
-
-# Generates a sample for M = 3
-GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3,
-                             p12, p13, p21, p23, p31, p32,
-                             z.dependent = NULL,
-                             z.independent = NULL,
-                             gamma.dependent = matrix(rep(0,3), ncol = 3),
-                             gamma.independent = as.matrix(0))
-{
-  y <- as.list(rnorm(s))
-  s <- length(beta)
-  states <- as.list(rep(1,s))
-
-  if (is.null(z.dependent))
-    z.dependent <- as.matrix(rep(0,n),ncol=1)
-  if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,n),ncol=1)
-
-  for (i in (s+1):n)
-  {
-    prob <- runif(1,0,1) # decision to switch
-    if (states[[i-1]] == 1)
-      states[[i]] = 1 + (prob < p12) + 2 * (p12 < prob && prob < (p12 + p23))
-    else if (states[[i-1]] == 2)
-      states[[i]] = 2 + (prob < p23) - (p23 < prob && prob < (p23 + p21))
-    else
-      states[[i]] = 3 - (prob < p32) - 2 * (p32 < prob && prob < (p32 + p31))
-
-    if (states[[i]] == 1)
-      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) +
-        z.independent[i,] %*% as.matrix(gamma.independent) +
-        rnorm(1,sd=sigma1)
-    else if (states[[i]] == 2)
-      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) +
-        z.independent[i,] %*% as.matrix(gamma.independent) +
-        rnorm(1,sd=sigma2)
-    else
-      y[[i]] <- mu3 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,3]) +
-        z.independent[i,] %*% as.matrix(gamma.independent) +
-        rnorm(1,sd=sigma3)
-
-  }
-  return (as.numeric(y))
-}
 # Generates exogeneous variable sample
 GenerateExo <- function(n, p)
 {
@@ -123,8 +40,18 @@ s <- 1
 set.seed(123456)
 y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21)
 
+set.seed(123456)
+transition.probs <- matrix(c(0.4,0.7,0.6,0.3), ncol = 2)
+mu = c(-2,2)
+sigma = c(1,2)
+theta <- list(beta = beta, mu = mu, sigma = sigma, 
+              transition.probs = transition.probs, initial.dist = c(0,1))
+y2 <- GenerateSample(theta = theta, n = n, initial.y.set = rnorm(length(theta$beta)), 
+                     initial.state = 1)$sample
+(y[2:length(y)] == y2[1:(length(y2)-1)])
+
 # comparison
-result.rMRS <- MRSMLEIndep(y, M = M, s = s) #rMRS
+result.rMRS <- MLENonswitchingAR(y, M = M, s = s) #rMRS
 result.rMRS$theta
 result.rMRS$likelihood
 model=lm(y ~ 1)
@@ -138,7 +65,7 @@ s <- 2
 y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21)
 
 # comparison
-result.rMRS <- MRSMLEIndep(y, M = M, s = s) #rMRS
+result.rMRS <- MLENonswitchingAR(y, M = M, s = s) #rMRS
 result.rMRS$theta
 result.rMRS$likelihood
 model=lm(y ~ 1)
@@ -171,7 +98,7 @@ y <- GenerateSampleM3(n, beta, mu1, mu2, mu3,
 
 
 # comparison
-result.rMRS <- MRSMLEIndep(y, M = M, s = s) #rMRS
+result.rMRS <- MLENonswitchingAR(y, M = M, s = s) #rMRS
 result.rMRS$theta
 result.rMRS$likelihood
 model=lm(y ~ 1)
@@ -198,7 +125,7 @@ y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
                       z.independent = z.independent, gamma.independent = gamma.independent)
 
 # comparison
-result.rMRS <- MRSMLEIndep(y, z = z.independent, z.is.switching = FALSE, M = M, s = s) #rMRS
+result.rMRS <- MLENonswitchingAR(y, z = z.independent, z.is.switching = FALSE, M = M, s = s) #rMRS
 result.rMRS$theta
 result.rMRS$likelihood
 model=lm(y ~ z.independent)
@@ -219,12 +146,12 @@ p.dep <- 1
 gamma.dependent <- matrix(c(0.3,0.7), ncol = 2)
 
 # generates data
-z.dependent <- GenerateExo(n, p.indep)
+z.dependent <- GenerateExo(n, p.dep)
 y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
                       z.dependent = z.dependent, gamma.dependent = gamma.dependent)
 
 # comparison
-result.rMRS <- MRSMLEIndep(y, z = z.dependent, z.is.switching = TRUE, M = M, s = s) #rMRS
+result.rMRS <- MLENonswitchingAR(y, z = z.dependent, z.is.switching = TRUE, M = M, s = s) #rMRS
 result.rMRS$theta
 result.rMRS$likelihood
 model=lm(y ~ z.dependent)
@@ -256,7 +183,7 @@ y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
 z <- GenerateExo(n, p=(p.dep + p.indep))
 
 # comparison
-result.rMRS <- MRSMLEIndep(y, z = z,  z.is.switching = c(T,T,F,F), M = M, s = s) #rMRS
+result.rMRS <- MLENonswitchingAR(y, z = z,  z.is.switching = c(T,T,F,F), M = M, s = s) #rMRS
 result.rMRS$theta
 result.rMRS$likelihood
 model=lm(y ~ z.independent + z.dependent)
@@ -305,7 +232,7 @@ z.independent <- z.independent[3:nrow(z.independent),]
 
 
 # comparison
-result.rMRS <- MRSMLEIndep(y, z = z, z.is.switching = c(T,T,T,F,F), M = M, s = s) #rMRS
+result.rMRS <- MLENonswitchingAR(y, z = z, z.is.switching = c(T,T,T,F,F), M = M, s = s) #rMRS
 result.rMRS$theta
 result.rMRS$likelihoods
 model=lm(y ~ z.independent + z.dependent)
