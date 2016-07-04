@@ -1,11 +1,11 @@
 #' Estimates MLE of Markov Regime Switching (MRS) Model on AR(s) with M states from sample data
 #' where regressors on the autoregression are independent of states
 #' @export
-#' @title MRSMLEIndep
-#' @name MRSMLEIndep
+#' @title MLENonswitchingAR
+#' @name MLENonswitchingAR
 #' @param y n by 1 vector of data for y
-#' @param z n by p matrix of data for z (exogeneous variables)
-#' @param z.is.switching p by 1 vector of booleans that indicate 
+#' @param z n by p matrix of data for z (exogenous variables)
+#' @param z.is.switching p by 1 vector of booleans that indicate
 #' whether jth column (1 \leq j \leq p) of z has a corresponding
 #' coefficient that is state-dependent
 #' @param M The number of states in the model
@@ -16,14 +16,19 @@
 #' @param short.n Number of short EMs
 #' @param short.iterations Maximum iteration used to perform short EMs
 #' @return  A list with items:
-#' \item{beta}{s by 1 column that contains state-independent regressors on AR(s)}
+#' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
 #' \item{mu}{M by 1 column that contains state-dependent mu}
 #' \item{sigma}{M by 1 column that contains state-dependent sigma}
+#' \item{gamma.dependent}{p_dep by M matrix that contains switching
+#' coefficients for state-dependent exogenous variables}
+#' \item{gamma.independent}{p_indep by 1 column that contains non-switching
+#' coefficients for state-independent exogenous variables}
 #' \item{transition.probs}{M by M matrix that contains transition probabilities}
-MRSMLEIndep <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, theta.initial = NULL, 
-                        epsilon = 1e-08, maxit = 2000, short.n = 100, short.epsilon = 1e-02, 
+#' \item{initial.dist}{M by 1 column that represents an initial distribution}
+MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, theta.initial = NULL,
+                        epsilon = 1e-08, maxit = 2000, short.n = 100, short.epsilon = 1e-02,
                         short.iterations = 30) {
-  
+  # TODO: change name to MLENonswitchingAR
   p.dependent <- 0
   if (s + 1 > length(y))
   {
@@ -35,9 +40,9 @@ MRSMLEIndep <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, th
     print ("EXCEPTION: You must specify which terms of coefficients for z are switching.")
     return (NULL)
   }
-  
+
   short.n.candidates <- max(short.n*5*(s+length(z.is.switching))*M, 100)
-  
+
   # formatting dataset
   y <- as.numeric(y)
   y.lagged <- sapply(seq(s,0), GetLaggedColumn, y, s) # (n-s) by s matrix
@@ -46,7 +51,7 @@ MRSMLEIndep <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, th
   n <- length(y.sample)
   z.dependent <- NULL
   z.independent <- NULL
-  
+
   # divide z into two parts: z that is state-dependent and independent.
   if (!is.null(z))
   {
@@ -66,9 +71,9 @@ MRSMLEIndep <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, th
     if (length(z.independent) == 0)
       z.independent <- NULL
   }
-  
-  
-  
+
+
+
   # 1. Get initial parameter using regmix if theta.initial is not given
   if (is.null(theta.initial))
     theta.initial <- GetInitialTheta(y.sample, y.lagged, z.dependent, z.independent, s, p.dependent, M)
@@ -80,28 +85,28 @@ MRSMLEIndep <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, th
   if (is.null(z.independent))
   {
     z.independent <- as.matrix(rep(0,n))
-    theta.initial$gamma.independent <- as.matrix(0) 
+    theta.initial$gamma.independent <- as.matrix(0)
   }
-  
+
   ## TODO: On short & run EM, if dim(z) > 0, use ExpectationMaximizationIndepExo instead.
   # 2. Run short EM
-  short.thetas <- lapply(1:short.n.candidates, function(j) MRSMLEIndepInitShort(theta.initial))
+  short.thetas <- lapply(1:short.n.candidates, function(j) MLENonswitchingARInitShort(theta.initial))
   short.thetas[[length(short.thetas) + 1]] <- theta.initial # include the original theta
 
-  
-  short.results <- lapply(short.thetas, ExpectationMaximizationIndep, 
+
+  short.results <- lapply(short.thetas, ExpectationMaximizationIndep,
                           y = y.sample, y.lagged = y.lagged, z_dependent = z.dependent, z_independent = z.independent,
                           maxit = short.iterations, epsilon = short.epsilon)
-  short.likelihoods <- sapply(short.results, "[[", "likelihood")  
-  
+  short.likelihoods <- sapply(short.results, "[[", "likelihood")
+
   # 3. Run long EM
   long.thetas <- short.thetas[order(short.likelihoods,decreasing=T)[1:short.n]] # pick best short.n thetas
-  long.results <- lapply(long.thetas, ExpectationMaximizationIndep, 
-                         y = y.sample, y.lagged = y.lagged, z_dependent = z.dependent, z_independent = z.independent, 
+  long.results <- lapply(long.thetas, ExpectationMaximizationIndep,
+                         y = y.sample, y.lagged = y.lagged, z_dependent = z.dependent, z_independent = z.independent,
                          maxit = maxit, epsilon = epsilon)
-  long.likelihoods <- sapply(long.results, "[[", "likelihood")  
+  long.likelihoods <- sapply(long.results, "[[", "likelihood")
   em.result <- long.results[[(which(long.likelihoods==max(long.likelihoods))[1])]] # gives you the best result
-  
+
   if (is.null(z.is.switching))
   {
     em.result$theta$gamma.dependent <- NULL
@@ -111,13 +116,13 @@ MRSMLEIndep <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, th
     em.result$theta$gamma.dependent <- NULL
   else if (!is.element(FALSE, z.is.switching)) # i.e. all z values are switching
     em.result$theta$gamma.independent <- NULL
-  
-  
+
+
   return (em.result)
 }
 
-ExpectationMaximizationIndep <- function (y, y.lagged, 
-                                          z_dependent, z_independent, theta, 
+ExpectationMaximizationIndep <- function (y, y.lagged,
+                                          z_dependent, z_independent, theta,
                                           maxit, epsilon)
 {
   EMIndepCPP(y, y.lagged, z_dependent, z_independent,
@@ -138,10 +143,10 @@ GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, s, 
   regmix.gamma.independent <- regmix.theta$gamma
 
   regmix.initial.dist <- StatesToInitialDist(states = regmix.result$indices, M = M)
-  
+
   if (s > 1) # WATCH: state-independent beta case.
     regmix.beta <- apply(regmix.theta$mubeta[2:(s+1),], 1, mean) # estimate for state-ind. beta
-  if (p.dependent > 0)  
+  if (p.dependent > 0)
   {
     regmix.gamma.dependent <- regmix.theta$mubeta[(s+2):(s+1+p.dependent),] # estimate for state-dep. gamma
     regmix.gamma.dependent <- as.matrix(regmix.gamma.dependent)
@@ -150,7 +155,7 @@ GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, s, 
   }
   if (!is.null(regmix.gamma.independent))
     regmix.gamma.independent <- as.matrix(regmix.gamma.independent)
-  
+
   regmix.theta <- list(beta = as.matrix(regmix.beta), # WATCH: you might want to take a transpose for s=1 if state-dependent
                        mu = regmix.theta$mubeta[1,],
                        sigma = regmix.theta$sigma,
@@ -158,7 +163,7 @@ GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, s, 
                        gamma.independent = regmix.gamma.independent,
                        transition.probs = regmix.transition.probs,
                        initial.dist = regmix.initial.dist)
-  
+
   return(regmix.theta)
 }
 
@@ -172,7 +177,7 @@ GetLaggedColumn <- function (j, y, s) {
 }
 
 # Gives variation in theta given
-MRSMLEIndepInitShort <- function(theta) {
+MLENonswitchingARInitShort <- function(theta) {
   beta0 <- theta$beta
   mu0 <- theta$mu
   sigma0 <- theta$sigma
@@ -180,9 +185,9 @@ MRSMLEIndepInitShort <- function(theta) {
   gamma.independent0 <- theta$gamma.independent
   transition.probs0 = theta$transition.probs
   initial.dist0 = theta$initial.dist
-  
+
   sigma.epsilon <- 0.2 # minimum sigma
-  
+
   beta <- beta0 # beta estimate should be accurate enough
   gamma.dependent <- gamma.dependent0 # gamma estimate should be accurate enough
   gamma.independent <- gamma.independent0 # gamma estimate should be accurate enough
@@ -190,8 +195,8 @@ MRSMLEIndepInitShort <- function(theta) {
   sigma <- sapply(sigma0, function(sig) max(sig + rnorm(1), sigma.epsilon))
   transition.probs = t(apply(transition.probs0, 1, VariationInRow))
   initial.dist = VariationInRow(initial.dist0)
-  
-  theta <- list(beta = as.matrix(beta), 
+
+  theta <- list(beta = as.matrix(beta),
                 mu = mu,
                 sigma = sigma,
                 gamma.dependent = as.matrix(gamma.dependent),
@@ -238,10 +243,10 @@ EstimateStatesIndep <- function(y, y.lagged, theta) {
   return (apply(nu, 1, function(i) (which(i==max(i)))))
 }
 
-# MRSMLEIndep using EM algorithm written in R
-MRSMLEIndepR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, theta.initial = NULL, 
+# MLENonswitchingAR using EM algorithm written in R
+MLENonswitchingARR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, theta.initial = NULL,
                         epsilon = 1e-08, maxit = 60, short.n = 200, short.iterations = 10) {
-  
+
   p.dependent <- 0
   if (s + 1 > length(y))
   {
@@ -253,10 +258,10 @@ MRSMLEIndepR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, 
     print ("EXCEPTION: You must specify which terms of coefficients for z are switching.")
     return (NULL)
   }
-  
-  
+
+
   short.n <- max(short.n, 20)
-  
+
   # formatting dataset
   y <- as.numeric(y)
   y.lagged <- sapply(seq(s,0), GetLaggedColumn, y, s) # (n-s) by s matrix
@@ -265,7 +270,7 @@ MRSMLEIndepR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, 
   n <- length(y.sample)
   z.dependent <- NULL
   z.independent <- NULL
-  
+
   # divide z into two parts: z that is state-dependent and independent.
   if (!is.null(z))
   {
@@ -285,12 +290,12 @@ MRSMLEIndepR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, 
     if (length(z.independent) == 0)
       z.independent <- NULL
   }
-  
-  
-  
+
+
+
   # 1. Get initial parameter using regmix if theta.initial is not given
   if (is.null(theta.initial))
-    theta.initial <- GetInitialTheta(y.sample, y.lagged, 
+    theta.initial <- GetInitialTheta(y.sample, y.lagged,
                                      z.dependent, z.independent, s, p.dependent, M)
   if (is.null(z.dependent))
   {
@@ -300,30 +305,29 @@ MRSMLEIndepR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, 
   if (is.null(z.independent))
   {
     z.independent <- as.matrix(rep(0,n))
-    theta.initial$gamma.independent <- as.matrix(0) 
+    theta.initial$gamma.independent <- as.matrix(0)
   }
-  
+
   ## TODO: On short & run EM, if dim(z) > 0, use ExpectationMaximizationIndepExo instead.
   # 2. Run short EM
-  short.thetas <- lapply(1:short.n, function(j) MRSMLEIndepInitShort(theta.initial))
+  short.thetas <- lapply(1:short.n, function(j) MLENonswitchingARInitShort(theta.initial))
   short.thetas[[length(short.thetas) + 1]] <- theta.initial # include the original theta
-  
-  
-  short.results <- lapply(short.thetas, ExpectationMaximizationIndepR, 
-                          y = y.sample, y.lagged = y.lagged, 
+
+
+  short.results <- lapply(short.thetas, ExpectationMaximizationIndepR,
+                          y = y.sample, y.lagged = y.lagged,
                           z_dependent = z.dependent, z_independent = z.independent,
                           maxit = short.iterations, epsilon = epsilon)
-  short.likelihoods <- sapply(short.results, "[[", "likelihood")  
-  
+  short.likelihoods <- sapply(short.results, "[[", "likelihood")
+
   # 3. Run long EM
   long.thetas <- short.thetas[order(short.likelihoods,decreasing=T)[1:20]] # pick best 20 thetas
-  long.results <- lapply(long.thetas, ExpectationMaximizationIndepR, 
-                         y = y.sample, y.lagged = y.lagged, 
-                         z_dependent = z.dependent, z_independent = z.independent, 
+  long.results <- lapply(long.thetas, ExpectationMaximizationIndepR,
+                         y = y.sample, y.lagged = y.lagged,
+                         z_dependent = z.dependent, z_independent = z.independent,
                          maxit = maxit, epsilon = epsilon)
-  long.likelihoods <- sapply(long.results, "[[", "likelihood")  
+  long.likelihoods <- sapply(long.results, "[[", "likelihood")
   em.result <- long.results[[(which(long.likelihoods==max(long.likelihoods))[1])]] # gives you the best result
-  
+
   return (em.result)
 }
-

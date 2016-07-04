@@ -8,13 +8,13 @@ library(normalregMix)
 library(rMSWITCH)
 library(Rcpp)
 library(RcppArmadillo)
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Generates a sample for M = 2
-GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21, 
-                             z.dependent = NULL, 
+GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
+                             z.dependent = NULL,
                              z.independent = NULL,
-                             gamma.dependent = as.matrix(rep(0,2), ncol = 2), 
+                             gamma.dependent = matrix(rep(0,2), ncol = 2),
                              gamma.independent = as.matrix(0))
 {
   y <- as.list(rnorm(s))
@@ -23,8 +23,8 @@ GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
   if (is.null(z.dependent))
     z.dependent <- as.matrix(rep(0,n),ncol=1)
   if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,n),ncol=1) 
-  
+    z.independent <- as.matrix(rep(0,n),ncol=1)
+
   for (i in (s+1):n)
   {
     prob <- runif(1,0,1) # decision to switch
@@ -32,38 +32,38 @@ GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
       states[[i]] = (prob < p12) + 1
     else
       states[[i]] = 2 - (prob < p21)
-    
+
     if (states[[i]] == 1)
-      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
+      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
+        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) +
+        z.independent[i,] %*% as.matrix(gamma.independent) +
         rnorm(1,sd=sigma1)
     else
-      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
+      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
+        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) +
+        z.independent[i,] %*% as.matrix(gamma.independent) +
         rnorm(1,sd=sigma2)
   }
   return (as.numeric(y))
 }
 
 # Generates a sample for M = 3
-GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3, 
+GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3,
                              p12, p13, p21, p23, p31, p32,
-                             z.dependent = NULL, 
+                             z.dependent = NULL,
                              z.independent = NULL,
-                             gamma.dependent = as.matrix(rep(0,3), ncol = 3), 
+                             gamma.dependent = matrix(rep(0,3), ncol = 3),
                              gamma.independent = as.matrix(0))
 {
   y <- as.list(rnorm(s))
   s <- length(beta)
   states <- as.list(rep(1,s))
-  
+
   if (is.null(z.dependent))
     z.dependent <- as.matrix(rep(0,n),ncol=1)
   if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,n),ncol=1) 
-  
+    z.independent <- as.matrix(rep(0,n),ncol=1)
+
   for (i in (s+1):n)
   {
     prob <- runif(1,0,1) # decision to switch
@@ -73,23 +73,23 @@ GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3,
       states[[i]] = 2 + (prob < p23) - (p23 < prob && prob < (p23 + p21))
     else
       states[[i]] = 3 - (prob < p32) - 2 * (p32 < prob && prob < (p32 + p31))
-    
+
     if (states[[i]] == 1)
-      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
+      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
+        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) +
+        z.independent[i,] %*% as.matrix(gamma.independent) +
         rnorm(1,sd=sigma1)
     else if (states[[i]] == 2)
-      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
+      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
+        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) +
+        z.independent[i,] %*% as.matrix(gamma.independent) +
         rnorm(1,sd=sigma2)
     else
-      y[[i]] <- mu3 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,3]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
+      y[[i]] <- mu3 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) +
+        z.dependent[i,] %*% as.matrix(gamma.dependent[,3]) +
+        z.independent[i,] %*% as.matrix(gamma.independent) +
         rnorm(1,sd=sigma3)
-    
+
   }
   return (as.numeric(y))
 }
@@ -165,8 +165,8 @@ M <- 3
 s <- length(beta)
 
 # generates data
-y <- GenerateSampleM3(n, beta, mu1, mu2, mu3, 
-                      sigma1, sigma2, sigma3, 
+y <- GenerateSampleM3(n, beta, mu1, mu2, mu3,
+                      sigma1, sigma2, sigma3,
                       p12, p13, p21, p23, p31, p32)
 
 
@@ -192,9 +192,9 @@ p.indep <- 1
 gamma.independent <- 0.7
 
 # generates data
-z.independent <- GenerateExo(n, p.indep) 
+z.independent <- GenerateExo(n, p.indep)
 
-y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21, 
+y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
                       z.independent = z.independent, gamma.independent = gamma.independent)
 
 # comparison
@@ -217,10 +217,10 @@ M <- 2
 s <- 1
 p.dep <- 1
 gamma.dependent <- matrix(c(0.3,0.7), ncol = 2)
-                         
+
 # generates data
-z.dependent <- GenerateExo(n, p.indep) 
-y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21, 
+z.dependent <- GenerateExo(n, p.indep)
+y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
                       z.dependent = z.dependent, gamma.dependent = gamma.dependent)
 
 # comparison
@@ -253,7 +253,7 @@ z.independent <- z[,(p.dep+1):(p.dep+p.indep)]
 y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
                       z.dependent = z.dependent, gamma.dependent = gamma.dependent,
                       z.independent = z.independent, gamma.independent = gamma.independent)
-z <- GenerateExo(n, p=(p.dep + p.indep)) 
+z <- GenerateExo(n, p=(p.dep + p.indep))
 
 # comparison
 result.rMRS <- MRSMLEIndep(y, z = z,  z.is.switching = c(T,T,F,F), M = M, s = s) #rMRS
@@ -287,14 +287,14 @@ gamma.dependent <- matrix(c(0.3,0.1,0.1,0.1,0.3,0.1,0.1,0.1,0.3), ncol = 3)
 gamma.independent <- matrix(c(0.2,0.5), ncol = 1)
 
 # generates data
-z <- GenerateExo(n, p=(p.dep + p.indep)) 
+z <- GenerateExo(n, p=(p.dep + p.indep))
 z.dependent <- z[,1:p.dep]
 z.independent <- z[,(p.dep+1):(p.dep+p.indep)]
-y <- GenerateSampleM3(n, beta, mu1, mu2, mu3, 
-                      sigma1, sigma2, sigma3, 
+y <- GenerateSampleM3(n, beta, mu1, mu2, mu3,
+                      sigma1, sigma2, sigma3,
                       p12, p13, p21, p23, p31, p32,
-                      z.dependent = z.dependent, 
-                      z.independent = z.independent, 
+                      z.dependent = z.dependent,
+                      z.independent = z.independent,
                       gamma.dependent = gamma.dependent,
                       gamma.independent = gamma.independent)
 y <- (y / 10)[3:nrow(z.independent)]

@@ -36,7 +36,7 @@ ExpectationMaximizationIndepR <- function(y, y.lagged, z_dependent, z_independen
   #states <- states + 1
   # !! CHECK: if EstimateStates is called from C++, add one.
   return (list(theta = theta, likelihood = likelihood,
-    likelihoods = unlist(likelihoods), states = states))
+    likelihoods = unlist(likelihoods), states = states, thetas = thetas))
 }
 
 ExpectationStepR <- function(y, y.lagged, z_dependent, z_independent, theta) {
