@@ -25,8 +25,10 @@
 #' coefficients for state-independent exogenous variables}
 #' \item{transition.probs}{M by M matrix that contains transition probabilities}
 #' \item{initial.dist}{M by 1 column that represents an initial distribution}
-MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s = 2, theta.initial = NULL,
-                        epsilon = 1e-08, maxit = 2000, short.n = 100, short.epsilon = 1e-02,
+MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
+                        M = 3, s = 2, theta.initial = NULL,
+                        epsilon = 1e-08, maxit = 2000,
+                        short.n = 100, short.epsilon = 1e-02,
                         short.iterations = 30) {
   # TODO: change name to MLENonswitchingAR
   p.dependent <- 0
@@ -41,13 +43,12 @@ MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL, M = 3, s =
     return (NULL)
   }
 
-  short.n.candidates <- max(short.n*5*(s+length(z.is.switching))*M, 100)
+  short.n.candidates <- max(short.n*5*((1+2*s)+length(z.is.switching))*M, 100)
 
   # formatting dataset
-  y <- as.numeric(y)
-  y.lagged <- sapply(seq(s,0), GetLaggedColumn, y, s) # (n-s) by s matrix
-  y.sample <- as.matrix(y.lagged[,1])
-  y.lagged <- as.matrix(y.lagged[,-1])
+  lagged.and.sample <- GetLaggedAndSample(y, s)
+  y.lagged <- lagged.and.sample$y.lagged 
+  y.sample <- lagged.and.sample$y.sample
   n <- length(y.sample)
   z.dependent <- NULL
   z.independent <- NULL
@@ -130,6 +131,16 @@ ExpectationMaximizationIndep <- function (y, y.lagged,
         theta$gamma.dependent, theta$gamma.independent,
         theta$transition.probs, theta$initial.dist,
         maxit, epsilon)
+}
+
+# Returns a list of lagged y (y.lagged) and corresponding y sample (y.sample)
+GetLaggedAndSample <- function(y, s)
+{
+  y <- as.numeric(y)
+  y.lagged <- sapply(seq(s,0), GetLaggedColumn, y, s) # (n-s) by s matrix
+  y.sample <- as.matrix(y.lagged[,1])
+  y.lagged <- as.matrix(y.lagged[,-1])
+  return (list (y.lagged = y.lagged, y.sample = y.sample))
 }
 
 # Get initial theta to run EM algorithm, using normalregMix package.
