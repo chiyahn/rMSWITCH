@@ -5,6 +5,13 @@ GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
                              gamma.dependent = matrix(rep(0,2), ncol = 2),
                              gamma.independent = as.matrix(0))
 {
+  print("Actual parameters:")
+  print(list(beta = beta, mu = c(mu1, mu2), sigma = c(sigma1, sigma2),
+             gamma.dependent = gamma.dependent,
+             gamma.independent = gamma.independent,
+             transition.probs = matrix(c(1-p12,p21,p12,1-p21), ncol = 2),
+             initial.dist = c(1,0)
+             ))
   y <- as.list(rnorm(s))
   s <- length(beta)
   states <- as.list(rep(1,s))
@@ -13,15 +20,21 @@ GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
   if (is.null(z.dependent))
     z.dependent <- as.matrix(rep(0,(n+s)),ncol=1)
   else 
+  {
+    z.dependent <- as.matrix(z.dependent)
     z.dependent <- rbind(matrix(rep(Inf, s*ncol(z.dependent)), 
                                 ncol = ncol(z.dependent)),
                          as.matrix(z.dependent))
+  }
   if (is.null(z.independent))
     z.independent <- as.matrix(rep(0,(n+s)),ncol=1)
   else
+  {
+    z.independent <- as.matrix(z.independent)
     z.independent <- rbind(matrix(rep(Inf, s*ncol(z.independent)), 
                                   ncol = ncol(z.independent)),
                            as.matrix(z.independent))
+  }
   
   initial.index = (s+1)
   last.index = (s+n)
@@ -55,6 +68,15 @@ GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3,
                              gamma.dependent = matrix(rep(0,3), ncol = 3),
                              gamma.independent = as.matrix(0))
 {
+  print("Actual parameters:")
+  print(list(beta = beta, mu = c(mu1, mu2, mu3), 
+             sigma = c(sigma1, sigma2, sigma3),
+             gamma.dependent = gamma.dependent,
+             gamma.independent = gamma.independent,
+             transition.probs = matrix(c(1-p12-p13,p21,p31,p12,
+                                         (1-p21-p23),p32,p13,p23,
+                                         1-p31-p32), ncol = 3),
+             initial.dist = c(1,0)))
   y <- as.list(rnorm(s))
   s <- length(beta)
   states <- as.list(rep(1,s))
@@ -67,15 +89,22 @@ GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3,
   if (is.null(z.dependent))
     z.dependent <- as.matrix(rep(0,(n+s)),ncol=1)
   else 
+  {
+    z.dependent <- as.matrix(z.dependent)
     z.dependent <- rbind(matrix(rep(Inf, s*ncol(z.dependent)), 
                                 ncol = ncol(z.dependent)),
                          as.matrix(z.dependent))
+  }
   if (is.null(z.independent))
     z.independent <- as.matrix(rep(0,(n+s)),ncol=1)
   else
+  {
+    z.independent <- as.matrix(z.independent)
     z.independent <- rbind(matrix(rep(Inf, s*ncol(z.independent)), 
                                   ncol = ncol(z.independent)),
                            as.matrix(z.independent))
+  }
+  
   initial.index = (s+1)
   last.index = (s+n)
   for (i in initial.index:last.index)

@@ -55,6 +55,7 @@ GenerateSample <- function(theta, n = 100, initial.y.set, initial.state,
     z.dependent <- as.matrix(rep(0,length(initial.y.set) + n),ncol=1)
   else
   {
+    z.dependent <- as.matrix(z.dependent)
     if (n != nrow(z.dependent))
       stop("EXCEPTION: the length of samples should match the number of
            observations for z.dependent.")
@@ -67,6 +68,7 @@ GenerateSample <- function(theta, n = 100, initial.y.set, initial.state,
     z.independent <- as.matrix(rep(0,length(initial.y.set) + n),ncol=1)
   else
   {
+    z.independent <- as.matrix(z.independent)
     if (n != nrow(z.independent))
       stop("EXCEPTION: the length of samples should match the number of
         observations for z.independent.")
