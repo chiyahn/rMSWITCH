@@ -5,3 +5,7 @@ EMIndepCPP <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rc
     .Call('rMSWITCH_EMIndepCPP', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon)
 }
 
+LikelihoodNonswitchingAR <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp) {
+    .Call('rMSWITCH_LikelihoodNonswitchingAR', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp)
+}
+

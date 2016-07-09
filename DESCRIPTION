@@ -7,5 +7,5 @@ Author: Chiyoung Ahn, Hiroyuki Kasahara, and Katsumi Shimotsu
 Maintainer: Chiyoung Ahn <chiyahn@hotmail.com>
 Description: R package for Markov-regime switching models 
 License: What license is it under?
-Imports: Rcpp (>= 0.12.5), normalregMix
+Imports: Rcpp (>= 0.12.5), normalregMix, nloptr, ggplot2
 LinkingTo: Rcpp, RcppArmadillo
