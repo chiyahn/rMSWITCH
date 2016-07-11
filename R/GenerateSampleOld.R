@@ -110,7 +110,7 @@ GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3,
   for (i in initial.index:last.index)
   {
     prob <- runif(1) # decision to switch
-    trans.cumsum <- cumsum(theta$transition.probs[states[[i-1]],])
+    trans.cumsum <- cumsum(transition.probs[states[[i-1]],])
     states[[i]] = 1
     for (j in 2:M)
       if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
