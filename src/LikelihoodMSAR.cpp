@@ -5,15 +5,18 @@ using namespace Rcpp;
 const double SQRT2PI = 2.50662827463; // sqrt(2*pi)
 const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 
-// Returns likelihood of univariate MS model with nonswitching AR terms on data.
+// Returns likelihood of univariate MS-AR model where beta is switching.
+// Note that even if beta is non-switching, setting beta as a s by M matrix with
+// repeated column of the original beta will give you the likelihood for
+// MS-AR model with non-switching beta.
 // [[Rcpp::export]]
-SEXP LikelihoodNonswitchingAR (Rcpp::NumericVector y_rcpp,
+SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 					Rcpp::NumericMatrix y_lagged_rcpp,
 					Rcpp::NumericMatrix z_dependent_rcpp,
 					Rcpp::NumericMatrix z_independent_rcpp,
 					Rcpp::NumericMatrix transition_probs_rcpp,
 					Rcpp::NumericVector initial_dist_rcpp,
-					Rcpp::NumericVector beta_rcpp,
+					Rcpp::NumericMatrix beta_rcpp,
 					Rcpp::NumericVector mu_rcpp,
 					Rcpp::NumericVector sigma_rcpp,
 					Rcpp::NumericMatrix gamma_dependent_rcpp,
@@ -39,7 +42,8 @@ SEXP LikelihoodNonswitchingAR (Rcpp::NumericVector y_rcpp,
 								transition_probs_rcpp.ncol(), false);
 	arma::colvec initial_dist(initial_dist_rcpp.begin(),
 								initial_dist_rcpp.size(), false);
-	arma::colvec beta(beta_rcpp.begin(), beta_rcpp.size(), false);
+	arma::mat    beta(beta_rcpp.begin(), 
+                   beta_rcpp.nrow(), beta_rcpp.ncol(), false);
 	arma::colvec mu(mu_rcpp.begin(), mu_rcpp.size(), false);
 	arma::colvec sigma(sigma_rcpp.begin(), sigma_rcpp.size(), false);
 	arma::mat    gamma_dependent(gamma_dependent_rcpp.begin(),
@@ -69,7 +73,7 @@ SEXP LikelihoodNonswitchingAR (Rcpp::NumericVector y_rcpp,
 
 		for (int j = 0; j < M; j++)
 		{
-			arma::colvec xi_k_t_jk = y.row(k) - y_lagged.row(k) * beta -
+			arma::colvec xi_k_t_jk = y.row(k) - y_lagged.row(k) * beta.col(j) -
 	      z_dependent.row(k) * gamma_dependent.col(j) -
 	      z_independent.row(k) * gamma_independent - mu(j);
 			xi_k_t(j,k) = xi_k_t_jk(0); // explicit gluing
