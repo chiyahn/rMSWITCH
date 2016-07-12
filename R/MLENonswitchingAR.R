@@ -43,7 +43,7 @@ MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
     return (NULL)
   }
 
-  short.n.candidates <- max(short.n*5*((1+2*s)+length(z.is.switching))*M, 100)
+  short.n.candidates <- max(short.n*((1+2*s)+length(z.is.switching))*M, 100)
 
   # formatting dataset
   lagged.and.sample <- GetLaggedAndSample(y, s)
@@ -100,26 +100,23 @@ MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
                           maxit = short.iterations, epsilon = short.epsilon)
   short.likelihoods <- sapply(short.results, "[[", "likelihood")
 
-  # 3. Run long EM
+  # 3. Run long step
   long.thetas <- short.thetas[order(short.likelihoods,decreasing=T)[1:short.n]] # pick best short.n thetas
-  long.results <- lapply(long.thetas, ExpectationMaximizationIndep,
-                         y = y.sample, y.lagged = y.lagged, z_dependent = z.dependent, z_independent = z.independent,
-                         maxit = maxit, epsilon = epsilon)
-  long.likelihoods <- sapply(long.results, "[[", "likelihood")
-  em.result <- long.results[[(which(long.likelihoods==max(long.likelihoods))[1])]] # gives you the best result
+  long.result <- MaximizeLongStep(long.thetas, y = y.sample, y.lagged = y.lagged, 
+                                   z.dependent = z.dependent, z.independent = z.independent)
 
   if (is.null(z.is.switching))
   {
-    em.result$theta$gamma.dependent <- NULL
-    em.result$theta$gamma.independent <- NULL
+    long.result$theta$gamma.dependent <- NULL
+    long.result$theta$gamma.independent <- NULL
   }
   else if (!is.element(TRUE, z.is.switching)) # i.e. none of z is switching
-    em.result$theta$gamma.dependent <- NULL
+    long.result$theta$gamma.dependent <- NULL
   else if (!is.element(FALSE, z.is.switching)) # i.e. all z values are switching
-    em.result$theta$gamma.independent <- NULL
+    long.result$theta$gamma.independent <- NULL
 
 
-  return (em.result)
+  return (long.result)
 }
 
 ExpectationMaximizationIndep <- function (y, y.lagged,
@@ -331,14 +328,20 @@ MLENonswitchingARR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s
                           maxit = short.iterations, epsilon = epsilon)
   short.likelihoods <- sapply(short.results, "[[", "likelihood")
 
-  # 3. Run long EM
-  long.thetas <- short.thetas[order(short.likelihoods,decreasing=T)[1:20]] # pick best 20 thetas
-  long.results <- lapply(long.thetas, ExpectationMaximizationIndepR,
-                         y = y.sample, y.lagged = y.lagged,
-                         z_dependent = z.dependent, z_independent = z.independent,
-                         maxit = maxit, epsilon = epsilon)
-  long.likelihoods <- sapply(long.results, "[[", "likelihood")
-  em.result <- long.results[[(which(long.likelihoods==max(long.likelihoods))[1])]] # gives you the best result
-
-  return (em.result)
+  # 3. Run long step
+  long.thetas <- short.thetas[order(short.likelihoods,decreasing=T)[1:short.n]] # pick best short.n thetas
+  long.result <- MaximizeLongStep(long.thetas, y = y.sample, y.lagged = y.lagged, 
+                                  z.dependent = z.dependent, z.independent = z.independent)
+  
+  if (is.null(z.is.switching))
+  {
+    long.result$theta$gamma.dependent <- NULL
+    long.result$theta$gamma.independent <- NULL
+  }
+  else if (!is.element(TRUE, z.is.switching)) # i.e. none of z is switching
+    long.result$theta$gamma.dependent <- NULL
+  else if (!is.element(FALSE, z.is.switching)) # i.e. all z values are switching
+    long.result$theta$gamma.independent <- NULL
+  
+  return (long.result)
 }
