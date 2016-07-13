@@ -205,11 +205,9 @@ GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, s, 
 
 # Get a column of 0 \leq j \leq s lagged variable
 GetLaggedColumn <- function (j, y, s) {
-  if (j == 0)
-    return (y[(s+1):(length(y) - s)])
-  col <- y[-(0:(s+j))] # destroy first s+j elements
-  col <- col[1:(length(col) - s + j)]
-  return (col)
+  if (j != s)
+    col <- y[-(0:(s-j))] # destroy first s-j elements
+  return (col[1:(length(col)-j)])
 }
 
 # Gives variation in theta given
