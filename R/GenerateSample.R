@@ -23,7 +23,7 @@
 #' have switching coefficeints.
 #' @param z_independent n by p_indep matrix of data for exogenous variables that
 #' have non-switching coefficeints.
-GenerateSample <- function(theta, n = 100, initial.y.set, initial.state,
+GenerateSample <- function(theta, n = 100, initial.y.set = NULL, initial.state = 1,
   z.dependent = NULL, z.independent = NULL)
 {
   M <- nrow(theta$transition.probs)
@@ -35,6 +35,8 @@ GenerateSample <- function(theta, n = 100, initial.y.set, initial.state,
   s <- nrow(beta)
   gamma.dependent <- matrix(rep(0,M), ncol = M)
   gamma.independent <- as.matrix(0)
+  if (is.null(initial.y.set))
+    initial.y.set <- rnorm(s)
 
   # reformatting parameters & safety check
   if (ncol(beta) < 2) # even if beta is not switching make it a matrix
