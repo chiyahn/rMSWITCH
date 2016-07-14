@@ -1,4 +1,17 @@
-# given msar instance, draw a diagnosis plot that consists of states probabilities
+#' Draws two diagnosis plots that visually present 1. changes in posterior
+#' probabilities for each regime across observations and 2. estimated regimes
+#' based on posterior probabilities.
+#' @export
+#' @title DiagPlot
+#' @name DiagPlot
+#' @param msar.model An instance in msar.model represents one MSM-AR/MSI-AR model
+#' @param y n by 1 column that represents a time series
+#' @examples
+#' theta <- RandomTheta(M = 2, s = 3)
+#' sample.meta <- GenerateSample(theta)
+#' y <- sample.meta$y
+#' msar.model <- sample.meta$msar.model
+#' DiagPlot(msar.model, y)
 DiagPlot <- function(msar.model, y)
 {
   library(ggplot2)
@@ -28,7 +41,6 @@ DiagPlot <- function(msar.model, y)
           geom_line())
 
   # 2-2. generate a plot of y data and shade a region for each stte
-
   plot.states.beginnings <- c(1)
   plot.states.endings <- vector()
   plot.states.values <- states[1]
@@ -144,34 +156,33 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
                              gamma.independent))
 }
 
-#' Returns a valid theta that represents parameters of a random MS-AR model
-#' Ideal for creating a sample for testing.
+#' Returns a valid theta that represents parameters of a random MS-AR model;
+#' ideal for creating a sample for testing.
 #' @export
 #' @title RandomTheta
 #' @name RandomTheta
 #' @param M The number of states in the model for the null hypothesis
 #' @param s The number of terms used for AR(s)
-#' @param nbtsp The number of bootstrap observations; by default, it is set to be 199
-#' @param cl Cluster used for parallelization; if it is \code{NULL}, the system will automatically
-#' create a new one for computation accordingly.
-#' @param parallel Determines whether package \code{doParallel} is used for calculation
-#' @return A list of class \code{modelMSwitch} with items:
-#' \item{theta}{The parameter estimates as a list containing alpha, mu, and sigma (and gamma if z is included in the model).}
-#' \item{loglik}{The maximized value of the log-likelihood.}
-#' \item{aic}{Akaike Information Criterion of the fitted model.}
-#' \item{bic}{Bayesian Information Criterion of the fitted model.}
-#' \item{postprobs}{n by m matrix of posterior probabilities for observations}
-#' \item{states}{n by 1 vector of integers that indicates the indices of components
-#' each observation belongs to based on computed posterior probabilities}
-#' \item{m}{The number of components in the mixture.}
+#' @param p.dep The dimension of exogeneous variables that are switching
+#' @param p.indep The dimension of exogeneous variables that are non-switching
+#' @return A list that represents the parameters of a model with items:
+#' \item{transition.probs}{M by M matrix that contains transition probabilities}
+#' \item{initial.dist}{M by 1 column that represents an initial distribution}
+#' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
+#' \item{mu}{M by 1 column that contains state-dependent mu}
+#' \item{sigma}{M by 1 column that contains state-dependent sigma}
+#' \item{gamma.dependent}{p_dep by M matrix that contains switching
+#' coefficients for state-dependent exogenous variables}
+#' \item{gamma.independent}{p_indep by 1 column that contains non-switching
+#' coefficients for state-independent exogenous variables}
 #' @examples
-#' data(faithful)
-#' attach(faithful)
-#' normalmixMEMtest(y = eruptions, m = 1)
-#' normalmixMEMtest(y = eruptions, m = 2)
+#' RandomTheta()
+#' RandomTheta(M = 3, s = 2)
+#' RandomTheta(M = 3, s = 3, p.dep = 1)
 RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0)
 {
-  transition.probs <- matrix(runif(M*M), ncol = M)
+  transition.probs <- matrix(runif(M*M, 0.3, 0.5), ncol = M)
+  diag(transition.probs) <- 2 # stay in your current state longer.
   transition.probs <- t(apply(transition.probs, 1,
                               function(row) (row / sum(row))))
   initial.dist <- c(0.9, rep(0.1/(M-1), (M-1)))
@@ -195,7 +206,8 @@ RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0)
   return (list(transition.probs = transition.probs,
                initial.dist = initial.dist,
                beta = beta, mu = mu, sigma = sigma,
-               gamma.dependent = gamma.dependent, gamma.independent = gamma.independent))
+               gamma.dependent = gamma.dependent,
+               gamma.independent = gamma.independent))
 }
 
 # Given M by n matrix of posterior.probs, returns an n by 1 integer vector that
