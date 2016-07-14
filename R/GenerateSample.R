@@ -5,6 +5,8 @@
 #' @title GenerateSample
 #' @name GenerateSample
 #' @param theta A list that represents the parameters of a model with items:
+#' \item{transition.probs}{M by M matrix that contains transition probabilities}
+#' \item{initial.dist}{M by 1 column that represents an initial distribution}
 #' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
 #' \item{mu}{M by 1 column that contains state-dependent mu}
 #' \item{sigma}{M by 1 column that contains state-dependent sigma}
@@ -12,20 +14,35 @@
 #' coefficients for state-dependent exogenous variables}
 #' \item{gamma.independent}{p_indep by 1 column that contains non-switching
 #' coefficients for state-independent exogenous variables}
-#' \item{transition.probs}{M by M matrix that contains transition probabilities}
-#' \item{initial.dist}{M by 1 column that represents an initial distribution}
-#' @param n The number of observations to be created.
+#' @param n The number of sample observations to be created.
 #' @param initial.y.set n_initial by 1 column that represents previous samples;
 #' n_initial must be larger than/equal to s, the number of autoregressive terms.
+#' By default, initial.y.set is going to be determined by rnorm(s).
 #' @param initial.state An integer in {1, 2, ..., M} that represents the state of
-#' the very last observation of initial.y.set.
+#' the very last observation of initial.y.set. The default value is 1.
 #' @param z_dependent n by p_dep matrix of data for exogenous variables that
 #' have switching coefficeints.
 #' @param z_independent n by p_indep matrix of data for exogenous variables that
 #' have non-switching coefficeints.
-GenerateSample <- function(theta, n = 100, initial.y.set = NULL, initial.state = 1,
-  z.dependent = NULL, z.independent = NULL)
+#' @param is.MSM Determines whether the model follows MSM-AR. If it is set to be
+#' TRUE, the model is assumed to be MSI-AR. MSM-AR is not supported now.
+#' @return  A list with items:
+#' \item{y}{(n + length(initial.y.set)) by 1 column that represents a sample
+#' appended with previous values used to estimate autoregressive terms}
+#' \item{y.sample}{n by 1 column that represents a sample of the model}
+#' \item{states}{M by 1 column that contains state-dependent sigma}
+#' \item{msar.model}{An instance in msar.model that represents the actual model
+#' used to create the sample.}
+#' @examples
+#' GenerateSample()
+#' theta <- RandomTheta(M = 2, s = 3)
+#' GenerateSample(theta)
+#' GenerateSample(theta, n = 200)
+GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.state = 1,
+                           z.dependent = NULL, z.independent = NULL, is.MSM = FALSE)
 {
+  if (is.null(theta))
+    theta <- RandomTheta()
   M <- nrow(theta$transition.probs)
   mu <- as.matrix(theta$mu)
   sigma <- as.matrix(theta$sigma)
@@ -38,6 +55,9 @@ GenerateSample <- function(theta, n = 100, initial.y.set = NULL, initial.state =
   if (is.null(initial.y.set))
     initial.y.set <- rnorm(s)
 
+  if (is.MSM)
+    stop ("MSM models are currently not supported.")
+
   # reformatting parameters & safety check
   if (ncol(beta) < 2) # even if beta is not switching make it a matrix
   {
@@ -48,7 +68,7 @@ GenerateSample <- function(theta, n = 100, initial.y.set = NULL, initial.state =
   }
   if (nrow(beta) > length(initial.y.set))
     stop("EXCEPTION: the initial y set must have a length greater than equal to
-        the number of regressive terms in the model.")
+         the number of regressive terms in the model.")
   if (length(mu) < 2) # even if mu is not switching make it a vector
     mu <- as.matrix(rep(mu[1,1], M))
   if (length(sigma) < 2) # even if sigma is not switching make it a vector
@@ -61,7 +81,7 @@ GenerateSample <- function(theta, n = 100, initial.y.set = NULL, initial.state =
     if (n != nrow(z.dependent))
       stop("EXCEPTION: the length of samples should match the number of
            observations for z.dependent.")
-    z.dependent <- rbind(matrix(rep(Inf, s*ncol(z.dependent)), 
+    z.dependent <- rbind(matrix(rep(Inf, s*ncol(z.dependent)),
                                 ncol = ncol(z.dependent)),
                          as.matrix(z.dependent))
     gamma.dependent <- as.matrix(theta$gamma.dependent)
@@ -73,15 +93,15 @@ GenerateSample <- function(theta, n = 100, initial.y.set = NULL, initial.state =
     z.independent <- as.matrix(z.independent)
     if (n != nrow(z.independent))
       stop("EXCEPTION: the length of samples should match the number of
-        observations for z.independent.")
-    z.independent <- rbind(matrix(rep(Inf, s*ncol(z.independent)), 
+           observations for z.independent.")
+    z.independent <- rbind(matrix(rep(Inf, s*ncol(z.independent)),
                                   ncol = ncol(z.independent)),
                            as.matrix(z.independent))
     gamma.independent <- as.matrix(theta$gamma.independent)
   }
 
   # initialization
-  y <- c(initial.y.set, rep(-1, n))
+  y <- c(initial.y.set, rep(-Inf, n))
   states <- c(rep(-1, (length(initial.y.set) - 1)),
               initial.state,
               rep(0, n))
@@ -105,7 +125,27 @@ GenerateSample <- function(theta, n = 100, initial.y.set = NULL, initial.state =
       z.independent[k,] %*% as.matrix(gamma.independent) +
       rnorm(1,sd=sigma[state,1])
   }
+  states <- states[initial.index:last.index]
 
-  return (list(sample = y[initial.index:length(y)],
-  states = states[initial.index:length(states)]))
+  posterior.probs <- matrix(rep(0,M*n), ncol = M)
+  for (i in initial.index:n)
+    posterior.probs[i,states[i]] = 1
+  msar.model <- list(theta = theta,
+                     log.likelihood = Inf,
+                     aic = Inf, bic = Inf,
+                     posterior.probs = posterior.probs,
+                     states = states,
+                     call = match.call(),
+                     M = M,
+                     s = s,
+                     is.beta.switching = (ncol(as.matrix(beta)) > 1),
+                     is.sigma.switching = (length(sigma) > 1),
+                     is.MSM = is.MSM,
+                     label = "msar.model")
+
+
+  return (list(y = y,
+               y.sample = y[initial.index:length(y)],
+               states = states[initial.index:length(states)],
+               msar.model = msar.model))
 }
