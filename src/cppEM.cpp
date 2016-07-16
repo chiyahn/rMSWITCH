@@ -36,12 +36,15 @@ struct Theta
 struct Xi
 {
 	arma::mat xi_k;				// n by M matrix
+	arma::mat xi_past_t; // n by M matrix
 	arma::mat xi_n;				// n by M matrix
 	double		likelihood;
 
-	Xi (arma::mat xi_k_, arma::mat xi_n_, double likelihood_)
+	Xi (arma::mat xi_k_, arma::mat xi_past_t_, arma::mat xi_n_,
+		double likelihood_)
 	{
 		xi_k = xi_k_;
+		xi_past_t = xi_past_t_;
 		xi_n = xi_n_;
 		likelihood = likelihood_;
 	}
@@ -125,7 +128,7 @@ Xi FilterIndep (arma::colvec* py,
   int n = py->n_rows;
   int M = ptheta->transition_probs.n_cols;
   arma::mat xi_k_t(M, n); // make a transpose first for easier column operations.
-
+	arma::mat xi_past_t(M, n);
   double likelihood = 0;
 
 	for (int k = 0; k < n; k++)
@@ -138,11 +141,10 @@ Xi FilterIndep (arma::colvec* py,
 		double* ratios = new double[M];
 		double row_sum = 0;
 
-		arma::colvec xi_past;
 		if (k > 0)
-			xi_past = ptheta->transition_probs * xi_k_t.col(k-1);
+			xi_past_t.col(k) = ptheta->transition_probs * xi_k_t.col(k-1);
 		else
-			xi_past = ptheta->transition_probs * ptheta->initial_dist;
+			xi_past_t.col(k) = ptheta->initial_dist;
 
 		for (int j = 0; j < M; j++)
 		{
@@ -159,7 +161,7 @@ Xi FilterIndep (arma::colvec* py,
 			}
 			// SQRT2PI only matters in calculation of eta;
 			// you can add it in the final log-likelihood.
-			ratios[j] = xi_past(j) / ptheta->sigma(j);
+			ratios[j] = xi_past_t(j, k) / ptheta->sigma(j);
 		}
 
 		for (int j = 0; j < M; j++)
@@ -173,18 +175,21 @@ Xi FilterIndep (arma::colvec* py,
 		}
 
 		xi_k_t.col(k) /= row_sum;
+
 		likelihood += log(row_sum) - min_value + log(ratios[min_index]);
 
 		delete[] ratios; // clear memory
 	}
 	likelihood -= n * LOG2PI_OVERTWO;
 
-  Xi xi(xi_k_t.t(), arma::mat(), likelihood);
+
+  Xi xi(xi_k_t.t(), xi_past_t, arma::mat(), likelihood);
   return xi;
 }
 
 // Returns xi_n.
 arma::mat Smooth (arma::mat* xi_k,
+									arma::mat* xi_past_t,
                   arma::mat* transition_probs)
 {
   int n = xi_k->n_rows;
@@ -196,7 +201,7 @@ arma::mat Smooth (arma::mat* xi_k,
   xi_n_t.col(n-1) = xi_k_t.col(n-1);
   for (int k = (n-2); k >= 0; k--)
     xi_n_t.col(k) = xi_k_t.col(k) %
-  (*transition_probs * (xi_n_t.col(k+1) / (*transition_probs * xi_k_t.col(k))));
+  (*transition_probs * (xi_n_t.col(k+1) / (xi_past_t->col(k+1))));
 
   return xi_n_t.t();
 }
@@ -210,7 +215,8 @@ Xi ExpectationStep(arma::colvec* py,
 {
 	Xi filter = FilterIndep(py, py_lagged, pz_dependent, pz_independent,
 														ptheta);
-	filter.xi_n = Smooth(&filter.xi_k, &(ptheta->transition_probs));
+	filter.xi_n = Smooth(&filter.xi_k, &filter.xi_past_t,
+												&(ptheta->transition_probs));
 	return filter;
 }
 
@@ -272,6 +278,30 @@ arma::colvec ComputeInitialDist (arma::colvec* py,
 	return (initial_dist / n);
 }
 
+// Compute a stationary distribution given a transition matrix.
+// (Since we force every member of the matrix to be strictly positive,
+// the corresponding MC is irreducible thus positive-recurrent as it is finite.)
+arma::colvec ComputeStationaryDist (arma::mat* transition_probs, int M)
+{
+	arma::cx_vec eigval;
+	arma::cx_mat eigvec;
+	arma::eig_gen(eigval, eigvec, transition_probs->t()); // left eigenv, so take t.
+	arma::vec stationary_dist(M);
+
+	// Need to find which eigenvector has a eigenval. of one and extract real parts
+	// find index
+	int stationary_dist_index = -1;
+	for (int i = 0; i < M; i++)
+	  if (std::abs(eigval(i).real() - 1) < EPS_ALMOST_ZERO)
+	    stationary_dist_index = i;
+	// extract real
+	for (int i = 0; i < M; i++)
+	  stationary_dist(i) = eigvec(i,stationary_dist_index).real();
+
+	stationary_dist = abs(stationary_dist) / sum(abs(stationary_dist));
+	return stationary_dist;
+}
+
 // Returns an maximized theta based on computed xi_k and xi_n from an E-step.
 Theta MaximizationStepIndep (arma::colvec* py,
 														arma::mat* py_lagged,
@@ -279,6 +309,7 @@ Theta MaximizationStepIndep (arma::colvec* py,
 														arma::mat* pz_independent,
 														Theta* ptheta0,
 														arma::mat* pxi_k,
+														arma::mat* pxi_past_t,
 														arma::mat* pxi_n,
 														arma::colvec* sigma_first_step)
 {
@@ -303,28 +334,28 @@ Theta MaximizationStepIndep (arma::colvec* py,
 
 	// 1. Estimation for transition_probs
 	for (int i = 0; i < M; i++)
-   {
-    double total = 0;
+	 {
+		double total = 0;
 		for (int k = 0; k < n; k++)
-    	total += pxi_n->at(k,i);
-  	for (int j = 0; j < M; j++)
-  	{
-    	double prob_ij = 0;
-	    for (int k = 1; k < n; k++)
-	    {
-	      arma::colvec prob_ij_k = (ptheta0->transition_probs * pxi_k->row(k-1).t());
-	      prob_ij += pxi_n->at(k,j) *
+			total += pxi_n->at(k,i);
+		for (int j = 0; j < M; j++)
+		{
+			double prob_ij = 0;
+			for (int k = 1; k < n; k++)
+			{
+				arma::colvec prob_ij_k = pxi_past_t->col(k);
+				prob_ij += pxi_n->at(k,j) *
 										ptheta0->transition_probs(i,j) * pxi_k->at((k-1),i) /
-										prob_ij_k(j);
-	    }
-	    transition_probs(i,j) = prob_ij / total;
-	    transition_probs(i,j) = std::max(transition_probs(i,j), 0.02); // hard constraint
-	    transition_probs(i,j) = std::min(transition_probs(i,j), 0.98); // hard constraint
-    }
+										pxi_past_t->at(j,k);
+			}
+			transition_probs(i,j) = prob_ij / total;
+			transition_probs(i,j) = std::max(transition_probs(i,j), 0.02); // hard constraint
+			transition_probs(i,j) = std::min(transition_probs(i,j), 0.98); // hard constraint
+		}
 		// normalize
-  	transition_probs.row(i) = transition_probs.row(i) /
+		transition_probs.row(i) = transition_probs.row(i) /
 															sum(transition_probs.row(i));
-  }
+	}
 
 	// 2. Estimation for beta, mu, sigma, gamma
 	// 2-1. mu WATCH: this is specific for independent beta and scalar AR
@@ -358,7 +389,7 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	{
 	  double prop_sum = 0;
 	  for (int j = 0; j < M; j++)
-	  { 
+	  {
 			double prop = pxi_n->at(k,j) / (ptheta0->sigma(j) * ptheta0->sigma(j));
 	    prop_sum += prop;
 	    beta_part_two += prop * y_lagged_t.col(k) *
@@ -413,15 +444,10 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	  sigma(j) = std::max(sqrt(sigma(j)), 0.01 * sigma_first_step->at(j));
 	}
 
-	// theta complete other than initial_dist
-	Theta theta = Theta(beta, mu, sigma, gamma_dependent, gamma_independent,
-                     transition_probs, ptheta0->initial_dist);
-
 	// 2-6. initial_dist
-	initial_dist = ComputeInitialDist(py, py_lagged,
-						pz_dependent, pz_independent, &theta);
-
-	theta.initial_dist = initial_dist;
+	initial_dist = ComputeStationaryDist(&transition_probs, M);
+	Theta theta = Theta(beta, mu, sigma, gamma_dependent, gamma_independent,
+                     transition_probs, initial_dist);
 
 	return theta;
 }
@@ -487,7 +513,8 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 													&thetas[i-1]);
 		thetas[i] = MaximizationStepIndep(&y, &y_lagged, &z_dependent, &z_independent,
 																			&thetas[i-1],
-																			&(e_step.xi_k), &(e_step.xi_n),
+																			&(e_step.xi_k), &(e_step.xi_past_t),
+																			&(e_step.xi_n),
 																			&theta0.sigma);
 
 		likelihoods(i) = e_step.likelihood;
