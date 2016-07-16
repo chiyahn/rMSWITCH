@@ -149,3 +149,61 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
                states = states[initial.index:length(states)],
                msar.model = msar.model))
 }
+
+GenerateSamples <- function(theta, n = 200, replications = 199)
+{
+  M <- ncol(theta$transition.probs)
+  s <- nrow(as.matrix(theta$beta))
+  probs <- runif(replications)
+  states <- rep(1, replications)
+  
+  # Make it as switching if not.
+  if (ncol(as.matrix(theta$beta)) == 1)
+    theta$beta <- cbind(rep(theta$beta, M), ncol = M)
+  if (length(theta$sigma) ==  1)
+    theta$sigma <- rep(theta$sigma, M)
+  theta$beta <- as.matrix(theta$beta)
+  theta$mu <- as.matrix(theta$mu)
+  theta$sigma <- as.matrix(theta$sigma)
+  
+  initial.dist.cumsum <- cumsum(theta$initial.dist)
+  for (j in 2:M)
+    states[which(probs > initial.dist.cumsum[j-1] && probs <= initial.dist.cumsum[j])] <- j
+
+  samples <- t(sapply(states, GenerateSampleQuick, theta, n, s))
+  
+  return (samples)
+}
+
+GenerateSampleQuick <- function(initial.state, theta, n, s)
+{
+  initial.y.set <- rnorm(s)
+  y <- c(initial.y.set, rep(-Inf, n))
+  states <- c(rep(-1, (s - 1)),
+              initial.state,
+              rep(0, n))
+  
+  initial.index <- s + 1
+  last.index <- length(initial.y.set) + n
+  
+  for (k in initial.index:last.index)
+  {
+    previous.state <- states[(k-1)]
+    trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
+    prob <- runif(1) # decision to switch
+    state = 1
+    
+    for (j in 2:M)
+      if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
+        state <- j
+        break
+      }
+    
+    states[k] <- state
+    y[k] <- theta$mu[state,1] +
+      t(y[(k-s):(k-1)]) %*% as.numeric(theta$beta[,state]) +
+      rnorm(1,sd=theta$sigma[state,1])
+  }
+  
+  return (y)
+}
