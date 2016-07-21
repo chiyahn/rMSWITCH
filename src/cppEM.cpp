@@ -136,7 +136,7 @@ Xi FilterIndep (arma::colvec* py,
 		// initial setting; keep track of minimum value and its index
 		// to divide everything by the min. value in order to prevent
 		// possible numerical errors when computing posterior probs.
-		int min_index = 0;
+		int min_index = -1;
 		double min_value = std::numeric_limits<double>::infinity();
 		double* ratios = new double[M];
 		double row_sum = 0;
@@ -182,7 +182,6 @@ Xi FilterIndep (arma::colvec* py,
 	}
 	likelihood -= n * LOG2PI_OVERTWO;
 
-
   Xi xi(xi_k_t.t(), xi_past_t, arma::mat(), likelihood);
   return xi;
 }
@@ -195,13 +194,13 @@ arma::mat Smooth (arma::mat* xi_k,
   int n = xi_k->n_rows;
   int M = xi_k->n_cols;
 
-  arma::mat 	xi_n_t(M, n);
-  arma::mat 	xi_k_t = xi_k->t(); // produces a copy of a transpose
-
+  arma::mat xi_n_t(M, n);
+  arma::mat xi_k_t = xi_k->t(); // produces a copy of a transpose
+	arma::mat	transition_probs_t = transition_probs->t();
   xi_n_t.col(n-1) = xi_k_t.col(n-1);
   for (int k = (n-2); k >= 0; k--)
     xi_n_t.col(k) = xi_k_t.col(k) %
-  (*transition_probs * (xi_n_t.col(k+1) / (xi_past_t->col(k+1))));
+  (transition_probs_t * (xi_n_t.col(k+1) / (xi_past_t->col(k+1))));
 
   return xi_n_t.t();
 }
@@ -307,22 +306,21 @@ Theta MaximizationStepIndep (arma::colvec* py,
 														arma::mat* py_lagged,
 														arma::mat* pz_dependent,
 														arma::mat* pz_independent,
+														arma::mat* py_lagged_t,
+														arma::mat* pz_dependent_t,
+														arma::mat* pz_independent_t,
 														Theta* ptheta0,
 														arma::mat* pxi_k,
 														arma::mat* pxi_past_t,
 														arma::mat* pxi_n,
 														arma::colvec* sigma_first_step)
 {
-	arma::mat y_lagged_t = py_lagged->t(); // transpose of y_lagged
-	arma::mat z_dependent_t = pz_dependent->t(); // transpose of z_dependent
-	arma::mat z_independent_t = pz_independent->t(); // transpose of z_independent
-
-
 	int M = ptheta0->initial_dist.size();
 	int s = ptheta0->beta.n_rows;
 	int p_dep = ptheta0->gamma_dependent.n_rows;
 	int p_indep = ptheta0->gamma_independent.n_rows;
 	int n = py->n_rows;
+	int n_minus_one = n - 1;
 
 	arma::mat 		transition_probs(M, M);
 	arma::mat 		beta(s, M); // s by M matrix (ind. case => beta is a single col.)
@@ -336,19 +334,17 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	for (int i = 0; i < M; i++)
 	 {
 		double total = 0;
-		for (int k = 0; k < n; k++)
+		for (int k = 0; k < n_minus_one; k++)
 			total += pxi_n->at(k,i);
 		for (int j = 0; j < M; j++)
 		{
 			double prob_ij = 0;
 			for (int k = 1; k < n; k++)
-			{
-				arma::colvec prob_ij_k = pxi_past_t->col(k);
 				prob_ij += pxi_n->at(k,j) *
 										ptheta0->transition_probs(i,j) * pxi_k->at((k-1),i) /
 										pxi_past_t->at(j,k);
-			}
 			transition_probs(i,j) = prob_ij / total;
+			// enforce ub/lb.
 			transition_probs(i,j) = std::max(transition_probs(i,j), 0.02); // hard constraint
 			transition_probs(i,j) = std::min(transition_probs(i,j), 0.98); // hard constraint
 		}
@@ -361,7 +357,10 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	// 2-1. mu WATCH: this is specific for independent beta and scalar AR
 	for (int j = 0; j < M; j++)
 	  mu(j) = sum(pxi_n->col(j) %
-						(*py - *py_lagged * ptheta0->beta)) / sum(pxi_n->col(j));
+						(*py - *py_lagged * ptheta0->beta -
+							*pz_dependent * (ptheta0->gamma_dependent).col(j) -
+							*pz_independent * ptheta0->gamma_independent)) / sum(pxi_n->col(j));
+
 
 	// 2-2. gamma_dependent WATCH: specific for independent beta and scalar AR
 	if (!SetToZeroIfAlmostZero(&ptheta0->gamma_dependent)) // validity check
@@ -372,8 +371,8 @@ Theta MaximizationStepIndep (arma::colvec* py,
   	  for (int k = 0; k < n; k++)
   	  {
   	    gamma_dependent_part_one += pxi_n->at(k,j) *
-  	      (z_dependent_t.col(k) * pz_dependent->row(k));
-  	    gamma_dependent_part_two += pxi_n->at(k,j) * z_dependent_t.col(k) *
+  	      (pz_dependent_t->col(k) * pz_dependent->row(k));
+  	    gamma_dependent_part_two += pxi_n->at(k,j) * pz_dependent_t->col(k) *
   	      (py->at(k) - py_lagged->row(k) * ptheta0->beta -
 					pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
   	  }
@@ -392,13 +391,13 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	  {
 			double prop = pxi_n->at(k,j) / (ptheta0->sigma(j) * ptheta0->sigma(j));
 	    prop_sum += prop;
-	    beta_part_two += prop * y_lagged_t.col(k) *
+	    beta_part_two += prop * py_lagged_t->col(k) *
 				(py->at(k) -
 				pz_independent->row(k) * ptheta0->gamma_independent -
-				pz_dependent->row(k) * gamma_dependent.col(j) - mu[j]);
+				pz_dependent->row(k) * gamma_dependent.col(j) - mu(j));
 	  }
 	  beta_part_one += prop_sum *
-			(y_lagged_t.col(k) * (py_lagged->row(k)));
+			(py_lagged_t->col(k) * (py_lagged->row(k)));
 	}
 	beta = inv(beta_part_one) * beta_part_two;
 
@@ -414,13 +413,13 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	    {
 	      double prop = pxi_n->at(k,j) / (ptheta0->sigma(j) * ptheta0->sigma(j));
 	      prop_sum += prop;
-	      gamma_independent_part_two += prop * z_independent_t.col(k) *
+	      gamma_independent_part_two += prop * pz_independent_t->col(k) *
 					(py->at(k) -
 						py_lagged->row(k) * beta -
 						pz_dependent->row(k) * gamma_dependent.col(j) - mu(j));
 	    }
 	    gamma_independent_part_one += prop_sum *
-				(z_independent_t.col(k) * pz_independent->row(k));
+				(pz_independent_t->col(k) * pz_independent->row(k));
 	  }
 	  gamma_independent = inv(gamma_independent_part_one) *
 													gamma_independent_part_two;
@@ -445,10 +444,10 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	}
 
 	// 2-6. initial_dist
-	initial_dist = ComputeStationaryDist(&transition_probs, M);
+	initial_dist = (pxi_n->row(0)).t();
+
 	Theta theta = Theta(beta, mu, sigma, gamma_dependent, gamma_independent,
                      transition_probs, initial_dist);
-
 	return theta;
 }
 
@@ -490,6 +489,9 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 								transition_probs0_rcpp.ncol(), false);
 	arma::colvec initial_dist0(initial_dist0_rcpp.begin(),
 								initial_dist0_rcpp.size(), false);
+	arma::mat y_lagged_t = y_lagged.t();
+	arma::mat z_dependent_t = z_dependent.t();
+	arma::mat z_independent_t = z_independent.t();
 
 	Theta* thetas = new Theta[maxit]; // keep track, only the last will stay
 	Theta theta;
@@ -512,10 +514,11 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 		Xi 		e_step = ExpectationStep(&y, &y_lagged, &z_dependent, &z_independent,
 													&thetas[i-1]);
 		thetas[i] = MaximizationStepIndep(&y, &y_lagged, &z_dependent, &z_independent,
-																			&thetas[i-1],
-																			&(e_step.xi_k), &(e_step.xi_past_t),
-																			&(e_step.xi_n),
-																			&theta0.sigma);
+																	&y_lagged_t, &z_dependent_t, &z_independent_t,
+																	&thetas[i-1],
+																	&(e_step.xi_k), &(e_step.xi_past_t),
+																	&(e_step.xi_n),
+																	&theta0.sigma);
 
 		likelihoods(i) = e_step.likelihood;
 
@@ -534,8 +537,6 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 	int n = states.n_elem;
 	for (int i = 0; i < n; i++)
 		states(i)++; // add one to make the first state one.
-
-
 
 	Rcpp::List theta_R = Rcpp::List::create(Named("beta") = wrap(theta.beta),
 														Named("mu") = wrap(theta.mu),
