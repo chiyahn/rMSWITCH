@@ -20,23 +20,33 @@ ExpectationMaximizationIndepR <- function(y, y.lagged, z.dependent, z.independen
   thetas <- list()
   thetas[[1]] <- theta0
   theta <- theta0
-  likelihoods <- list(-99999)
+  likelihoods <- list(-Inf)
   likelihood <- likelihoods[[1]]
-  for (i in 2:maxit)
+  for (i in 2:(maxit+1))
   {
     e.step <- ExpectationStepR(y, y.lagged, z.dependent, z.independent, thetas[[i-1]])
+
+    likelihoods[[i]] <- e.step$likelihood
+
+
+    # stop if 1. the difference in likelihoods is small enough
+    # or 2. likelihood decreases (a decrease is due to locating local max.
+    # out of hard constraints in maximization step, which suggests that this
+    # is not a good candidate anyway.)
+    if ((likelihoods[[i]] - likelihoods[[i-1]]) < epsilon)
+      break
+
+    likelihood <- likelihoods[[i]]
+    theta <- thetas[[(i-1)]]
     thetas[[i]] <- MaximizationStepIndepR(y, y.lagged, z.dependent, z.independent,
                                          theta$beta, theta$mu, theta$sigma,
                                          theta$gamma.dependent, theta$gamma.independent,
                                          theta$transition.probs, theta$initial.dist,
                                          e.step$xi.k, e.step$xi.past,
                                          e.step$xi.n, theta0$sigma)
-    theta <- thetas[[i]]
 
-    likelihoods[[i]] <- e.step$likelihood
-    likelihood <- likelihoods[[i]]
-    if (abs(likelihoods[[i]] - likelihoods[[i-1]]) < epsilon)
-      break
+
+
   }
 
   # !! CHECK: if EstimateStates is called from C++, add one.

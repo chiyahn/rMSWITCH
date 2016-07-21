@@ -493,18 +493,17 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 	arma::mat z_dependent_t = z_dependent.t();
 	arma::mat z_independent_t = z_independent.t();
 
-	Theta* thetas = new Theta[maxit]; // keep track, only the last will stay
-	Theta theta;
 	arma::colvec likelihoods(maxit);
 	double likelihood;
 	int index_exit = 0;
 
-	Theta theta0(beta0, mu0, sigma0,
-								gamma_dependent0, gamma_independent0,
-								transition_probs0, initial_dist0);
-	thetas[0] = theta0;
+	Theta theta_original(beta0, mu0, sigma0,
+             gamma_dependent0, gamma_independent0,
+             transition_probs0, initial_dist0);
+	Theta theta_temp = theta_original;
+	Theta theta = theta_temp;
+
 	likelihoods(0) = -std::numeric_limits<double>::infinity();
-	theta = theta0;
 	likelihood = likelihoods(0);
 
 	// 1. EM iterations
@@ -512,23 +511,29 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 	{
 		index_exit++;
 		Xi 		e_step = ExpectationStep(&y, &y_lagged, &z_dependent, &z_independent,
-													&thetas[i-1]);
-		thetas[i] = MaximizationStepIndep(&y, &y_lagged, &z_dependent, &z_independent,
-																	&y_lagged_t, &z_dependent_t, &z_independent_t,
-																	&thetas[i-1],
-																	&(e_step.xi_k), &(e_step.xi_past_t),
-																	&(e_step.xi_n),
-																	&theta0.sigma);
+													&theta_temp);
 
 		likelihoods(i) = e_step.likelihood;
 
-		if (std::abs(likelihoods(i) - likelihoods(i-1)) < epsilon)
-			break;
+		// stop if 1. the difference in likelihoods is small enough
+		// or 2. likelihood decreases (a decrease is due to locating local max.
+		// out of hard constraints in maximization step, which suggests that this
+		// is not a good candidate anyway.)
+		if ((likelihoods(i) - likelihoods(i-1)) < epsilon)
+		  break;
+
+		theta = theta_temp;
+		theta_temp = MaximizationStepIndep(&y, &y_lagged, &z_dependent, &z_independent,
+																	&y_lagged_t, &z_dependent_t, &z_independent_t,
+																	&theta,
+																	&(e_step.xi_k), &(e_step.xi_past_t),
+																	&(e_step.xi_n),
+																	&theta_original.sigma);
+
 	}
-	theta = thetas[index_exit]; // copy the best theta
 	likelihood = likelihoods(index_exit); // copy the most recent likelihood
 	likelihoods = likelihoods.subvec(0,index_exit); // remove unused elements
-	delete[] thetas; // clear memory
+
 
 	// 2. state estimation
 	arma::colvec states = EstimateStates(&y, &y_lagged,
