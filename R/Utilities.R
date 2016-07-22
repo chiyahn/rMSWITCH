@@ -218,3 +218,19 @@ EstimateStates <- function(posterior.probs)
   # for each row, returns an indice of a coulmn (state) that is max in the row
   apply(posterior.probs, 1, function(i) (which(i==max(i))))
 }
+
+#' Order a transition matrix given an order of a column.
+#' Example: 
+#' mu <- c(1,-1)
+#' mu.order <- order(mu)   # 2, 1
+#' transition.matrix <- matrix(c(0.4,0.7,0.6,0.3), ncol = 2)
+#' OrderTransitionMatrix(transition.matrix, mu.order)
+OrderTransitionMatrix <- function(transition.matrix, new.order)
+{
+  M <- ncol(transition.matrix)
+  ordered.matrix <- matrix(rep(0,(M*M)), ncol = M)
+  for (i in 1:M)
+    for (j in 1:M)
+      ordered.matrix[i,j] <- transition.matrix[new.order[i],new.order[j]]
+  return (ordered.matrix)
+}
