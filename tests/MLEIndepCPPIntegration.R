@@ -5,91 +5,8 @@ library(normalregMix)
 library(rMSWITCH)
 library(Rcpp)
 library(RcppArmadillo)
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-# Generates a sample for M = 2
-GenerateSampleM2 <- function(n, beta, mu1, mu2, sigma1, sigma2, p12, p21, 
-                             z.dependent = NULL, 
-                             z.independent = NULL,
-                             gamma.dependent = as.matrix(rep(0,2), ncol = 2), 
-                             gamma.independent = as.matrix(0))
-{
-  y <- as.list(rnorm(s))
-  s <- length(beta)
-  states <- as.list(rep(1,s))
-  if (is.null(z.dependent))
-    z.dependent <- as.matrix(rep(0,n),ncol=1)
-  if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,n),ncol=1) 
-  
-  for (i in (s+1):n)
-  {
-    prob <- runif(1,0,1) # decision to switch
-    if (states[[i-1]] == 1)
-      states[[i]] = (prob < p12) + 1
-    else
-      states[[i]] = 2 - (prob < p21)
-    
-    if (states[[i]] == 1)
-      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
-        rnorm(1,sd=sigma1)
-    else
-      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
-        rnorm(1,sd=sigma2)
-  }
-  return (as.numeric(y))
-}
-
-# Generates a sample for M = 3
-GenerateSampleM3 <- function(n, beta, mu1, mu2, mu3, sigma1, sigma2, sigma3, 
-                             p12, p13, p21, p23, p31, p32,
-                             z.dependent = NULL, 
-                             z.independent = NULL,
-                             gamma.dependent = as.matrix(rep(0,3), ncol = 3), 
-                             gamma.independent = as.matrix(0))
-{
-  y <- as.list(rnorm(s))
-  s <- length(beta)
-  states <- as.list(rep(1,s))
-  
-  if (is.null(z.dependent))
-    z.dependent <- as.matrix(rep(0,n),ncol=1)
-  if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,n),ncol=1) 
-  
-  for (i in (s+1):n)
-  {
-    prob <- runif(1,0,1) # decision to switch
-    if (states[[i-1]] == 1)
-      states[[i]] = 1 + (prob < p12) + 2 * (p12 < prob && prob < (p12 + p23))
-    else if (states[[i-1]] == 2)
-      states[[i]] = 2 + (prob < p23) - (p23 < prob && prob < (p23 + p21))
-    else
-      states[[i]] = 3 - (prob < p32) - 2 * (p32 < prob && prob < (p32 + p31))
-    
-    if (states[[i]] == 1)
-      y[[i]] <- mu1 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,1]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
-        rnorm(1,sd=sigma1)
-    else if (states[[i]] == 2)
-      y[[i]] <- mu2 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,2]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
-        rnorm(1,sd=sigma2)
-    else
-      y[[i]] <- mu3 + t(unlist(y[(i-s):(i-1)])) %*% as.numeric(beta) + 
-        z.dependent[i,] %*% as.matrix(gamma.dependent[,3]) + 
-        z.independent[i,] %*% as.matrix(gamma.independent) + 
-        rnorm(1,sd=sigma3)
-    
-  }
-  return (as.numeric(y))
-}
 # Generates exogeneous variable sample
 GenerateExo <- function(n, p)
 {
@@ -104,9 +21,9 @@ GetMatrixAvg <- function (list.of.matrices)
 }
 
 
-MLEIndepCPPComparison <- function(y = y, z = NULL, iterations = 2, z.is.switching = FALSE, M = 3, s = 2, theta.initial = NULL, 
+MLEIndepCPPComparison <- function(y = y, z = NULL, iterations = 2, z.is.switching = FALSE, M = 3, s = 2, theta.initial = NULL,
                         epsilon = 1e-06, maxit = 60, short.n = 200, short.iterations = 10) {
-  
+
   p.dependent <- 0
   if (s + 1 > length(y))
   {
@@ -118,15 +35,14 @@ MLEIndepCPPComparison <- function(y = y, z = NULL, iterations = 2, z.is.switchin
     print ("EXCEPTION: You must specify which terms of coefficients for z are switching.")
     return (NULL)
   }
-  
-  
+
+
   short.n <- max(short.n, 20)
-  
+
   # formatting dataset
-  y <- as.numeric(y)
-  y.lagged <- sapply(seq(s,0), GetLaggedColumn, y, s) # (n-s) by s matrix
-  y.sample <- y.lagged[,1]
-  y.lagged <- as.matrix(y.lagged[,-1])
+  lagged.and.sample <- GetLaggedAndSample(y, s)
+  y.lagged <- lagged.and.sample$y.lagged
+  y.sample <- lagged.and.sample$y.sample
   n <- length(y.sample)
   z.dependent <- NULL
   z.independent <- NULL
@@ -150,7 +66,7 @@ MLEIndepCPPComparison <- function(y = y, z = NULL, iterations = 2, z.is.switchin
     if (length(z.independent) == 0)
       z.independent <- NULL
   }
-  
+
   # 1. Get initial parameter using regmix if theta.initial is not given
   if (is.null(theta.initial))
     theta.initial <- GetInitialTheta(y.sample, y.lagged, z.dependent, z.independent, s, p.dependent, M)
@@ -162,61 +78,49 @@ MLEIndepCPPComparison <- function(y = y, z = NULL, iterations = 2, z.is.switchin
   if (is.null(z.independent))
   {
     z.independent <- as.matrix(rep(0,n))
-    theta.initial$gamma.independent <- as.matrix(0) 
+    theta.initial$gamma.independent <- as.matrix(0)
   }
-  
-  ## TODO: On short & run EM, if dim(z) > 0, use ExpectationMaximizationIndepExo instead.
-  # 2. Run short EM
   theta <- theta.initial
-  short.result <- ExpectationMaximizationIndepR(y = y.sample, y.lagged = y.lagged, 
-                                                z_dependent = z.dependent, z_independent = z.independent,
-                                                theta = theta, 
-                                                maxit = iterations, epsilon = epsilon) 
-  short.result2 <- ExpectationMaximizationIndep (y.sample, y.lagged, z.dependent, z.independent,
-                                                 theta, iterations, epsilon)
-  short.result2 <- ExpectationMaximizationIndep (y.sample, y.lagged, z.dependent, z.independent,
-                                                 short.result2$theta, iterations, epsilon)
-  print(short.result$likelihood)
-  print(short.result2$likelihood)
-  print(short.result$theta)
-  print(short.result2$theta)
-  print(length(y.sample))
   
+
   # 2. Check if EtaIndep is close
   sourceCpp("cppEtaIndep.cpp")
   eta1 <- EtaIndep(y.sample, y.lagged, z.dependent, z.independent,
-                  theta$beta, theta$mu, theta$sigma, 
+                  theta$beta, theta$mu, theta$sigma,
                   theta$gamma.dependent, theta$gamma.independent)
   eta2 <- EtaIndepR(y.sample, y.lagged, z.dependent, z.independent,
-                    theta$beta, theta$mu, theta$sigma, 
+                    theta$beta, theta$mu, theta$sigma,
                     theta$gamma.dependent, theta$gamma.independent)
   print(max(eta1-eta2))
-  
-  
+
+
   # 3. Check if FilterIndep is close
   sourceCpp("cppFilterIndep.cpp")
   sourceCpp("cppFilterIndepOld.cpp")
-  filter1 <- FilterIndep(y.sample, y.lagged, z.dependent, z.independent,
-                   theta$beta, theta$mu, theta$sigma, 
+  filter.cpp <- FilterIndep(y.sample, y.lagged, z.dependent, z.independent,
+                   theta$beta, theta$mu, theta$sigma,
                    theta$gamma.dependent, theta$gamma.independent,
                    theta$transition.probs, theta$initial.dist)
-  filter2 <- FilterIndepR(y.sample, y.lagged, z.dependent, z.independent,
-                          theta$beta, theta$mu, theta$sigma, 
+  filter.R <- FilterIndepR(y.sample, y.lagged, z.dependent, z.independent,
+                          theta$beta, theta$mu, theta$sigma,
                           theta$gamma.dependent, theta$gamma.independent,
                           theta$transition.probs, theta$initial.dist)
-  filter3 <- FilterIndepOld(y.sample, y.lagged, z.dependent, z.independent,
-                         theta$beta, theta$mu, theta$sigma, 
-                         theta$gamma.dependent, theta$gamma.independent,
-                         theta$transition.probs, theta$initial.dist)
-  print(max(filter1$likelihood-filter2$likelihood))
-  print(max(filter1$xi.k-filter2$xi.k))
-  print(sum(abs(filter1$xi.k - filter2$xi.k)))
-  print(sum(abs(filter1$xi.k - filter3$xi.k)))
+  filter.cpp.old <- FilterIndepOld(y.sample, y.lagged, z.dependent, z.independent,
+                            theta$beta, theta$mu, theta$sigma,
+                            theta$gamma.dependent, theta$gamma.independent,
+                            theta$transition.probs, theta$initial.dist)
+  print(theta)
+  print(max(filter.cpp$likelihood-filter.R$likelihood))
+  print(max(filter.cpp$xi.k-filter.R$xi.k))
+  print(sum(abs(filter.cpp$xi.k - filter.R$xi.k)))
+  print(sum(abs(filter.cpp$xi.k - filter.cpp.old$xi.k)))
   # 4. Check if Smooth is close
   sourceCpp("cppSmooth.cpp")
-  smooth1 <- Smooth(filter1$xi.k, theta$transition.probs)
-  smooth2 <- SmoothR(filter1$xi.k, theta$transition.probs)
-  print(max(smooth1-smooth2))
+  smooth.cpp <- Smooth(filter.cpp$xi.k, filter.cpp$xi.past.t, theta$transition.probs)
+  smooth.R <- SmoothR(filter.cpp$xi.k, theta$transition.probs)
+  print(max(smooth.cpp-smooth.R))
+  return (list(filter.cpp = filter.cpp, filter.R = filter.R,
+               smooth.cpp = smooth.cpp, smooth.R = smooth.R))
 }
 
 # model specification
@@ -236,34 +140,42 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 set.seed(123456)
 y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21)
 result.rMRS <- MLEIndepCPPComparison(y, M = M, s = s) #rMRS
-result.rMRS
+print(result.rMRS$filter.R$xi.k)
+apply(result.rMRS$filter.R$xi.k, 1, function(row) sum(row))
+print(result.rMRS$filter.cpp$xi.k)
+apply(result.rMRS$filter.cpp$xi.k, 1, function(row) sum(row))
+print(result.rMRS$smooth.R)
+apply(result.rMRS$smooth.R, 1, function(row) sum(row))
+print(result.rMRS$smooth.cpp)
+apply(result.rMRS$smooth.cpp, 1, function(row) sum(row))
+beepr::beep(2)
 model=lm(y ~ 1)
 msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta1, dependent sigma)
-
-## 2. M = 2, s = 1, p.indep = 1
-n <- 100
-p12 <- 0.6
-p21 <- 0.7
-mu1 <- -2
-mu2 <- 2
-sigma1 <- 1
-sigma2 <- 2
-beta <- 0.8
-M <- 2
-s <- 1
-p.indep <- 1
-gamma.independent <- 0.7
-
-# generates data
-z.independent <- GenerateExo(n, p.indep) 
-
-y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21, 
-                      z.independent = z.independent, gamma.independent = gamma.independent)
-
-# comparison
-result.rMRS <- MLEIndepCPPComparison(y, z = z.independent, z.is.switching = FALSE, M = M, s = s, 
-                                     maxit = 2) #rMRS
-result.rMRS$theta
-result.rMRS$likelihood
-model=lm(y ~ z.independent)
-msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 beta2, dependent sigma)
+# 
+# ## 2. M = 2, s = 1, p.indep = 1
+# n <- 100
+# p12 <- 0.6
+# p21 <- 0.7
+# mu1 <- -2
+# mu2 <- 2
+# sigma1 <- 1
+# sigma2 <- 2
+# beta <- 0.8
+# M <- 2
+# s <- 1
+# p.indep <- 1
+# gamma.independent <- 0.7
+# 
+# # generates data
+# z.independent <- GenerateExo(n, p.indep)
+# 
+# y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
+#                       z.independent = z.independent, gamma.independent = gamma.independent)
+# 
+# # comparison
+# result.rMRS <- MLEIndepCPPComparison(y, z = z.independent, z.is.switching = FALSE, M = M, s = s,
+#                                      maxit = 2) #rMRS
+# result.rMRS$theta
+# result.rMRS$likelihood
+# model=lm(y ~ z.independent)
+# msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 beta2, dependent sigma)

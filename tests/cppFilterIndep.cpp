@@ -22,7 +22,7 @@ SEXP FilterIndep  (Rcpp::NumericVector y_rcpp,
 	int n = y_rcpp.size();
 	int M = mu_rcpp.size();
 	arma::mat xi_k_t(M, n); // make a transpose first for easier column operations.
-
+	arma::mat xi_past_t(M, n);
 	arma::colvec y(y_rcpp.begin(), y_rcpp.size(), false);
 	arma::mat    y_lagged(y_lagged_rcpp.begin(),
 								y_lagged_rcpp.nrow(),
@@ -59,11 +59,10 @@ SEXP FilterIndep  (Rcpp::NumericVector y_rcpp,
 		double* ratios = new double[M];
 		double row_sum = 0;
 
-		arma::colvec xi_past;
 		if (k > 0)
-			xi_past = transition_probs * xi_k_t.col(k-1);
+		  xi_past_t.col(k) = transition_probs * xi_k_t.col(k-1);
 		else
-			xi_past = transition_probs * initial_dist;
+		  xi_past_t.col(k) = initial_dist;
 
 		for (int j = 0; j < M; j++)
 		{
@@ -80,7 +79,7 @@ SEXP FilterIndep  (Rcpp::NumericVector y_rcpp,
 			}
 			// SQRT2PI only matters in calculation of eta;
 			// you can add it in the final log-likelihood.
-			ratios[j] = xi_past(j) / sigma(j);
+			ratios[j] = xi_past_t(j, k) / sigma(j);
 		}
 
 		for (int j = 0; j < M; j++)
@@ -101,5 +100,6 @@ SEXP FilterIndep  (Rcpp::NumericVector y_rcpp,
 	likelihood -= n * LOG2PI_OVERTWO;
 
 	return Rcpp::List::create(Named("xi.k") = wrap(xi_k_t.t()),
+                            Named("xi.past.t") = wrap(xi_past_t),
 														Named("likelihood") = wrap(likelihood));
 }

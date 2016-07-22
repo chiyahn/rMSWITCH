@@ -43,7 +43,7 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 								transition_probs_rcpp.ncol(), false);
 	arma::colvec initial_dist(initial_dist_rcpp.begin(),
 								initial_dist_rcpp.size(), false);
-	arma::colvec beta(beta_rcpp.begin(), 
+	arma::mat    beta(beta_rcpp.begin(),
                    beta_rcpp.nrow(), beta_rcpp.ncol(), false);
 	arma::colvec mu(mu_rcpp.begin(), mu_rcpp.size(), false);
 	arma::colvec sigma(sigma_rcpp.begin(), sigma_rcpp.size(), false);
@@ -61,12 +61,12 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 		int min_index = 0;
 		double min_value = std::numeric_limits<double>::infinity();
 		double* ratios = new double[M];
-
+		double row_sum = 0;
 		arma::colvec xi_past;
 		if (k > 0)
 			xi_past = transition_probs * xi_k_t.col(k-1);
 		else
-			xi_past = transition_probs * initial_dist;
+			xi_past = initial_dist;
 
 		for (int j = 0; j < M; j++)
 		{
@@ -92,10 +92,14 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 				xi_k_t(j,k) = 1.0;
 			else
 				xi_k_t(j,k) = (ratios[j] / ratios[min_index]) *
-				exp(min_value - xi_k_t(j,k));
+					exp(min_value - xi_k_t(j,k));
+			row_sum += xi_k_t(j,k);
 		}
+		// normalize
+		xi_k_t.col(k) /= row_sum;
+
 		delete[] ratios; // clear memory
 	}
 
-	return (wrap(xi_k_t.t()));
+  return wrap(xi_k_t.t());
 }

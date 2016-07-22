@@ -1,11 +1,12 @@
 # ==========================================
 # Examples to get used to rcpp
 # ==========================================
-
 #install.packages("Rcpp")
 #install.packages("testthat")
+#install.packages("inline")
 library(Rcpp)
 library(testthat)
+library(inline)
 # 1. scalar input & scalar output
 cppFunction("int add(int x, int y, int z) {  return (x + y + z); }")
 expect_equal(add(1,2,3), 1+2+3)
@@ -60,7 +61,34 @@ cppFunction("NumericVector rowSum(NumericMatrix mat) {
 mat <- matrix(seq(1:12), nrow = 4)
 expect_equal(rowSum(mat), apply(mat, 1, sum))
 
-sourceCpp("C:\\Users\\chiyahn\\Dropbox\\Work\\June15\\rmrs\\tests\\rowSumC.cpp")
-expect_equal(rowSumC(mat), apply(mat, 1, sum))
+# 6. RcppArmadillo: eigenvector
+GetStationaryDistribution <- cxxfunction(signature(matrix="matrix"),
+                                         plugin="RcppArmadillo", body='
+arma::mat transition_probs = Rcpp::as<arma::mat>(matrix);
+arma::cx_vec eigval;
+arma::cx_mat eigvec;
+arma::eig_gen(eigval, eigvec, transition_probs.t()); // left eigenv, so take t.
+int M = transition_probs.n_cols;
+arma::vec stationary_dist(M);
 
-# 6. sample sigma
+// Need to find which eigenvector has a eigenval. of one and extract real parts
+// find index
+int stationary_dist_index = 0;
+for (int i = 0; i < M; i++) 
+  if (eigval(i).real() == 1)
+    stationary_dist_index = i;
+// extract real
+for (int i = 0; i < M; i++) 
+  stationary_dist(i) = eigvec(i,stationary_dist_index).real(); 
+
+stationary_dist = abs(stationary_dist) / sum(abs(stationary_dist));
+return wrap(stationary_dist);')
+P <- matrix(c(1/4,1/5,3/4,4/5), ncol = 2)
+mu <- GetStationaryDistribution(P)
+expect_equal(t(mu) %*% P, t(mu)) # check if it is indeed stationary
+expect_equal(sum(mu), 1) # must sum up to 1
+P <- matrix(c(1/4,1/5,1/6,2/4,3/5,2/6,1/4,1/5,3/6), ncol = 3)
+mu <- GetStationaryDistribution(P)
+expect_equal(t(mu) %*% P, t(mu)) # check if it is indeed stationary
+expect_equal(sum(mu), 1) # must sum up to 1
+

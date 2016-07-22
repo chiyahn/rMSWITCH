@@ -24,7 +24,7 @@ SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 					)
 {
 	int n = y_rcpp.size();
-	int M = mu_rcpp.size();
+	int M = transition_probs_rcpp.ncol();
 	arma::mat xi_k_t(M, n); // make a transpose first for easier column operations.
 
 	arma::colvec y(y_rcpp.begin(), y_rcpp.size(), false);
@@ -42,7 +42,7 @@ SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 								transition_probs_rcpp.ncol(), false);
 	arma::colvec initial_dist(initial_dist_rcpp.begin(),
 								initial_dist_rcpp.size(), false);
-	arma::mat    beta(beta_rcpp.begin(), 
+	arma::mat    beta(beta_rcpp.begin(),
                    beta_rcpp.nrow(), beta_rcpp.ncol(), false);
 	arma::colvec mu(mu_rcpp.begin(), mu_rcpp.size(), false);
 	arma::colvec sigma(sigma_rcpp.begin(), sigma_rcpp.size(), false);
@@ -60,7 +60,7 @@ SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 		// initial setting; keep track of minimum value and its index
 		// to divide everything by the min. value in order to prevent
 		// possible numerical errors when computing posterior probs.
-		int min_index = 0;
+		int min_index = -1;
 		double min_value = std::numeric_limits<double>::infinity();
 		double* ratios = new double[M];
 		double row_sum = 0;
@@ -69,7 +69,7 @@ SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 		if (k > 0)
 			xi_past = transition_probs * xi_k_t.col(k-1);
 		else
-			xi_past = transition_probs * initial_dist;
+			xi_past = initial_dist;
 
 		for (int j = 0; j < M; j++)
 		{
@@ -95,9 +95,12 @@ SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 				xi_k_t(j,k) = 1.0;
 			else
 				xi_k_t(j,k) = (ratios[j] / ratios[min_index]) *
-				exp(min_value - xi_k_t(j,k));
+											exp(min_value - xi_k_t(j,k));
 			row_sum += xi_k_t(j,k);
 		}
+
+		xi_k_t.col(k) /= row_sum;
+		
 		likelihood += log(row_sum) - min_value + log(ratios[min_index]);
 
 		delete[] ratios; // clear memory
