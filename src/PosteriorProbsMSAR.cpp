@@ -27,6 +27,7 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 	int n = y_rcpp.size();
 	int M = mu_rcpp.size();
 	arma::mat xi_k_t(M, n); // make a transpose first for easier column operations.
+	arma::mat xi_past_t(M, n);
 
 	arma::colvec y(y_rcpp.begin(), y_rcpp.size(), false);
 	arma::mat    y_lagged(y_lagged_rcpp.begin(),
@@ -62,11 +63,10 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 		double min_value = std::numeric_limits<double>::infinity();
 		double* ratios = new double[M];
 		double row_sum = 0;
-		arma::colvec xi_past;
 		if (k > 0)
-			xi_past = transition_probs * xi_k_t.col(k-1);
+			xi_past_t.col(k) = transition_probs * xi_k_t.col(k-1);
 		else
-			xi_past = initial_dist;
+			xi_past_t.col(k) = initial_dist;
 
 		for (int j = 0; j < M; j++)
 		{
@@ -83,7 +83,7 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 			}
 			// SQRT2PI only matters in calculation of eta;
 			// you can add it in the final log-likelihood.
-			ratios[j] = xi_past(j) / sigma(j);
+			ratios[j] = xi_past_t(j,k) / sigma(j);
 		}
 
 		for (int j = 0; j < M; j++)
@@ -101,5 +101,14 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 		delete[] ratios; // clear memory
 	}
 
-  return wrap(xi_k_t.t());
+	// smoothed probabilities
+	arma::mat xi_n_t(M, n);
+	arma::mat	transition_probs_t = transition_probs.t();
+  xi_n_t.col(n-1) = xi_k_t.col(n-1);
+  for (int k = (n-2); k >= 0; k--)
+    xi_n_t.col(k) = xi_k_t.col(k) %
+  (transition_probs_t * (xi_n_t.col(k+1) / (xi_past_t.col(k+1))));
+
+	return Rcpp::List::create(Named("xi.k") = wrap(xi_k_t.t()),
+														Named("xi.n") = wrap(xi_n_t.t()));
 }

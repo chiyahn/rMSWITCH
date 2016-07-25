@@ -25,19 +25,19 @@ DiagPlot <- function(msar.model, y)
 
 
   states <- msar.model$states
-  posterior.probs <- msar.model$posterior.probs
+  posterior.probs.smoothed <- msar.model$posterior.probs.smoothed # use smoothed probabilities
 
-  # 2-1. generate a plot of posterior probabilities
-  df.posterior.probs <- as.data.frame(cbind(posterior.probs, k = seq(1:n)))
-  colnames(df.posterior.probs) <- c(sapply(seq(1:M), function (x) paste ("State", x)),
-                                    "k")
+  # 2-1. generate a plot of posterior probabilities (smoothed)
+  df.posterior.probs.smoothed <- as.data.frame(cbind(posterior.probs.smoothed, k = seq(1:n)))
+  colnames(df.posterior.probs.smoothed) <- c(sapply(seq(1:M), function (x) paste ("State", x)),
+                                             "k")
 
 
-  molten.posterior.probs <- melt(df.posterior.probs, id="k",
-                                 value.name="posterior.probability",
-                                 variable.name="State")
-  print(ggplot(data=molten.posterior.probs,
-               aes(x=k, y=posterior.probability, colour=State)) +
+  molten.posterior.probs.smoothed <- melt(df.posterior.probs.smoothed, id="k",
+                                          value.name="posterior.probability.smoothed",
+                                          variable.name="State")
+  print(ggplot(data=molten.posterior.probs.smoothed,
+               aes(x=k, y=posterior.probability.smoothed, colour=State)) +
           geom_line())
 
   # 2-2. generate a plot of y data and shade a region for each stte
