@@ -1,16 +1,17 @@
-#' Estimates MLE of Markov Regime Switching (MRS) Model on AR(s) with M states from sample data
-#' where regressors on the autoregression are independent of states
+#' Estimates MLE of a Markov regime-switching autoregressive (MS-AR) model on 
+#' AR(s) with M states from sample data
 #' @export
 #' @title EstimateMSAR
 #' @name EstimateMSAR
 #' @param y n by 1 vector of data for y
-#' @param z n by p matrix of data for z (exogenous variables)
-#' @param z.is.switching p by 1 vector of booleans that indicate
-#' whether jth column (1 \leq j \leq p) of z has a corresponding
-#' coefficient that is state-dependent
+#' @param z.dependent n by p.dep matrix of data for switching exogenous variables
+#' @param z.independent n by p.indep matrix of data for non-switching exogenous variables
 #' @param M The number of states in the model
 #' @param s The number of terms used for AR(s)
-#' @param phi.initial The mrs model
+#' @param is.beta.switching Specifies whether autoregressive terms are switching
+#' @param is.sigma.swithcing Specifies whether the model is heteroscedastic.
+#' @param is.MSM Specifies whether the model is switching in mean (MSM) or intercept (MSI).
+#' @param theta.initial An initial guess for MS-AR model
 #' @param epsilon Epsilon used as convergence criterion.
 #' @param maxit The maximum number of iterations.
 #' @param short.n Number of short EMs
