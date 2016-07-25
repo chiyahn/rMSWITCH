@@ -222,9 +222,10 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
   long.results <- apply(candidates.matrix, 2,
                         SLSQPNonSwitchingAR,
                         y, y.lagged, z.dependent, z.independent)
-
+  long.convergence <- unlist(lapply(long.results, "[[", "convergence"))
   long.likelihoods <- unlist(lapply(long.results, "[[", "value"))
   long.likelihoods[!is.finite(long.likelihoods)] <- -Inf # abnormal values => worst log-lik.
+  long.likelihoods[long.convergence < 0] <- -Inf # non-convergence -> worst log-lik.
   
   # extract the one that returns the best likelihood
   long.result <- long.results[[(which(long.likelihoods==max(long.likelihoods))[1])]]
