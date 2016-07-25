@@ -113,8 +113,8 @@ MaximizationStepIndepR <- function(y, y.lagged, z.dependent, z.independent,
       }
       transition.probs[i,j] <- prob.ij / total
       # Enforce ub/lb.
-      transition.probs[i,j] <- max(transition.probs[i,j], 0.02) # hard constraint
-      transition.probs[i,j] <- min(transition.probs[i,j], 0.98) # hard constraint
+      transition.probs[i,j] <- max(transition.probs[i,j], 0.05) # hard constraint
+      transition.probs[i,j] <- min(transition.probs[i,j], 0.95) # hard constraint
     }
     transition.probs[i,] <- transition.probs[i,] /
                             sum(transition.probs[i,]) # normalize again
@@ -203,7 +203,7 @@ MaximizationStepIndepR <- function(y, y.lagged, z.dependent, z.independent,
         z.dependent[k,] %*% as.matrix(gamma_dependent)[,j] - mu[j])
       sigma[j] <- (xi.n[k,j] / sum(xi.n[,j])) * res * res + sigma[j]
     }
-    sigma[j] <- max(sqrt(sigma[j]), 0.1 * sigma0.origin) # hard constraint; sigma >= 0.01 * sigma.hat
+    sigma[j] <- max(sqrt(sigma[j]), 0.5 * sigma0.origin) # hard constraint; sigma >= 0.2 * sigma.hat
   }
 
   # initial.dist

@@ -106,8 +106,11 @@ SEXP PosteriorProbsMSAR (Rcpp::NumericVector y_rcpp,
 	arma::mat	transition_probs_t = transition_probs.t();
   xi_n_t.col(n-1) = xi_k_t.col(n-1);
   for (int k = (n-2); k >= 0; k--)
+  {
     xi_n_t.col(k) = xi_k_t.col(k) %
   (transition_probs_t * (xi_n_t.col(k+1) / (xi_past_t.col(k+1))));
+    xi_n_t.col(k) /= sum(xi_n_t.col(k)); // normalize
+  }
 
 	return Rcpp::List::create(Named("xi.k") = wrap(xi_k_t.t()),
 														Named("xi.n") = wrap(xi_n_t.t()));

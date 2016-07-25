@@ -151,8 +151,7 @@ Xi FilterIndep (arma::colvec* py,
 			arma::colvec xi_k_t_jk = py->row(k) - py_lagged->row(k) * ptheta->beta -
 	      pz_dependent->row(k) * ptheta->gamma_dependent.col(j) -
 	      pz_independent->row(k) * ptheta->gamma_independent - ptheta->mu(j);
-			xi_k_t(j,k) = xi_k_t_jk(0); // explicit gluing
-	    xi_k_t(j,k) *= xi_k_t(j,k);
+			xi_k_t(j,k) = xi_k_t_jk(0) * xi_k_t_jk(0); // explicit gluing
 			xi_k_t(j,k) = xi_k_t(j,k) / (2 * (ptheta->sigma(j) * ptheta->sigma(j)));
 			if (min_value > xi_k_t(j,k))
 			{
@@ -199,8 +198,11 @@ arma::mat Smooth (arma::mat* xi_k,
 	arma::mat	transition_probs_t = transition_probs->t();
   xi_n_t.col(n-1) = xi_k_t.col(n-1);
   for (int k = (n-2); k >= 0; k--)
-    xi_n_t.col(k) = xi_k_t.col(k) %
-  (transition_probs_t * (xi_n_t.col(k+1) / (xi_past_t->col(k+1))));
+  {
+		xi_n_t.col(k) = xi_k_t.col(k) %
+			(transition_probs_t * (xi_n_t.col(k+1) / (xi_past_t->col(k+1))));
+		xi_n_t.col(k) /= sum(xi_n_t.col(k)); // normalize
+	}
 
   return xi_n_t.t();
 }
@@ -345,8 +347,8 @@ Theta MaximizationStepIndep (arma::colvec* py,
 										pxi_past_t->at(j,k);
 			transition_probs(i,j) = prob_ij / total;
 			// enforce ub/lb.
-			transition_probs(i,j) = std::max(transition_probs(i,j), 0.02); // hard constraint
-			transition_probs(i,j) = std::min(transition_probs(i,j), 0.98); // hard constraint
+			transition_probs(i,j) = std::max(transition_probs(i,j), 0.05); // hard constraint
+			transition_probs(i,j) = std::min(transition_probs(i,j), 0.95); // hard constraint
 		}
 		// normalize
 		transition_probs.row(i) = transition_probs.row(i) /
@@ -439,8 +441,8 @@ Theta MaximizationStepIndep (arma::colvec* py,
 	      mu(j);
 	    sigma(j) += (pxi_n->at(k,j) / sum(pxi_n->col(j))) * res(0) * res(0);
 	  }
-		// impose the hard constraint; sigma >= 0.01 * sigma.hat
-	  sigma(j) = std::max(sqrt(sigma(j)), 0.01 * sigma_first_step->at(j));
+		// impose the hard constraint; sigma >= 0.5 * sigma.hat
+	  sigma(j) = std::max(sqrt(sigma(j)), 0.5 * sigma_first_step->at(j));
 	}
 
 	// 2-6. initial_dist
