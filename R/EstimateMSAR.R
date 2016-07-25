@@ -96,14 +96,9 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   # 4. Final formatting
   theta <- long.result$theta
   theta$initial.dist <- theta$initial.dist / sum(theta$initial.dist)
-  if (is.null(z.is.switching))
-  {
+  if (is.null(z.dependent))
     theta$gamma.dependent <- NULL
-    theta$gamma.independent <- NULL
-  }
-  else if (!is.element(TRUE, z.is.switching)) # i.e. none of z is switching
-    theta$gamma.dependent <- NULL
-  else if (!is.element(FALSE, z.is.switching)) # i.e. all z values are switching
+  if (is.null(z.independent))
     theta$gamma.independent <- NULL
   
   # 4.1. Sort them based on mu
