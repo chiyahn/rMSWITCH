@@ -45,7 +45,7 @@ y <- sample$y
 
 # comparison
 set.seed(123456)
-msar.model <- MLENonswitchingAR(y, M = M, s = s) #rMRS
+msar.model <- EstimateMSARModel(y, M = M, s = s) #rMRS
 msar.model$theta
 msar.model$log.likelihood
 DiagPlot(msar.model, y = y)
@@ -66,7 +66,7 @@ sample <- GenerateSample(theta, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- MLENonswitchingAR(y, M = M, s = s) #rMRS
+msar.model <- EstimateMSARModel(y, M = M, s = s) #rMRS
 msar.model$theta
 msar.model$log.likelihood
 DiagPlot(msar.model, y = y)
@@ -93,7 +93,7 @@ sample <- GenerateSample(theta, n = n)
 y <- sample$y
  
 # comparison
-msar.model <- MLENonswitchingAR(y, M = M, s = s) #rMRS
+msar.model <- EstimateMSARModel(y, M = M, s = s) #rMRS
 beepr::beep(2)
 msar.model$theta
 msar.model$log.likelihood
@@ -123,7 +123,7 @@ sample <- GenerateSample(theta, z.independent = z.independent, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- MLENonswitchingAR(y, z.independent = z.independent, M = M, s = s) #rMRS
+msar.model <- EstimateMSARModel(y, z.independent = z.independent, M = M, s = s) #rMRS
 msar.model$theta
 msar.model$log.likelihood
 model=lm(y ~ z.independent)
@@ -142,7 +142,7 @@ sample <- GenerateSample(theta, z.dependent = z.dependent, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- MLENonswitchingAR(y, z.dependent = z.dependent, M = M, s = s) #rMRS
+msar.model <- EstimateMSARModel(y, z.dependent = z.dependent, M = M, s = s) #rMRS
 msar.model$theta
 msar.model$likelihood
 model=lm(y ~ z.dependent)
@@ -167,7 +167,7 @@ sample <- GenerateSample(theta, z.dependent = z.dependent, z.independent = z.ind
 y <- sample$y
 
 # comparison
-msar.model <- MLENonswitchingAR(y, z.dependent = z.dependent, z.independent = z.independent, M = M, s = s) #rMRS
+msar.model <- EstimateMSARModel(y, z.dependent = z.dependent, z.independent = z.independent, M = M, s = s) #rMRS
 msar.model$theta
 msar.model$likelihood
 model=lm(y ~ z.independent + z.dependent)

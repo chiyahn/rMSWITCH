@@ -1,8 +1,8 @@
 #' Estimates MLE of Markov Regime Switching (MRS) Model on AR(s) with M states from sample data
 #' where regressors on the autoregression are independent of states
 #' @export
-#' @title EstimateMSARModel
-#' @name EstimateMSARModel
+#' @title EstimateMSAR
+#' @name EstimateMSAR
 #' @param y n by 1 vector of data for y
 #' @param z n by p matrix of data for z (exogenous variables)
 #' @param z.is.switching p by 1 vector of booleans that indicate
@@ -25,7 +25,7 @@
 #' coefficients for state-independent exogenous variables}
 #' \item{transition.probs}{M by M matrix that contains transition probabilities}
 #' \item{initial.dist}{M by 1 column that represents an initial distribution}
-EstimateMSARModel <- function(y = y, z.dependent = NULL, z.independent = NULL,
+EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         M = 3, s = 2,
                         is.beta.switching = FALSE,
                         is.sigma.switching = TRUE,
@@ -69,7 +69,7 @@ EstimateMSARModel <- function(y = y, z.dependent = NULL, z.independent = NULL,
   # how many candidates would you like to find?
   short.n.candidates <- max(2*short.n*((1+2*s)+(ncol(z.dependent) + ncol(z.independent))*M), 200)
   short.thetas <- lapply(1:short.n.candidates,
-                        function(j) EstimateMSARModelInitShort(theta.initial))
+                        function(j) EstimateMSARInitShort(theta.initial))
   # For compatibility with cpp codes, change gamma.dependent/gamma.independent to
   # appropriate zero vectors. After computation, they will be returned NULL. 
   if (is.null(z.dependent))
@@ -191,7 +191,7 @@ GetLaggedColumn <- function (j, col, s) {
 }
 
 # Gives variation in theta given
-EstimateMSARModelInitShort <- function(theta) {
+EstimateMSARInitShort <- function(theta) {
   beta0 <- theta$beta
   mu0 <- theta$mu
   sigma0 <- theta$sigma
@@ -273,8 +273,8 @@ EstimateStatesIndep <- function(y, y.lagged, theta) {
   return (apply(nu, 1, function(i) (which(i==max(i)))))
 }
 
-# EstimateMSARModel using EM algorithm written in R
-EstimateMSARModelR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, theta.initial = NULL,
+# EstimateMSAR using EM algorithm written in R
+EstimateMSARR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2, theta.initial = NULL,
                         epsilon = 1e-08, maxit = 60, short.n = 200, short.iterations = 10) {
 
   p.dependent <- 0
@@ -339,7 +339,7 @@ EstimateMSARModelR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s
   }
  
   # 2. Run short EM
-  short.thetas <- lapply(1:short.n, function(j) EstimateMSARModelInitShort(theta.initial))
+  short.thetas <- lapply(1:short.n, function(j) EstimateMSARInitShort(theta.initial))
   short.thetas[[length(short.thetas) + 1]] <- theta.initial # include the original theta
 
 
