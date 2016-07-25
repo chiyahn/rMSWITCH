@@ -35,6 +35,9 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         epsilon = 1e-08, maxit = 2000,
                         short.n = 20, short.epsilon = 1e-03,
                         short.iterations = 200) {
+  if (test.on) # initial values controlled by test.on
+    set.seed(test.seed)
+  
   p.dependent <- 0
   if (s + 1 > length(y))
   {

@@ -164,6 +164,34 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
                msar.model = msar.model))
 }
 
+#' Returns an (n + s) by replications matrix that represents samples of 
+#' length (n + s) observations, where s is a length of autoregressive terms.
+#' @export
+#' @title GenerateSamples
+#' @name GenerateSamples
+#' @param theta A list that represents the parameters of a model with items:
+#' \item{transition.probs}{M by M matrix that contains transition probabilities}
+#' \item{initial.dist}{M by 1 column that represents an initial distribution}
+#' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
+#' \item{mu}{M by 1 column that contains state-dependent mu}
+#' \item{sigma}{M by 1 column that contains state-dependent sigma}
+#' \item{gamma.dependent}{p_dep by M matrix that contains switching
+#' coefficients for state-dependent exogenous variables}
+#' \item{gamma.independent}{p_indep by 1 column that contains non-switching
+#' coefficients for state-independent exogenous variables}
+#' @param n The number of sample observations to be created.
+#' @param replications The number of replications for samples.
+#' @param is.MSM Determines whether the model follows MSM-AR. If it is set to be
+#' TRUE, the model is assumed to be MSI-AR. MSM-AR is not supported now.
+#' @return  A list with items:
+#' \item{samples}{(n + length(initial.y.set)) by 1 column that represents a sample
+#' appended with previous values used to estimate autoregressive terms}
+#' \item{states}{n by 1 column that represents a sample of the model}
+#' @examples
+#' theta <- RandomTheta(M = 2, s = 3)
+#' GenerateSamples(theta)
+#' theta <- RandomTheta(M = 3, s = 2)
+#' GenerateSamples(theta, n = 800)
 GenerateSamples <- function(theta, n = 200, replications = 200, is.MSM = FALSE)
 {
   if (is.MSM)
@@ -176,7 +204,7 @@ GenerateSamples <- function(theta, n = 200, replications = 200, is.MSM = FALSE)
   
   # Format it as a switching model if not.
   if (ncol(as.matrix(theta$beta)) == 1)
-    theta$beta <- cbind(rep(theta$beta, M), ncol = M)
+    theta$beta <- matrix(rep(theta$beta, M), ncol = M)
   if (length(theta$sigma) ==  1)
     theta$sigma <- rep(theta$sigma, M)
   theta$beta <- as.matrix(theta$beta)
@@ -187,7 +215,7 @@ GenerateSamples <- function(theta, n = 200, replications = 200, is.MSM = FALSE)
   for (j in 2:M)
     states[which(probs > initial.dist.cumsum[j-1] && probs <= initial.dist.cumsum[j])] <- j
 
-  samples <- t(sapply(states, GenerateSampleQuick, theta = theta, n = n, s = s, is.MSM = is.MSM))
+  samples <- sapply(states, GenerateSampleQuick, theta = theta, n = n, s = s, is.MSM = is.MSM)
   
   return (samples)
 }
