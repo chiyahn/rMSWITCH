@@ -51,8 +51,6 @@ msar.model$log.likelihood
 DiagPlot(msar.model, y = y)
 DiagPlot(sample$msar.model, y = y)
 
-beepr::beep(3)
-
 model=lm(y ~ 1)
 msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta, dependent sigma)
 
@@ -74,10 +72,8 @@ msar.model$log.likelihood
 DiagPlot(msar.model, y = y)
 DiagPlot(sample$msar.model, y = y)
 
-beepr::beep(2)
 model=lm(y ~ 1)
 msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 beta2, dependent sigma)
-
 
 ## 3. M = 3, s = 1
 # model specification
@@ -105,7 +101,6 @@ DiagPlot(msar.model, y = y)
 DiagPlot(sample$msar.model, y = y)
 model=lm(y ~ 1)
 msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta1, dependent sigma)
-beepr::beep(2)
 
 ## 4. M = 2, s = 1, p.indep = 1
 # model specification
@@ -122,81 +117,58 @@ theta <- list(beta = beta, mu = mu, sigma = sigma, gamma.independent = gamma.ind
 M <- ncol(transition.probs)
 s <- nrow(as.matrix(beta))
 
-
 # generates data
-z.independent <- GenerateExo(n = n, p.indep)
+z.independent <- GenerateExo(n = (n+s), p.indep)
 sample <- GenerateSample(theta, z.independent = z.independent, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- MLENonswitchingAR(y, z = z.independent, z.is.switching = FALSE, M = M, s = s) #rMRS
+msar.model <- MLENonswitchingAR(y, z.independent = z.independent, M = M, s = s) #rMRS
 msar.model$theta
 msar.model$log.likelihood
 model=lm(y ~ z.independent)
 msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 beta2, dependent sigma)
-beep(2)
 
 ## 5. M = 2, s = 1, p.dep = 1
 # model specification
 set.seed(567890)
-n <- 100
-p12 <- 0.6
-p21 <- 0.7
-mu1 <- -2
-mu2 <- 2
-sigma1 <- 1
-sigma2 <- 2
-beta <- 0.8
-M <- 2
-s <- 1
-p.dep <- 1
-gamma.dependent <- matrix(c(0.3,0.7), ncol = 2)
+theta$gamma.dependent <- matrix(c(0.3,0.6), ncol = 2)
+theta$gamma.independent <- NULL
+p.dep <- nrow(as.matrix(theta$gamma.dependent))
 
 # generates data
-z.dependent <- GenerateExo(n, p.dep)
-y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
-                      z.dependent = z.dependent, gamma.dependent = gamma.dependent)
+z.dependent <- GenerateExo(n = (n+s), p.dep)
+sample <- GenerateSample(theta, z.dependent = z.dependent, n = n)
+y <- sample$y
 
 # comparison
-result.rMRS <- MLENonswitchingAR(y, z = z.dependent, z.is.switching = TRUE, M = M, s = s) #rMRS
-result.rMRS$theta
-result.rMRS$likelihood
+msar.model <- MLENonswitchingAR(y, z.dependent = z.dependent, M = M, s = s) #rMRS
+msar.model$theta
+msar.model$likelihood
 model=lm(y ~ z.dependent)
 msmFit(model, k=M, p=s, sw=c(T,T,F,T)) # MSwM (dependent mu, z, independent beta1, dependent sigma)
 
 ## 6. M = 3, s = 2, p.dep = 2, p.indep = 1
 # model specification
 set.seed(678901)
-n <- 240
-p12 <- 0.6
-p21 <- 0.7
-mu1 <- -2
-mu2 <- 2
-sigma1 <- 1
-sigma2 <- 2
-beta <- c(0.3, 0.5)
-M <- 2
-s <- 2
-p.dep <- 1
-p.indep <- 2
-gamma.dependent <- matrix(c(0.3,0.6), nrow = p.dep, ncol = M)
-gamma.independent <- matrix(c(0.4,0.5), nrow = p.indep)
+n <- 800
+theta$gamma.dependent <- matrix(c(0.3,0.6), ncol = 2)
+theta$gamma.independent <- c(0.3,0.5)
+theta$beta <- c(0.6,0.3)
+p.dep <- nrow(as.matrix(theta$gamma.dependent))
+p.indep <- nrow(as.matrix(theta$gamma.independent))
+s <- nrow(as.matrix(theta$beta))
 
 # generates data
-z <- GenerateExo(n, p=(p.dep + p.indep))
-z <- 0.1 * z # decrease the magnitude of data
+z <- GenerateExo(n = (n+s), p=(p.dep + p.indep))
 z.dependent <- z[,1:p.dep]
 z.independent <- z[,(p.dep+1):(p.dep+p.indep)]
-y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21,
-                      z.dependent = z.dependent, gamma.dependent = gamma.dependent,
-                      z.independent = z.independent, gamma.independent = gamma.independent)
+sample <- GenerateSample(theta, z.dependent = z.dependent, z.independent = z.independent, n = n)
+y <- sample$y
 
 # comparison
-print("Case 6. M = 2, s = 2, p.dep = 1, p.indep = 2")
-result.rMRS <- MLENonswitchingAR(y, z = z,  z.is.switching = c(T,F,F), M = M, s = s) #rMRS
-result.rMRS$theta
-result.rMRS$likelihood
+msar.model <- MLENonswitchingAR(y, z.dependent = z.dependent, z.independent = z.independent, M = M, s = s) #rMRS
+msar.model$theta
+msar.model$likelihood
 model=lm(y ~ z.independent + z.dependent)
 msmFit(model, k=M, p=s, sw=c(T,T,F,F,F,F,T)) # MSwM (dependent mu, z1, independent z2, z3, beta1, beta2, dependent sigma)
-beep(2)
-beepr::beep(3)

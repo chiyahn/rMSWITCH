@@ -139,15 +139,15 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 # generates data
 set.seed(123456)
 y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21)
-result.rMRS <- MLEIndepCPPComparison(y, M = M, s = s) #rMRS
-print(result.rMRS$filter.R$xi.k)
-apply(result.rMRS$filter.R$xi.k, 1, function(row) sum(row))
-print(result.rMRS$filter.cpp$xi.k)
-apply(result.rMRS$filter.cpp$xi.k, 1, function(row) sum(row))
-print(result.rMRS$smooth.R)
-apply(result.rMRS$smooth.R, 1, function(row) sum(row))
-print(result.rMRS$smooth.cpp)
-apply(result.rMRS$smooth.cpp, 1, function(row) sum(row))
+msar.model <- MLEIndepCPPComparison(y, M = M, s = s) #rMRS
+print(msar.model$filter.R$xi.k)
+apply(msar.model$filter.R$xi.k, 1, function(row) sum(row))
+print(msar.model$filter.cpp$xi.k)
+apply(msar.model$filter.cpp$xi.k, 1, function(row) sum(row))
+print(msar.model$smooth.R)
+apply(msar.model$smooth.R, 1, function(row) sum(row))
+print(msar.model$smooth.cpp)
+apply(msar.model$smooth.cpp, 1, function(row) sum(row))
 beepr::beep(2)
 model=lm(y ~ 1)
 msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta1, dependent sigma)
@@ -173,9 +173,9 @@ msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta1, de
 #                       z.independent = z.independent, gamma.independent = gamma.independent)
 # 
 # # comparison
-# result.rMRS <- MLEIndepCPPComparison(y, z = z.independent, z.is.switching = FALSE, M = M, s = s,
+# msar.model <- MLEIndepCPPComparison(y, z = z.independent, z.is.switching = FALSE, M = M, s = s,
 #                                      maxit = 2) #rMRS
-# result.rMRS$theta
-# result.rMRS$likelihood
+# msar.model$theta
+# msar.model$likelihood
 # model=lm(y ~ z.independent)
 # msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 beta2, dependent sigma)

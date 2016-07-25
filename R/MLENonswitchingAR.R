@@ -25,7 +25,7 @@
 #' coefficients for state-independent exogenous variables}
 #' \item{transition.probs}{M by M matrix that contains transition probabilities}
 #' \item{initial.dist}{M by 1 column that represents an initial distribution}
-MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
+MLENonswitchingAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         M = 3, s = 2,
                         is.beta.switching = FALSE,
                         is.sigma.switching = TRUE,
@@ -40,11 +40,6 @@ MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
     print ("EXCEPTION: The length of observations must be greater than s.")
     return (NULL)
   }
-  if (!is.null(z) && ncol(z) != length(z.is.switching))
-  {
-    print ("EXCEPTION: You must specify which terms of coefficients for z are switching.")
-    return (NULL)
-  }
   if (is.beta.switching)
     stop ("MS models with switching beta are currently not supported;
           they will be implemented soon.")
@@ -54,45 +49,25 @@ MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
   if (is.MSM)
     stop ("MSM models are currently not supported.")
 
-
-
   # formatting dataset
   lagged.and.sample <- GetLaggedAndSample(y, s)
   y.lagged <- lagged.and.sample$y.lagged
   y.sample <- lagged.and.sample$y.sample
   n <- length(y.sample)
-  z.dependent <- NULL
-  z.independent <- NULL
-
-  # divide z into two parts: z that is state-dependent and independent.
-  if (!is.null(z))
-  {
-    if (is.null(z.is.switching[1]))
-    {
-      print ("WARNING: You must specify which terms of coefficients for z are switching.")
-      print ("By default, all coefficients are going to be assumed to be dependent on states.")
-      z.is.switching <- rep(TRUE, ncol(z))
-    }
-    #z.lagged <- apply(z, 2, GetLaggedColumn, j = s, s = s) # remove the first s terms
-    z.lagged <- z[(s+1):nrow(z.lagged),]
-    z.dependent <- as.matrix(z.lagged[,z.is.switching])
-    z.independent <- as.matrix(z.lagged[,!z.is.switching])
-    p.dependent <- ncol(z.dependent)
-    # if one is a column of length 0, transform it into just NULL.
-    if (length(z.dependent) == 0)
-      z.dependent <- NULL
-    if (length(z.independent) == 0)
-      z.independent <- NULL
-  }
-  short.n.candidates <- max(2*short.n*((1+2*s)+(ncol(z.dependent) + ncol(z.independent))*M), 200)
-
-
+  
+  # remove first s rows of z.dependent and z.independent
+  if (!is.null(z.dependent))
+    z.dependent <- as.matrix(as.matrix(z.dependent[(s+1):length(y),]))
+  if (!is.null(z.independent))
+    z.independent <- as.matrix(as.matrix(z.independent[(s+1):length(y),]))
+    
   # 1. Get initial parameter using regmix if theta.initial is not given
   if (is.null(theta.initial))
     theta.initial <- GetInitialTheta(y.sample, y.lagged, z.dependent, z.independent, s, p.dependent, M)
 
-
   # 2. Run short EM
+  # how many candidates would you like to find?
+  short.n.candidates <- max(2*short.n*((1+2*s)+(ncol(z.dependent) + ncol(z.independent))*M), 200)
   short.thetas <- lapply(1:short.n.candidates,
                         function(j) MLENonswitchingARInitShort(theta.initial))
   # For compatibility with cpp codes, change gamma.dependent/gamma.independent to
@@ -101,10 +76,8 @@ MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
     theta.initial$gamma.dependent <- matrix(rep(0,M), ncol = M)
   if (is.null(z.independent))
     theta.initial$gamma.independent <- as.matrix(0)
-  short.thetas[[length(short.thetas) + 1]] <- theta.initial # include the original theta
   
-
-
+  short.thetas[[length(short.thetas) + 1]] <- theta.initial # include the original theta
   short.results <- MaximizeShortStep(short.thetas = short.thetas,
                         y = y.sample, y.lagged = y.lagged,
                         z.dependent = z.dependent, z.independent = z.independent,
@@ -119,10 +92,6 @@ MLENonswitchingAR <- function(y = y, z = NULL, z.is.switching = NULL,
                                   y = y.sample, y.lagged = y.lagged,
                                   z.dependent = z.dependent, z.independent = z.independent)
   
-
-
-
-
   # 4. Final formatting
   theta <- long.result$theta
   theta$initial.dist <- theta$initial.dist / sum(theta$initial.dist)

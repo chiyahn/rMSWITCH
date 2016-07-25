@@ -30,6 +30,8 @@
 #' \item{y}{(n + length(initial.y.set)) by 1 column that represents a sample
 #' appended with previous values used to estimate autoregressive terms}
 #' \item{y.sample}{n by 1 column that represents a sample of the model}
+#' \item{y.lagged}{n by s matrix that represents a lagged sample of the model,
+#' where kth column represents a kth lagged column}
 #' \item{states}{M by 1 column that contains state-dependent sigma}
 #' \item{msar.model}{An instance in msar.model that represents the actual model
 #' used to create the sample.}
@@ -55,6 +57,11 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
   if (is.null(initial.y.set))
     initial.y.set <- rnorm(s)
 
+  if (length(initial.y.set) < s)
+    stop ("EXCEPTION: The length of initial.y.set cannot be smaller than s.")
+  if (length(initial.y.set) > s)
+    warning ("The length of initial.y.set is greater than s; 
+            only the last s observations are going to be used for sample generation.")
   if (is.MSM)
     stop ("MSM models are currently not supported.")
 
@@ -74,33 +81,35 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
   if (length(sigma) < 2) # even if sigma is not switching make it a vector
     mu <- as.matrix(rep(sigma[1,1], M))
   if (is.null(z.dependent))
-    z.dependent <- as.matrix(rep(0,length(initial.y.set) + n),ncol=1)
+    z.dependent <- as.matrix(rep(0,(s + n)),ncol=1)
   else
   {
     z.dependent <- as.matrix(z.dependent)
-    if (n != nrow(z.dependent))
-      stop("EXCEPTION: the length of samples should match the number of
-           observations for z.dependent.")
-    z.dependent <- rbind(matrix(rep(Inf, s*ncol(z.dependent)),
-                                ncol = ncol(z.dependent)),
-                         as.matrix(z.dependent))
+    if (n > nrow(z.dependent))
+      stop("EXCEPTION: the number of observations for z.dependent cannot be
+           smaller than the length of samples, n.")
+    z.dependent <- rbind(matrix(rep(NaN, (s*ncol(z.dependent))),
+                                  ncol = ncol(z.dependent)),
+                         as.matrix(z.dependent[(nrow(z.dependent) - n + 1):(nrow(z.dependent)),]))
     gamma.dependent <- as.matrix(theta$gamma.dependent)
   }
   if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,length(initial.y.set) + n),ncol=1)
+    z.independent <- as.matrix(rep(0,(s + n)),ncol=1)
   else
   {
     z.independent <- as.matrix(z.independent)
-    if (n != nrow(z.independent))
-      stop("EXCEPTION: the length of samples should match the number of
-           observations for z.independent.")
-    z.independent <- rbind(matrix(rep(Inf, s*ncol(z.independent)),
+    if (n > nrow(z.independent))
+      stop("EXCEPTION: the number of observations for z.independent cannot be
+           smaller than the length of samples, n.")
+    z.independent <- rbind(matrix(rep(NaN, (s*ncol(z.independent))),
                                   ncol = ncol(z.independent)),
-                           as.matrix(z.independent))
+                           as.matrix(z.independent[(nrow(z.independent) - n + 1):(nrow(z.independent)),]))
     gamma.independent <- as.matrix(theta$gamma.independent)
   }
 
   # initialization
+  initial.y.set <- as.numeric(initial.y.set)
+  initial.y.set <- initial.y.set[(length(initial.y.set) - s + 1):length(initial.y.set)] # only last s
   y <- c(initial.y.set, rep(-Inf, n))
   states <- c(rep(-1, (length(initial.y.set) - 1)),
               initial.state,
@@ -133,7 +142,8 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
   msar.model <- list(theta = theta,
                      log.likelihood = Inf,
                      aic = Inf, bic = Inf,
-                     posterior.probs = posterior.probs,
+                     posterior.probs.filtered = posterior.probs,
+                     posterior.probs.smoothed = posterior.probs,
                      states = states,
                      call = match.call(),
                      M = M,
@@ -143,21 +153,28 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
                      is.MSM = is.MSM,
                      label = "msar.model")
 
-
+  lagged.and.sample <- GetLaggedAndSample(y, s)
+  y.sample <- lagged.and.sample$y.sample
+  y.lagged <- lagged.and.sample$y.lagged
+ 
   return (list(y = y,
-               y.sample = y[initial.index:length(y)],
+               y.sample = y.sample,
+               y.lagged = y.lagged,
                states = states[initial.index:length(states)],
                msar.model = msar.model))
 }
 
-GenerateSamples <- function(theta, n = 200, replications = 199)
+GenerateSamples <- function(theta, n = 200, replications = 200, is.MSM = FALSE)
 {
+  if (is.MSM)
+    stop("MSM models are currently not supported.")
+  
   M <- ncol(theta$transition.probs)
   s <- nrow(as.matrix(theta$beta))
   probs <- runif(replications)
   states <- rep(1, replications)
   
-  # Make it as switching if not.
+  # Format it as a switching model if not.
   if (ncol(as.matrix(theta$beta)) == 1)
     theta$beta <- cbind(rep(theta$beta, M), ncol = M)
   if (length(theta$sigma) ==  1)
@@ -170,13 +187,16 @@ GenerateSamples <- function(theta, n = 200, replications = 199)
   for (j in 2:M)
     states[which(probs > initial.dist.cumsum[j-1] && probs <= initial.dist.cumsum[j])] <- j
 
-  samples <- t(sapply(states, GenerateSampleQuick, theta, n, s))
+  samples <- t(sapply(states, GenerateSampleQuick, theta = theta, n = n, s = s, is.MSM = is.MSM))
   
   return (samples)
 }
 
-GenerateSampleQuick <- function(initial.state, theta, n, s)
+GenerateSampleQuick <- function(initial.state, theta, n, s, is.MSM = FALSE)
 {
+  if (is.MSM)
+    stop("MSM models are currently not supported.")
+  
   initial.y.set <- rnorm(s)
   y <- c(initial.y.set, rep(-Inf, n))
   states <- c(rep(-1, (s - 1)),
