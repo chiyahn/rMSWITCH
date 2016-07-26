@@ -192,7 +192,8 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
 #' GenerateSamples(theta)
 #' theta <- RandomTheta(M = 3, s = 2)
 #' GenerateSamples(theta, n = 800)
-GenerateSamples <- function(theta, n = 200, replications = 200, is.MSM = FALSE)
+GenerateSamples <- function(theta, n = 200, replications = 200, initial.y.set = NULL, 
+                            is.MSM = FALSE)
 {
   if (is.MSM)
     stop("MSM models are currently not supported.")
@@ -215,17 +216,19 @@ GenerateSamples <- function(theta, n = 200, replications = 200, is.MSM = FALSE)
   for (j in 2:M)
     states[which(probs > initial.dist.cumsum[j-1] && probs <= initial.dist.cumsum[j])] <- j
 
-  samples <- sapply(states, GenerateSampleQuick, theta = theta, n = n, s = s, is.MSM = is.MSM)
+  samples <- sapply(states, GenerateSampleQuick, 
+                    theta = theta, n = n, 
+                    initial.y.set = initial.y.set, s = s, is.MSM = is.MSM)
   
   return (samples)
 }
 
-GenerateSampleQuick <- function(initial.state, theta, n, s, is.MSM = FALSE)
+GenerateSampleQuick <- function(initial.state, theta, n, initial.y.set, s, is.MSM = FALSE)
 {
   if (is.MSM)
     stop("MSM models are currently not supported.")
-  
-  initial.y.set <- rnorm(s)
+  if (is.null(initial.y.set))
+    initial.y.set <- rnorm(s)
   y <- c(initial.y.set, rep(-Inf, n))
   states <- c(rep(-1, (s - 1)),
               initial.state,
