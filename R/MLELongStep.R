@@ -1,32 +1,3 @@
-# ThetaToColumn <- function(theta)
-# {
-#   # transition.probs could have been listed in the order of
-#   # p11, p21, ..., pM1, p12, ..., pM2, ..., p1M, ..., pMM 
-#   # taking a transpose will make it listed as
-#   # p11, p12, ..., p1M, p21, ..., p2M, ..., pMM
-#   return (c(c(t(theta$transition.probs)),
-#             c(theta$initial.dist),
-#             c(theta$beta), c(theta$mu), c(theta$sigma),
-#             c(theta$gamma.dependent),
-#             c(theta$gamma.independent)))
-# }
-ThetaToReducedColumn <- function(theta)
-{
-  # transition.probs could have been listed in the order of
-  # p11, p21, ..., pM1, p12, ..., pM2, ..., p1(M-1), ..., pM(M-1)
-  # taking a transpose will make it listed as
-  # p11, p12, ..., p1(M-1), p21, ..., p2(M-1), ..., pM(M-1)
-  M <- ncol(theta$transition.probs)
-  reduced.transition.probs <- theta$transition.probs[,1:(M-1)]
-  reduced.initial.dist <- theta$initial.dist[1:(M-1)]
-  return (c(c(t(reduced.transition.probs)),
-            c(reduced.initial.dist),
-            c(theta$beta), c(theta$mu), c(theta$sigma),
-            c(theta$gamma.dependent),
-            c(theta$gamma.independent)))
-  
-}
-
 # returns a list of (theta likelihood) where theta is a list of parameters
 # and likelihood is a likelihood of the data using the parameters in theta;
 # this applies for univariate time series only.
@@ -140,7 +111,7 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
   # define it dynamically (for indices)
   SLSQPNonSwitchingAR <- function(theta.vectorized,
                                   y, y.lagged, z.dependent, z.independent,
-                                  lb.prob.density = -10e-15, ub.prob.density = (1+10e-15))
+                                  lb.prob.density = 10e-6, ub.prob.density = (1-10e-6))
   {
 
     ObjectiveLogLikelihood <- function(theta.vectorized)
@@ -185,6 +156,10 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
                                           theta.vectorized[1:(M*(M-1))])
     initial.dist.lb <- rep(lb.prob.density, (M-1))
     initial.dist.ub <- rep(ub.prob.density, (M-1))
+    theta.vectorized[(M*(M-1)+1):(M*M-1)] <- pmax(initial.dist.lb,
+                                                  theta.vectorized[(M*(M-1)+1):(M*M-1)])
+    theta.vectorized[(M*(M-1)+1):(M*M-1)] <- pmin(initial.dist.ub,
+                                                  theta.vectorized[(M*(M-1)+1):(M*M-1)])
     beta <- theta.vectorized[beta.index:(mu.index - 1)]
     beta.lb <- pmin(-1, beta * (1 - 0.5 * sign(beta)))
     beta.ub <- pmax(1, beta * (1 + 0.5 * sign(beta)))

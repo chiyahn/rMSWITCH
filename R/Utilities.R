@@ -264,3 +264,24 @@ OrderTransitionMatrix <- function(transition.matrix, new.order)
       ordered.matrix[i,j] <- transition.matrix[new.order[i],new.order[j]]
   return (ordered.matrix)
 }
+
+#' Transform a theta to a reduced column, ordered in
+#' transition.probs, initial.dist, beta, mu, sigma, gamma.dep, gamma.indep.
+#' where each row of transition.probs is reduced to have a length of M-1,
+#' initial.dist is reduced to have a length of M-1.
+ThetaToReducedColumn <- function(theta)
+{
+  # transition.probs could have been listed in the order of
+  # p11, p21, ..., pM1, p12, ..., pM2, ..., p1(M-1), ..., pM(M-1)
+  # taking a transpose will make it listed as
+  # p11, p12, ..., p1(M-1), p21, ..., p2(M-1), ..., pM(M-1)
+  M <- ncol(theta$transition.probs)
+  reduced.transition.probs <- theta$transition.probs[,1:(M-1)]
+  reduced.initial.dist <- theta$initial.dist[1:(M-1)]
+  return (c(c(t(reduced.transition.probs)),
+            c(reduced.initial.dist),
+            c(theta$beta), c(theta$mu), c(theta$sigma),
+            c(theta$gamma.dependent),
+            c(theta$gamma.independent)))
+  
+}
