@@ -20,7 +20,7 @@ testMode <- function(on = FALSE, seed = 8888577, hide.message = TRUE)
   assign("test.seed", seed, getNamespace("normalregMix"))
   lockBinding("test.on", getNamespace("normalregMix"))
   lockBinding("test.seed", getNamespace("normalregMix"))
-  
+
   if (!hide.message)
     print(paste("The test mode is currently",
                 switch(as.character(test.on), "TRUE" = "ON", "FALSE" = "OFF"),
@@ -250,7 +250,7 @@ EstimateStates <- function(posterior.probs)
 }
 
 #' Order a transition matrix given an order of a column.
-#' Example: 
+#' Example:
 #' mu <- c(1,-1)
 #' mu.order <- order(mu)   # 2, 1
 #' transition.matrix <- matrix(c(0.4,0.7,0.6,0.3), ncol = 2)
@@ -283,5 +283,114 @@ ThetaToReducedColumn <- function(theta)
             c(theta$beta), c(theta$mu), c(theta$sigma),
             c(theta$gamma.dependent),
             c(theta$gamma.independent)))
-  
+
+}
+
+#' Given a |theta.reduced| by n matrix, whose column represents a reduced form of
+#' parameters and a theta0 that retains information about parameters,
+#' return an equivalent list of thetas (theta is in a list).
+ReducedColumnsToThetas <- function(theta.matrix, theta0)
+{
+  M <- ncol(theta0$transition.probs)
+  s <- nrow(as.matrix(theta0$beta))
+  is.beta.switching <- (ncol(as.matrix(theta0$beta)) > 1)
+  is.sigma.switching <- (length(theta0$sigma) > 1)
+  p.dep <- 0
+  p.indep <- 0
+  if (!is.null(theta0$gamma.dependent))
+    p.dep <- nrow(as.matrix(theta0$gamma.dependent))
+  if (!is.null(theta0$gamma.independent))
+    p.indep <- nrow(as.matrix(theta0$gamma.independent))
+
+  # this holds only for univariate time series.
+  initial.dist.index <- M * (M-1) + 1 # reduced case
+  beta.index <- (M-1) + initial.dist.index # reduced case
+  mu.index <- s * ifelse(is.beta.switching, M, 1) + beta.index
+  sigma.index <- M + mu.index
+  gamma.dep.index <- ifelse(is.sigma.switching, M, 1) + sigma.index
+  gamma.indep.index <- p.dep * M + gamma.dep.index
+
+
+  ReducedColumnToThetaDynamic <- function (theta.vectorized)
+  {
+    transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
+                                ncol = (M-1), byrow = T)
+    # revive the original from the reduced form.
+    transition.probs <- t(apply(transition.probs, 1,
+                                function (row) c(row, (1-sum(row)))))
+    initial.dist <- theta.vectorized[initial.dist.index:(beta.index - 1)]
+    initial.dist <- c(initial.dist, (1 - sum(initial.dist)))
+    beta <- theta.vectorized[beta.index:(mu.index - 1)]
+    if (is.beta.switching)
+      beta <- matrix(beta, ncol = M)
+    gamma.dependent <- NULL
+    gamma.independent <- NULL
+    if (!gamma.dep.index == gamma.indep.index)
+      gamma.dependent <- matrix(theta.vectorized[gamma.dep.index:
+                                (gamma.indep.index - 1)], ncol = M)
+    if (!gamma.indep.index == length(theta.vectorized) + 1)
+      gamma.independent <- theta.vectorized[gamma.indep.index:
+                                              length(theta.vectorized)]
+
+    return (list
+            (transition.probs = transition.probs,
+            initial.dist = initial.dist,
+            beta = beta,
+            mu = theta.vectorized[mu.index:(sigma.index - 1)],
+            sigma = theta.vectorized[sigma.index:(gamma.dep.index - 1)],
+            gamma.dependent = gamma.dependent,
+            gamma.independent = gamma.independent
+            ))
+  }
+
+  return (apply(theta.matrix, 2, ReducedColumnToThetaDynamic))
+}
+
+#' Given a |theta.reduced| by n matrix, whose column represents a reduced form of
+#' parameters from Stata and a theta0 that retains information about parameters,
+#' return an equivalent list of thetas (theta is in a list).
+#' Stata saves parameters in the order of
+#' beta, gamma.dependent, gamma.independent, mu, sigma, transition.probs.
+ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
+{
+  M <- ncol(theta0$transition.probs)
+  s <- nrow(as.matrix(theta0$beta))
+  is.beta.switching <- (ncol(as.matrix(theta0$beta)) > 1)
+  is.sigma.switching <- (length(theta0$sigma) > 1)
+  p.dep <- 0
+  p.indep <- 0
+  if (!is.null(theta0$gamma.dependent))
+    p.dep <- nrow(as.matrix(theta0$gamma.dependent))
+  if (!is.null(theta0$gamma.independent))
+    p.indep <- nrow(as.matrix(theta0$gamma.independent))
+  no.gamma <- (p.dep + p.indep == 0)
+
+  # this holds only for univariate time series.
+  beta.end.index <- ifelse(is.beta.switching, (M * s), s)
+  gamma.dep.index <- beta.end.index + 1
+  gamma.indep.index <- p.dep * M + (beta.end.index + 1)
+  gamma.indep.end.index <- p.indep + p.dep * M + beta.end.index
+  mu.index <- gamma.indep.end.index + 1
+  transition.probs.index <- nrow(theta.matrix.stata) - (M * (M - 1)) + 1
+
+  StataColumnToReducedThetaColumn <- function (stata.column)
+  {
+    transition.probs.column <- stata.column[transition.probs.index:
+                                            length(stata.column)]
+    mu.sigma.column <- stata.column[mu.index:(transition.probs.index - 1)]
+    beta.column <- stata.column[1:beta.end.index]
+    gamma.dep.indep.column <- NULL
+    if (!no.gamma)
+      gamma.dep.indep.column <- stata.column[gamma.dep.index:
+                                            gamma.indep.end.index]
+
+    return (c(transition.probs.column,
+              rep(-Inf, (M-1)),
+              beta.column,
+              mu.sigma.column,
+              gamma.dep.indep.column))
+  }
+
+  theta.matrix <- apply(theta.matrix.stata, 2, StataColumnToReducedThetaColumn)
+  return (theta.matrix)
 }
