@@ -13,11 +13,11 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
   p.dep <- 1 # even if gamma.dependent is NULL, for compatibility, we use a zero vector
   p.indep <- 1 # same reason.
   if (!is.null(z.dependent))
-    p.dep <- nrow(theta$gamma.dependent)
+    p.dep <- nrow(as.matrix(theta$gamma.independent))
   else
     z.dependent <- as.matrix(rep(0,n))
   if (!is.null(z.independent))
-    p.indep <- nrow(theta$gamma.independent)
+    p.indep <- nrow(as.matrix(theta$gamma.independent))
   else
     z.independent <- as.matrix(rep(0,n))
 
@@ -113,6 +113,9 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
                                   y, y.lagged, z.dependent, z.independent,
                                   lb.prob.density = 10e-6, ub.prob.density = (1-10e-6))
   {
+    # sanity check; if a candidate contains a singularity, you must not use it.
+    if (anyNA(theta.vectorized))
+      return (list(convergence = -3, value = -Inf))
 
     ObjectiveLogLikelihood <- function(theta.vectorized)
     {
