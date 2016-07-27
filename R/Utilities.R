@@ -55,9 +55,23 @@ DiagPlot <- function(msar.model, y)
 
 
   states <- msar.model$states
-  posterior.probs.smoothed <- msar.model$posterior.probs.smoothed # use smoothed probabilities
+  posterior.probs.filtered <- msar.model$posterior.probs.filtered
+  posterior.probs.smoothed <- msar.model$posterior.probs.smoothed 
 
-  # 2-1. generate a plot of posterior probabilities (smoothed)
+  # 2-1. generate a plot of posterior probabilities (filtered)
+  df.posterior.probs.filtered <- as.data.frame(cbind(posterior.probs.filtered, k = seq(1:n)))
+  colnames(df.posterior.probs.filtered) <- c(sapply(seq(1:M), function (x) paste ("State", x)),
+                                             "k")
+  
+  
+  molten.posterior.probs.filtered <- melt(df.posterior.probs.filtered, id="k",
+                                          value.name="posterior.probability.filtered",
+                                          variable.name="State")
+  print(ggplot(data=molten.posterior.probs.filtered,
+               aes(x=k, y=posterior.probability.filtered, colour=State)) +
+          geom_line())
+  
+  # 2-2. generate a plot of posterior probabilities (smoothed)
   df.posterior.probs.smoothed <- as.data.frame(cbind(posterior.probs.smoothed, k = seq(1:n)))
   colnames(df.posterior.probs.smoothed) <- c(sapply(seq(1:M), function (x) paste ("State", x)),
                                              "k")
@@ -70,7 +84,8 @@ DiagPlot <- function(msar.model, y)
                aes(x=k, y=posterior.probability.smoothed, colour=State)) +
           geom_line())
 
-  # 2-2. generate a plot of y data and shade a region for each stte
+  # use smoothed probabilities for plots
+  # 2-3. generate a plot of y data and shade a region for each state
   plot.states.beginnings <- c(1)
   plot.states.endings <- vector()
   plot.states.values <- states[1]
@@ -394,3 +409,93 @@ ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
   theta.matrix <- apply(theta.matrix.stata, 2, StataColumnToReducedThetaColumn)
   return (theta.matrix)
 }
+
+#' Given an n by (replications) matrix of samples, where each column represents
+#' a single sample, produce a list of (replications) thetas that 
+#' have been estimated from each sample.
+SamplesToThetas <- function(samples, M, s, 
+                            is.beta.switching = FALSE,
+                            is.sigma.switching = TRUE,
+                            is.MSM = FALSE,
+                            parallel = TRUE, cl = NULL)
+{
+  thetas <- list()
+  if (parallel) {
+    if (is.null(cl))
+      cl <- makeCluster(detectCores())
+    registerDoParallel(cl)
+    thetas <- foreach (i = 1:ncol(samples)) %dopar% {
+      library(normalregMix)
+      library(nloptr)
+      EstimateMSAR (samples[,i], M = M, s = s, 
+                    is.beta.switching = is.beta.switching,
+                    is.sigma.switching = is.sigma.switching,
+                    is.MSM = is.MSM)$theta }
+    on.exit(cl)
+  }
+  else
+    thetas <- apply(samples, 2, function(y) 
+      EstimateMSAR(y = y, M = M, s = s)$theta)
+  return (thetas)
+}
+
+#' Get an appropriate list of names for 
+#' reduced column form of a given theta 
+GetColumnNames <- function(theta)
+{
+  
+  M <- ncol(theta$transition.probs)
+  s <- nrow(as.matrix(theta$beta))
+  is.beta.switching <- (ncol(as.matrix(theta$beta)) > 1)
+  is.sigma.switching <- (length(theta$sigma) > 1)
+  p.dep <- 0
+  p.indep <- 0
+  if (!is.null(theta$gamma.dependent))
+    p.dep <- nrow(as.matrix(theta$gamma.dependent))
+  if (!is.null(theta$gamma.independent))
+    p.indep <- nrow(as.matrix(theta$gamma.independent))
+  
+  
+  colnames.transition.probs <- expand.grid(seq(1:(M-1)), seq(1:M))
+  colnames.transition.probs <- apply(colnames.transition.probs, 1,
+                                     function (row) paste("p", row[2], row[1], sep = ""))
+  colnames.initial.dist <- sapply(seq(1:(M-1)),
+                                  function (i) paste("initial.dist", i, sep = ""))
+  colnames.beta <- sapply(seq(1:s),
+                          function (i) paste("beta", i, sep = ""))
+  if (is.beta.switching)
+  {
+    # betai.j represents 
+    # jth switching term in state i
+    colnames.beta <- expand.grid(seq(1:s), seq(1:M))
+    colnames.beta <- apply(colnames.beta, 1,
+                           function (row) paste("beta", 
+                                                row[2], ".", row[1], sep = ""))
+  }
+  colnames.mu <- sapply(seq(1:M),
+                        function (i) paste("mu", i, sep = ""))
+  colnames.sigma <- "sigma"
+  if (is.sigma.switching)
+    colnames.sigma <- sapply(seq(1:M),
+                             function (i) paste("sigma", i, sep = "")) 
+  colnames.gamma.dependent <- NULL
+  colnames.gamma.independent <- NULL
+  if (p.dep > 0)
+  {
+    # gamma.depi.j represents 
+    # jth term in state i
+    colnames.gamma.dependent <- expand.grid(seq(1:p.dep), seq(1:M))
+    colnames.gamma.dependent <- apply(colnames.gamma.dependent, 1,
+                                      function (row) paste("gamma.dep", 
+                                                           row[2], ".", row[1], sep = ""))
+  }
+  if (p.indep > 0)  
+    colnames.gamma.independent <- sapply(seq(1:p.indep),
+                                         function (i) paste("gamma.indep", i, sep = "")) 
+  
+  thetas.colnames <- c(colnames.transition.probs, colnames.initial.dist,
+                       colnames.beta, colnames.mu, colnames.sigma,
+                       colnames.gamma.dependent, colnames.gamma.independent)
+  return (thetas.colnames)
+}
+
