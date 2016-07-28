@@ -129,7 +129,7 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
       }
     states[k] <- state
     y[k] <- mu[state,1] +
-      t(y[(k-s):(k-1)]) %*% as.numeric(beta[,state]) +
+      t(rev(y[(k-s):(k-1)])) %*% as.numeric(beta[,state]) +
       z.dependent[k,] %*% as.matrix(gamma.dependent[,state]) +
       z.independent[k,] %*% as.matrix(gamma.independent) +
       rnorm(1,sd=sigma[state,1])
