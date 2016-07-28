@@ -90,7 +90,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   
   # 3. Run long step
   long.thetas <- lapply(short.results, "[[", "theta")
-  long.thetas <- long.thetas[order(short.likelihoods,decreasing=T)[1:short.n]] # pick best short.n thetas
+  long.thetas <- long.thetas[order(short.likelihoods,decreasing=T)[1:
+                    min(length(long.thetas), short.n)]] # pick best short.n thetas
   
   long.result <- MaximizeLongStep(long.thetas,
                                   y = y.sample, y.lagged = y.lagged,
@@ -242,7 +243,14 @@ StatesToTransitionProbs <- function(states, M)
       for (k in 1:n) # n has been already subtracted by one
         if (states[k] == i && states[(k+1)] == j)
           transition.probs[i,j] <- 1 + transition.probs[i,j]
-  transition.probs <- t(apply(transition.probs, 1, function(row) row / sum(row)))
+  transition.probs <- t(apply(transition.probs, 1, 
+                              function(row) 
+                              {
+                                if (sum(row) != 0)
+                                  return (row / sum(row))
+                                else # state does not appear/appears at last 
+                                  return (rep(1/M, M))
+                              }))
   return (transition.probs)
 }
 

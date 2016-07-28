@@ -114,7 +114,7 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
                                   lb.prob.density = 10e-6, ub.prob.density = (1-10e-6))
   {
     # sanity check; if a candidate contains a singularity, you must not use it.
-    if (anyNA(theta.vectorized))
+    if (anyNA(theta.vectorized) || is.null(theta.vectorized))
       return (list(convergence = -3, value = -Inf))
 
     ObjectiveLogLikelihood <- function(theta.vectorized)
@@ -207,7 +207,8 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
   
   # extract the one that returns the best likelihood
   long.result <- long.results[[(which(long.likelihoods==max(long.likelihoods))[1])]]
-
+  if (!is.finite(long.result$value))
+    stop("Estimation failed. Try different settings for EM-algorithm.")
   return (list(theta = ReducedColumnToTheta(long.result$par),
                likelihood = long.result$value,
                long.results = long.results))
