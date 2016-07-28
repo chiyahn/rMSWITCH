@@ -201,8 +201,8 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
                              gamma.independent))
 }
 
-#' Returns a valid theta that represents parameters of a random MS-AR model;
-#' ideal for creating a sample for testing.
+#' Returns a valid theta that represents parameters of a random MS-AR model with
+#' non-switching beta and switching sigma; ideal for creating a sample for testing.
 #' @export
 #' @title RandomTheta
 #' @name RandomTheta
@@ -231,10 +231,10 @@ RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0)
   transition.probs <- t(apply(transition.probs, 1,
                               function(row) (row / sum(row))))
   initial.dist <- c(0.9, rep(0.1/(M-1), (M-1)))
-  beta <- runif(s, -0.4, 0.4)
-  beta <- runif(1, 0.4, 0.7) * (beta / sum(abs(beta)))
-  mu <- runif(M, -0.5, 0.5)
-  sigma <- runif(M, 0.2, 3)
+  beta <- runif(s, 0.3, 0.8) * sample(c(1,-1), s, replace = T) 
+  beta <- beta / (1.2 * sum(abs(beta)))
+  mu <- runif(M, 0.4, 0.8) * sample(c(1,-1), M, replace = T) 
+  sigma <- runif(M, 0.3, 1.5)
 
   gamma.dependent <- NULL
   gamma.independent <- NULL
@@ -290,6 +290,11 @@ ThetaToReducedColumn <- function(theta)
   # p11, p21, ..., pM1, p12, ..., pM2, ..., p1(M-1), ..., pM(M-1)
   # taking a transpose will make it listed as
   # p11, p12, ..., p1(M-1), p21, ..., p2(M-1), ..., pM(M-1)
+  if (is.null(theta$transition.probs) || is.null(theta$initial.dist))
+  {
+    warning("WARNING: theta is invalid to be transformed into a vector.")
+    return (NULL) # sanity check and return null if necessary.
+  }
   M <- ncol(theta$transition.probs)
   reduced.transition.probs <- theta$transition.probs[,1:(M-1)]
   reduced.initial.dist <- theta$initial.dist[1:(M-1)]
@@ -386,17 +391,17 @@ ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
   gamma.indep.index <- p.dep * M + (beta.end.index + 1)
   gamma.indep.end.index <- p.indep + p.dep * M + beta.end.index
   mu.index <- gamma.indep.end.index + 1
-  transition.probs.index <- nrow(theta.matrix.stata) - (M * (M - 1)) + 1
+  transition.probs.index <- ncol(theta.matrix.stata) - (M * (M - 1)) + 1
 
-  StataColumnToReducedThetaColumn <- function (stata.column)
+  StataColumnToReducedThetaColumn <- function (stata.row)
   {
-    transition.probs.column <- stata.column[transition.probs.index:
-                                            length(stata.column)]
-    mu.sigma.column <- stata.column[mu.index:(transition.probs.index - 1)]
-    beta.column <- stata.column[1:beta.end.index]
+    transition.probs.column <- stata.row[transition.probs.index:
+                                            length(stata.row)]
+    mu.sigma.column <- stata.row[mu.index:(transition.probs.index - 1)]
+    beta.column <- stata.row[1:beta.end.index]
     gamma.dep.indep.column <- NULL
     if (!no.gamma)
-      gamma.dep.indep.column <- stata.column[gamma.dep.index:
+      gamma.dep.indep.column <- stata.row[gamma.dep.index:
                                             gamma.indep.end.index]
 
     return (c(transition.probs.column,
@@ -406,7 +411,7 @@ ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
               gamma.dep.indep.column))
   }
 
-  theta.matrix <- apply(theta.matrix.stata, 2, StataColumnToReducedThetaColumn)
+  theta.matrix <- t(apply(theta.matrix.stata, 1, StataColumnToReducedThetaColumn))
   return (theta.matrix)
 }
 
