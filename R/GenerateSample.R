@@ -60,7 +60,7 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
   if (length(initial.y.set) < s)
     stop ("EXCEPTION: The length of initial.y.set cannot be smaller than s.")
   if (length(initial.y.set) > s)
-    warning ("The length of initial.y.set is greater than s; 
+    warning ("The length of initial.y.set is greater than s;
             only the last s observations are going to be used for sample generation.")
   if (is.MSM)
     stop ("MSM models are currently not supported.")
@@ -156,7 +156,7 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
   lagged.and.sample <- GetLaggedAndSample(y, s)
   y.sample <- lagged.and.sample$y.sample
   y.lagged <- lagged.and.sample$y.lagged
- 
+
   return (list(y = y,
                y.sample = y.sample,
                y.lagged = y.lagged,
@@ -164,7 +164,7 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
                msar.model = msar.model))
 }
 
-#' Returns an (n + s) by replications matrix that represents samples of 
+#' Returns an (n + s) by replications matrix that represents samples of
 #' length (n + s) observations, where s is a length of autoregressive terms.
 #' @export
 #' @title GenerateSamples
@@ -197,12 +197,12 @@ GenerateSamples <- function(theta, n = 200, replications = 200, initial.y.set = 
 {
   if (is.MSM)
     stop("MSM models are currently not supported.")
-  
+
   M <- ncol(theta$transition.probs)
   s <- nrow(as.matrix(theta$beta))
   probs <- runif(replications)
   states <- rep(1, replications)
-  
+
   # Format it as a switching model if not.
   if (ncol(as.matrix(theta$beta)) == 1)
     theta$beta <- matrix(rep(theta$beta, M), ncol = M)
@@ -211,15 +211,15 @@ GenerateSamples <- function(theta, n = 200, replications = 200, initial.y.set = 
   theta$beta <- as.matrix(theta$beta)
   theta$mu <- as.matrix(theta$mu)
   theta$sigma <- as.matrix(theta$sigma)
-  
+
   initial.dist.cumsum <- cumsum(theta$initial.dist)
   for (j in 2:M)
     states[which(probs > initial.dist.cumsum[j-1] && probs <= initial.dist.cumsum[j])] <- j
 
-  samples <- sapply(states, GenerateSampleQuick, 
-                    theta = theta, n = n, 
+  samples <- sapply(states, GenerateSampleQuick,
+                    theta = theta, n = n,
                     initial.y.set = initial.y.set, s = s, is.MSM = is.MSM)
-  
+
   return (samples)
 }
 
@@ -233,28 +233,28 @@ GenerateSampleQuick <- function(initial.state, theta, n, initial.y.set, s, is.MS
   states <- c(rep(-1, (s - 1)),
               initial.state,
               rep(0, n))
-  
+
   initial.index <- s + 1
   last.index <- length(initial.y.set) + n
-  
+
   for (k in initial.index:last.index)
   {
     previous.state <- states[(k-1)]
     trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
     prob <- runif(1) # decision to switch
     state = 1
-    
+
     for (j in 2:M)
       if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
         state <- j
         break
       }
-    
+
     states[k] <- state
     y[k] <- theta$mu[state,1] +
-      t(y[(k-s):(k-1)]) %*% as.numeric(theta$beta[,state]) +
+      t(rev(y[(k-s):(k-1)])) %*% as.numeric(theta$beta[,state]) +
       rnorm(1,sd=theta$sigma[state,1])
   }
-  
+
   return (y)
 }

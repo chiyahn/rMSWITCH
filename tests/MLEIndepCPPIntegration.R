@@ -134,11 +134,14 @@ sigma2 <- 2
 beta <- c(0.4)
 M <- 2
 s <- 1
+theta <- list(beta = beta, mu = c(mu1, mu2), sigma = c(sigma1, sigma2),
+              transition.probs = matrix(c((1-p12), p21, p12, (1-p21)), ncol = 2),
+              initial.dist = c(1,0))
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # generates data
 set.seed(123456)
-y <- GenerateSampleM2(n, beta, mu1, mu2, sigma1, sigma2, p12, p21)
+y <- GenerateSample(n = n, theta = theta)
 msar.model <- MLEIndepCPPComparison(y, M = M, s = s) #rMRS
 print(msar.model$filter.R$xi.k)
 apply(msar.model$filter.R$xi.k, 1, function(row) sum(row))
