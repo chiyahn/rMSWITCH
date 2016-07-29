@@ -92,30 +92,6 @@ arma::colvec GetMinPerCol (arma::mat* pmatrix)
 	return min_col;
 }
 
-// Returns an eta matrix
-arma::mat EtaIndep (arma::colvec* py,
-                    arma::mat* py_lagged,
-                    arma::mat* pz_dependent,
-                    arma::mat* pz_independent,
-                    Theta* ptheta)
-{
-  int M = ptheta->transition_probs.n_rows;
-  int n = py->n_rows;
-  arma::mat eta(n, M);
-
-  for (int j = 0; j < M; j++)
-  {
-    eta.col(j) = *py - *py_lagged * ptheta->beta -
-      *pz_dependent * ptheta->gamma_dependent.col(j) -
-      *pz_independent * ptheta->gamma_independent - ptheta->mu(j);
-    eta.col(j) = eta.col(j) % eta.col(j); // element-wise multiplication
-    eta.col(j) = exp(-eta.col(j) / (2 * (ptheta->sigma(j) * ptheta->sigma(j))));
-    eta.col(j) = eta.col(j) / (SQRT2PI * ptheta->sigma(j));
-  }
-
-  return eta;
-}
-
 // Computes xi_k and likelihood at this stage, and returns
 // an instance of Xi that contains xi_k, likelihood, and empty xi_n that needs
 // to be computed in the smooth step.
@@ -219,88 +195,6 @@ Xi ExpectationStep(arma::colvec* py,
 	filter.xi_n = Smooth(&filter.xi_k, &filter.xi_past_t,
 												&(ptheta->transition_probs));
 	return filter;
-}
-
-// Returns estimates for states of every observation based on posterior prob.
-arma::colvec EstimateStates (arma::colvec* py,
-								arma::mat* py_lagged,
-								arma::mat* pz_dependent,
-								arma::mat* pz_independent,
-								Theta* ptheta)
-{
-	arma::mat eta = EtaIndep(py, py_lagged, pz_dependent, pz_independent, ptheta);
-	int n = eta.n_rows;
-	int M = eta.n_cols;
-
-	arma::colvec states(n);
-
-	for (int i = 0; i < n; i++)
-	{
-		double best = -std::numeric_limits<double>::infinity();
-		int best_index = -1;
-		for (int j = 0; j < M; j++)
-			if (eta(i,j) > best)
-			{
-				best = eta(i,j);
-				best_index = j;
-			}
-		states(i) = best_index; // CAUTION: the first state is numerized as zero.
-	}
-
-	return states;
-}
-
-// Returns an estimate for initial_dist based on posterior probabilities.
-arma::colvec ComputeInitialDist (arma::colvec* py,
-								arma::mat* py_lagged,
-								arma::mat* pz_dependent,
-								arma::mat* pz_independent,
-								Theta* ptheta)
-{
-	arma::mat eta = EtaIndep(py, py_lagged, pz_dependent, pz_independent, ptheta);
-	int n = eta.n_rows;
-	int M = eta.n_cols;
-
-	arma::colvec initial_dist(M);
-
-	for (int i = 0; i < n; i++)
-	{
-		double best = -std::numeric_limits<double>::infinity();
-		int best_index = -1;
-		for (int j = 0; j < M; j++)
-			if (eta(i,j) > best)
-			{
-				best = eta(i,j);
-				best_index = j;
-			}
-		initial_dist(best_index)++;
-	}
-
-	return (initial_dist / n);
-}
-
-// Compute a stationary distribution given a transition matrix.
-// (Since we force every member of the matrix to be strictly positive,
-// the corresponding MC is irreducible thus positive-recurrent as it is finite.)
-arma::colvec ComputeStationaryDist (arma::mat* transition_probs, int M)
-{
-	arma::cx_vec eigval;
-	arma::cx_mat eigvec;
-	arma::eig_gen(eigval, eigvec, transition_probs->t()); // left eigenv, so take t.
-	arma::vec stationary_dist(M);
-
-	// Need to find which eigenvector has a eigenval. of one and extract real parts
-	// find index
-	int stationary_dist_index = -1;
-	for (int i = 0; i < M; i++)
-	  if (std::abs(eigval(i).real() - 1) < EPS_ALMOST_ZERO)
-	    stationary_dist_index = i;
-	// extract real
-	for (int i = 0; i < M; i++)
-	  stationary_dist(i) = eigvec(i,stationary_dist_index).real();
-
-	stationary_dist = abs(stationary_dist) / sum(abs(stationary_dist));
-	return stationary_dist;
 }
 
 // Returns an maximized theta based on computed xi_k and xi_n from an E-step.
@@ -536,15 +430,6 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 	likelihood = likelihoods(index_exit); // copy the most recent likelihood
 	likelihoods = likelihoods.subvec(0,index_exit); // remove unused elements
 
-
-	// 2. state estimation
-	arma::colvec states = EstimateStates(&y, &y_lagged,
-                                      &z_dependent, &z_independent,
-																			&theta); // XXX: the first state is zero.
-	int n = states.n_elem;
-	for (int i = 0; i < n; i++)
-		states(i)++; // add one to make the first state one.
-
 	Rcpp::List theta_R = Rcpp::List::create(Named("beta") = wrap(theta.beta),
 														Named("mu") = wrap(theta.mu),
 														Named("sigma") = wrap(theta.sigma),
@@ -560,7 +445,5 @@ SEXP EMIndepCPP  (Rcpp::NumericVector y_rcpp,
 
 	return Rcpp::List::create(Named("theta") = wrap(theta_R),
 														Named("likelihood") = wrap(likelihood),
-														Named("likelihoods") = wrap(likelihoods),
-														Named("states") = wrap(states)
-														);
+														Named("likelihoods") = wrap(likelihoods));
 }
