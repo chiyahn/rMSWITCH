@@ -6,9 +6,9 @@
 
 using namespace Rcpp;
 
-// EMIndepCPP
-SEXP EMIndepCPP(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon);
-RcppExport SEXP rMSWITCH_EMIndepCPP(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP) {
+// EMcppARMSMH
+SEXP EMcppARMSMH(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon);
+RcppExport SEXP rMSWITCH_EMcppARMSMH(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -25,7 +25,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist0_rcpp(initial_dist0_rcppSEXP);
     Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
-    __result = Rcpp::wrap(EMIndepCPP(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon));
+    __result = Rcpp::wrap(EMcppARMSMH(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon));
     return __result;
 END_RCPP
 }

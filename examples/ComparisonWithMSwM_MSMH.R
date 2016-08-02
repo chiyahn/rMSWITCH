@@ -1,5 +1,5 @@
 ###########################################################
-# Compares the result with MSwM
+# Compares the result with MSwM for MSMH-AR models
 ###########################################################
 #install.packages("MswM")
 #install.packages("nloptr")
@@ -16,14 +16,6 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 GenerateExo <- function(n, p)
 {
   return (matrix(rnorm((n*p)), ncol = p))
-  # setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # changes wd; only works running in RStudio
-  # return (matrix(as.numeric(read.csv("interestRates.csv")[1:(n*p),1]), ncol = p))
-}
-
-# Get elementwise-average of list of matrices
-GetMatrixAvg <- function (list.of.matrices)
-{
-  Reduce("+", list.of.matrices) / length(list.of.matrices)
 }
 
 ## 1. M = 2, s = 1
@@ -45,7 +37,9 @@ y <- sample$y
 
 # comparison
 set.seed(123456)
-msar.model <- EstimateMSAR(y, M = M, s = s) #rMRS
+msar.model <- EstimateMSAR(y, M = M, s = s, 
+                           is.beta.switching = FALSE,
+                           is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$log.likelihood
 DiagPlot(msar.model, y = y)
@@ -66,7 +60,9 @@ sample <- GenerateSample(theta, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- EstimateMSAR(y, M = M, s = s) #rMRS
+msar.model <- EstimateMSAR(y, M = M, s = s, 
+                           is.beta.switching = FALSE,
+                           is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$log.likelihood
 DiagPlot(msar.model, y = y)
@@ -80,7 +76,7 @@ msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 b
 set.seed(654321)
 n <- 800
 transition.probs <- matrix(c(0.8,0.15,0.1,0.1,0.7,0.15,0.1,0.15,0.75), ncol = 3)
-beta <- c(0.9)
+beta <- 0.9
 mu = c(-0.5,0,0.4)
 sigma = c(0.6,0.5,0.7)
 theta <- list(beta = beta, mu = mu, sigma = sigma, 
@@ -93,14 +89,14 @@ sample <- GenerateSample(theta, n = n)
 y <- sample$y
  
 # comparison
-msar.model <- EstimateMSAR(y, M = M, s = s) #rMRS
+msar.model <- EstimateMSAR(y, M = M, s = s, 
+                           is.beta.switching = FALSE,
+                           is.sigma.switching = TRUE)
 beepr::beep(2)
 msar.model$theta
 msar.model$log.likelihood
-DiagPlot(msar.model, y = y)
-DiagPlot(sample$msar.model, y = y)
 model=lm(y ~ 1)
-msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta1, dependent sigma)
+msar.model.mswm <- msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta1, dependent sigma)
 
 ## 4. M = 2, s = 1, p.indep = 1
 # model specification
@@ -123,7 +119,9 @@ sample <- GenerateSample(theta, z.independent = z.independent, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- EstimateMSAR(y, z.independent = z.independent, M = M, s = s) #rMRS
+msar.model <- EstimateMSAR(y, z.independent = z.independent, M = M, s = s, 
+                           is.beta.switching = FALSE,
+                           is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$log.likelihood
 model=lm(y ~ z.independent)
@@ -142,7 +140,9 @@ sample <- GenerateSample(theta, z.dependent = z.dependent, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- EstimateMSAR(y, z.dependent = z.dependent, M = M, s = s) #rMRS
+msar.model <- EstimateMSAR(y, z.dependent = z.dependent, M = M, s = s, 
+                           is.beta.switching = FALSE,
+                           is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$likelihood
 model=lm(y ~ z.dependent)

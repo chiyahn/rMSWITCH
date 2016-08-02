@@ -391,13 +391,15 @@ ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
   gamma.indep.index <- p.dep * M + (beta.end.index + 1)
   gamma.indep.end.index <- p.indep + p.dep * M + beta.end.index
   mu.index <- gamma.indep.end.index + 1
+  sigma.index <- M + mu.index
   transition.probs.index <- ncol(theta.matrix.stata) - (M * (M - 1)) + 1
 
   StataColumnToReducedThetaColumn <- function (stata.row)
   {
     transition.probs.column <- stata.row[transition.probs.index:
                                             length(stata.row)]
-    mu.sigma.column <- stata.row[mu.index:(transition.probs.index - 1)]
+    mu.column <- stata.row[mu.index:(sigma.index - 1)]
+    sigma.column <- stata.row[sigma.index:(transition.probs.index - 1)]
     beta.column <- stata.row[1:beta.end.index]
     gamma.dep.indep.column <- NULL
     if (!no.gamma)
@@ -407,7 +409,8 @@ ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
     return (c(transition.probs.column,
               rep(-Inf, (M-1)),
               beta.column,
-              mu.sigma.column,
+              mu.column,
+              exp(sigma.column), # Stata saves logarithm of sigmas.
               gamma.dep.indep.column))
   }
 
@@ -416,32 +419,48 @@ ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
 }
 
 #' Given an n by (replications) matrix of samples, where each column represents
-#' a single sample, produce a list of (replications) thetas that 
-#' have been estimated from each sample.
-SamplesToThetas <- function(samples, M, s, 
+#' a single sample, produce a list that contains
+#' thetas: a list of (replications) thetas that have been estimated from each sample.
+#' log.likelihoods: a list of log-likelihood calculated with 
+#' the estimated model in each sample.
+SamplesToModels <- function(samples, M, s, 
                             is.beta.switching = FALSE,
                             is.sigma.switching = TRUE,
                             is.MSM = FALSE,
                             parallel = TRUE, cl = NULL)
 {
-  thetas <- list()
+  models <- list()
   if (parallel) {
     if (is.null(cl))
       cl <- makeCluster(detectCores())
     registerDoParallel(cl)
-    thetas <- foreach (i = 1:ncol(samples)) %dopar% {
+    models <- foreach (i = 1:ncol(samples)) %dopar% {
       library(normalregMix)
       library(nloptr)
-      EstimateMSAR (samples[,i], M = M, s = s, 
-                    is.beta.switching = is.beta.switching,
-                    is.sigma.switching = is.sigma.switching,
-                    is.MSM = is.MSM)$theta }
+      model <- EstimateMSAR (samples[,i], M = M, s = s, 
+                            is.beta.switching = is.beta.switching,
+                            is.sigma.switching = is.sigma.switching,
+                            is.MSM = is.MSM)
+      return (list(theta = model$theta, 
+                   log.likelihood = model$log.likelihood))
+      }
     on.exit(cl)
   }
   else
-    thetas <- apply(samples, 2, function(y) 
-      EstimateMSAR(y = y, M = M, s = s)$theta)
-  return (thetas)
+    models <- apply(samples, 2, function(y) 
+      {
+        model <- EstimateMSAR(y = y, M = M, s = s,
+                              is.beta.switching = is.beta.switching,
+                              is.sigma.switching = is.sigma.switching,
+                              is.MSM = is.MSM)
+        return (list(theta = model$theta, 
+                     log.likelihood = model$log.likelihood))
+      })
+  
+  thetas <- lapply(models, "[[", "theta")
+  log.likelihoods <- sapply(models, "[[", "log.likelihood")
+  
+  return (list(thetas = thetas, log.likelihoods = log.likelihoods))
 }
 
 #' Get an appropriate list of names for 

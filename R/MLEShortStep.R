@@ -33,7 +33,7 @@ ExpectationMaximizationIndep <- function (theta, y, y.lagged,
   if (is.null(z.independent))
     z.independent <- as.matrix(rep(0,n))
   
-  EMIndepCPP(y, y.lagged, z.dependent, z.independent,
+  EMcppARMSMH(y, y.lagged, z.dependent, z.independent,
              theta$beta, theta$mu, theta$sigma,
              theta$gamma.dependent, theta$gamma.independent,
              theta$transition.probs, theta$initial.dist,
