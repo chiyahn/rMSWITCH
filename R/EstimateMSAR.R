@@ -44,9 +44,6 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     print ("EXCEPTION: The length of observations must be greater than s.")
     return (NULL)
   }
-  if (!is.sigma.switching)
-    stop ("homoscedastic MS models are currently not supported;
-          they will be implemented soon.")
   if (is.MSM)
     stop ("MSM models are currently not supported.")
 
@@ -115,7 +112,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   if (is.beta.switching)
     theta$beta <- matrix(theta$beta[,mu.order], ncol = M)
   theta$mu        <- theta$mu[mu.order]
-  theta$sigma     <- theta$sigma[mu.order]
+  if (is.sigma.switching)
+    theta$sigma     <- theta$sigma[mu.order]
   if (!is.null(theta$gamma.dependent))
     theta$gamma.dependent <- theta$gamma.dependent[,mu.order]
   

@@ -126,9 +126,13 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
       initial.dist <- c(initial.dist, (1-initial.dist))
       
       beta <- theta.vectorized[beta.index:(mu.index - 1)]
-      if (!is.beta.switching)
+      if (!is.beta.switching) # make it as a switching parameter if not.
         beta <- rep(beta, M)
       beta <- matrix(beta, ncol = M)
+      
+      sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)] 
+      if (!is.sigma.switching) # make it as a switching parameter if not.
+        sigma <- rep(sigma, M)
 
       gamma.dependent <- t(rep(0,M))
       gamma.independent <- 0
@@ -145,7 +149,7 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
                       initial.dist,  # initial.dist
                       beta = beta,  # beta
                       theta.vectorized[mu.index:(sigma.index - 1)],           # mu
-                      theta.vectorized[sigma.index:(gamma.dep.index - 1)],    # sigma
+                      sigma,    # sigma
                       gamma.dependent,
                       gamma.independent) # gamma.indep
     }

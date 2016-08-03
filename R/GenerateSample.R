@@ -66,20 +66,22 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
     stop ("MSM models are currently not supported.")
 
   # reformatting parameters & safety check
-  if (ncol(beta) < 2) # even if beta is not switching make it a matrix
+  if (ncol(beta) < M) # even if beta is not switching make it a matrix
   {
     s <- length(beta)
     beta <- sapply(rep(0,M), function(col) beta)
     if (s == 1)
       beta <- t(as.matrix(beta)) # if s == 1, sapply results in a column.
   }
+  if (length(sigma) < M) # even if sigma is not switching make it a matrix
+    sigma <- matrix(rep(theta$sigma, M), nrow = M)
+  
   if (nrow(beta) > length(initial.y.set))
     stop("EXCEPTION: the initial y set must have a length greater than equal to
          the number of regressive terms in the model.")
   if (length(mu) < 2) # even if mu is not switching make it a vector
-    mu <- as.matrix(rep(mu[1,1], M))
-  if (length(sigma) < 2) # even if sigma is not switching make it a vector
-    mu <- as.matrix(rep(sigma[1,1], M))
+    mu <- matrix(rep(mu[1,1], M), nrow = M)
+
   if (is.null(z.dependent))
     z.dependent <- as.matrix(rep(0,(s + n)),ncol=1)
   else
@@ -204,9 +206,9 @@ GenerateSamples <- function(theta, n = 200, replications = 200, initial.y.set = 
   states <- rep(1, replications)
 
   # Format it as a switching model if not.
-  if (ncol(as.matrix(theta$beta)) == 1)
+  if (ncol(as.matrix(theta$beta)) < M)
     theta$beta <- matrix(rep(theta$beta, M), ncol = M)
-  if (length(theta$sigma) ==  1)
+  if (length(theta$sigma) < M)
     theta$sigma <- rep(theta$sigma, M)
   theta$beta <- as.matrix(theta$beta)
   theta$mu <- as.matrix(theta$mu)
