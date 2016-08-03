@@ -1,16 +1,15 @@
 ###########################################################
-# Compares the result with MSwM for MSMH-AR models
+# Compares the result with MSwM for the case where
+# beta is switching.
 ###########################################################
 #install.packages("MswM")
 #install.packages("nloptr")
-
 library(nloptr)
 library(MSwM)
 library(normalregMix)
 library(rMSWITCH)
 library(Rcpp)
 library(RcppArmadillo)
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Generates exogeneous variable sample
 GenerateExo <- function(n, p)
@@ -21,10 +20,10 @@ GenerateExo <- function(n, p)
 ## 1. M = 2, s = 1
 # model specification
 set.seed(123456)
-n <- 200
+n <- 400
 transition.probs <- matrix(c(0.9,0.2,0.1,0.8), ncol = 2)
-beta <- 0.6
-mu = c(-0.8,0.8)
+beta <- matrix(c(0.6,0.3), ncol = 2)
+mu = c(-0.6,0.6)
 sigma = c(0.6,1.4)
 theta <- list(beta = beta, mu = mu, sigma = sigma, 
               transition.probs = transition.probs, initial.dist = c(1,0))
@@ -38,7 +37,7 @@ y <- sample$y
 # comparison
 set.seed(123456)
 msar.model <- EstimateMSAR(y, M = M, s = s, 
-                           is.beta.switching = FALSE,
+                           is.beta.switching = TRUE,
                            is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$log.likelihood
@@ -46,13 +45,13 @@ DiagPlot(msar.model, y = y)
 DiagPlot(sample$msar.model, y = y)
 
 model=lm(y ~ 1)
-msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta, dependent sigma)
+msmFit(model, k=M, p=s, sw=c(T,T,T)) # MSwM (dependent mu, dependent beta, dependent sigma)
 
 
 ## 2. M = 2, s = 2
 # model specification
 set.seed(234567)
-theta$beta <- c(0.3, 0.2)
+theta$beta <- matrix(c(0.6,0.2,0.3,0.5), ncol = 2)
 s <- 2
 
 # generates data
@@ -60,8 +59,8 @@ sample <- GenerateSample(theta, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- EstimateMSAR(y, M = M, s = s, 
-                           is.beta.switching = FALSE,
+msar.model <- EstimateMSAR(y, M = M, s = s,
+                           is.beta.switching = TRUE,
                            is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$log.likelihood
@@ -69,15 +68,15 @@ DiagPlot(msar.model, y = y)
 DiagPlot(sample$msar.model, y = y)
 
 model=lm(y ~ 1)
-msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 beta2, dependent sigma)
+msmFit(model, k=M, p=s, sw=c(T,T,T,T)) # MSwM (dependent mu, dependent beta1 beta2, dependent sigma)
 
 ## 3. M = 3, s = 1
 # model specification
 set.seed(654321)
-n <- 800
+n <- 1200
 transition.probs <- matrix(c(0.8,0.15,0.1,0.1,0.7,0.15,0.1,0.15,0.75), ncol = 3)
-beta <- 0.9
-mu = c(-0.5,0,0.4)
+beta <- matrix(c(0.7,0.5,0.3), ncol = 3)
+mu = c(-0.5,0,0.5)
 sigma = c(0.6,0.5,0.7)
 theta <- list(beta = beta, mu = mu, sigma = sigma, 
               transition.probs = transition.probs, initial.dist = c(1,0,0))
@@ -89,21 +88,21 @@ sample <- GenerateSample(theta, n = n)
 y <- sample$y
  
 # comparison
-msar.model <- EstimateMSAR(y, M = M, s = s, 
-                           is.beta.switching = FALSE,
+msar.model <- EstimateMSAR(y, M = M, s = s,
+                           is.beta.switching = TRUE,
                            is.sigma.switching = TRUE)
 beepr::beep(2)
 msar.model$theta
 msar.model$log.likelihood
 model=lm(y ~ 1)
-msar.model.mswm <- msmFit(model, k=M, p=s, sw=c(T,F,T)) # MSwM (dependent mu, independent beta1, dependent sigma)
+msmFit(model, k=M, p=s, sw=c(T,T,T)) # MSwM (dependent mu, dependent beta1, dependent sigma)
 
 ## 4. M = 2, s = 1, p.indep = 1
 # model specification
 set.seed(456789)
 n <- 200
 transition.probs <- matrix(c(0.7,0.2,0.3,0.8), ncol = 2)
-beta <- 0.6
+beta <- matrix(c(0.5,0.8), ncol = 2)
 mu = c(-0.4,0.4)
 sigma = c(1,2)
 gamma.independent <- 0.7
@@ -119,13 +118,13 @@ sample <- GenerateSample(theta, z.independent = z.independent, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- EstimateMSAR(y, z.independent = z.independent, M = M, s = s, 
-                           is.beta.switching = FALSE,
+msar.model <- EstimateMSAR(y, z.independent = z.independent, M = M, s = s,
+                           is.beta.switching = TRUE,
                            is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$log.likelihood
 model=lm(y ~ z.independent)
-msmFit(model, k=M, p=s, sw=c(T,F,F,T)) # MSwM (dependent mu, independent beta1 beta2, dependent sigma)
+msmFit(model, k=M, p=s, sw=c(T,T,T,T)) # MSwM (dependent mu, dependent beta1 beta2, dependent sigma)
 
 ## 5. M = 2, s = 1, p.dep = 1
 # model specification
@@ -140,13 +139,14 @@ sample <- GenerateSample(theta, z.dependent = z.dependent, n = n)
 y <- sample$y
 
 # comparison
-msar.model <- EstimateMSAR(y, z.dependent = z.dependent, M = M, s = s, 
-                           is.beta.switching = FALSE,
+msar.model <- EstimateMSAR(y, z.dependent = z.dependent, 
+                           M = M, s = s,
+                           is.beta.switching = TRUE,
                            is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$likelihood
 model=lm(y ~ z.dependent)
-msmFit(model, k=M, p=s, sw=c(T,T,F,T)) # MSwM (dependent mu, z, independent beta1, dependent sigma)
+msmFit(model, k=M, p=s, sw=c(T,T,T,T)) # MSwM (dependent mu, z, dependent beta1, dependent sigma)
 
 ## 6. M = 3, s = 1, p.dep = 2, p.indep = 1
 # model specification
@@ -154,7 +154,7 @@ set.seed(678901)
 n <- 1200
 theta$gamma.dependent <- matrix(c(0.3,0.6), ncol = 2)
 theta$gamma.independent <- c(0.3,0.5)
-theta$beta <- c(0.6)
+theta$beta <- c(0.6,0.3)
 p.dep <- nrow(as.matrix(theta$gamma.dependent))
 p.indep <- nrow(as.matrix(theta$gamma.independent))
 s <- nrow(as.matrix(theta$beta))
@@ -167,8 +167,11 @@ sample <- GenerateSample(theta, z.dependent = z.dependent, z.independent = z.ind
 y <- sample$y
 
 # comparison
-msar.model <- EstimateMSAR(y, z.dependent = z.dependent, z.independent = z.independent, M = M, s = s) #rMRS
+msar.model <- EstimateMSAR(y, z.dependent = z.dependent, z.independent = z.independent, 
+                           M = M, s = s,
+                           is.beta.switching = TRUE,
+                           is.sigma.switching = TRUE)
 msar.model$theta
 msar.model$likelihood
 model=lm(y ~ z.independent + z.dependent)
-msmFit(model, k=M, p=s, sw=c(T,T,F,F,F,F,T)) # MSwM (dependent mu, z1, independent z2, z3, beta1, beta2, dependent sigma)
+msmFit(model, k=M, p=s, sw=c(T,T,F,F,T,T)) # MSwM (dependent mu, z1, independent z2, z3, dependent beta1, dependent sigma)

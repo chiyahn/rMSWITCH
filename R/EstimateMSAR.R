@@ -44,9 +44,6 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     print ("EXCEPTION: The length of observations must be greater than s.")
     return (NULL)
   }
-  if (is.beta.switching)
-    stop ("MS models with switching beta are currently not supported;
-          they will be implemented soon.")
   if (!is.sigma.switching)
     stop ("homoscedastic MS models are currently not supported;
           they will be implemented soon.")
@@ -67,7 +64,11 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     
   # 1. Get initial parameter using regmix if theta.initial is not given
   if (is.null(theta.initial))
-    theta.initial <- GetInitialTheta(y.sample, y.lagged, z.dependent, z.independent, s, p.dependent, M)
+    theta.initial <- GetInitialTheta(y.sample, y.lagged, 
+                                     z.dependent, z.independent, 
+                                     M = M, s = s, p.dependent = p.dependent,
+                                     is.beta.switching = is.beta.switching,
+                                     is.sigma.switching = is.sigma.switching)
 
   # 2. Run short EM
   # how many candidates would you like to find?
@@ -85,6 +86,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   short.results <- MaximizeShortStep(short.thetas = short.thetas,
                         y = y.sample, y.lagged = y.lagged,
                         z.dependent = z.dependent, z.independent = z.independent,
+                        is.beta.switching = is.beta.switching,
+                        is.sigma.switching = is.sigma.switching,
                         maxit = short.iterations, epsilon = short.epsilon)
   short.likelihoods <- sapply(short.results, "[[", "likelihood")
   
@@ -110,7 +113,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   theta$transition.probs <- OrderTransitionMatrix(theta$transition.probs, mu.order)
   theta$initial.dist <- theta$initial.dist[mu.order]
   if (is.beta.switching)
-    theta$beta <- theta$beta[,mu.order]
+    theta$beta <- matrix(theta$beta[,mu.order], ncol = M)
   theta$mu        <- theta$mu[mu.order]
   theta$sigma     <- theta$sigma[mu.order]
   if (!is.null(theta$gamma.dependent))
@@ -149,19 +152,28 @@ GetLaggedAndSample <- function(y, s)
 }
 
 # Get initial theta to run EM algorithm, using normalregMix package.
-GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, s, p.dependent, M)
+GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, M, s, p.dependent,
+                             is.beta.switching, is.sigma.switching)
 {
   regmix.result <- regmixPMLE(y = y.sample, x = cbind(y.lagged, z.dependent), z = z.independent, m = M, vcov.method="OPG")
   regmix.theta <- regmix.result$parlist
   regmix.transition.probs <- StatesToTransitionProbs(states = regmix.result$indices, M = M)
-  regmix.beta <- mean(regmix.theta$mubeta[2,]) # WATCH: state-independent beta case.
+  regmix.beta <- mean(regmix.theta$mubeta[2:(s+1),])
+  regmix.sigma <- 1
   regmix.gamma.dependent <- NULL
   regmix.gamma.independent <- regmix.theta$gamma
 
   regmix.initial.dist <- StatesToInitialDist(states = regmix.result$indices, M = M)
 
-  if (s > 1) # WATCH: state-independent beta case.
-    regmix.beta <- apply(regmix.theta$mubeta[2:(s+1),], 1, mean) # estimate for state-ind. beta
+  if (is.beta.switching) # estimate for state-dependent. beta
+    regmix.beta <- matrix(regmix.theta$mubeta[2:(s+1),], ncol = M)
+  else if (s > 1)# estimate for state-indep. beta
+    regmix.beta <- apply(as.matrix(regmix.theta$mubeta[2:(s+1),]), 1, mean)
+  if (is.sigma.switching)
+    regmix.sigma <- regmix.theta$sigma
+  else
+    regmix.sigma <- sqrt(sum(regmix.theta$alpha * regmix.theta$alpha * 
+                            regmix.theta$sigma * regmix.theta$sigma))
   if (p.dependent > 0)
   {
     regmix.gamma.dependent <- regmix.theta$mubeta[(s+2):(s+1+p.dependent),] # estimate for state-dep. gamma
@@ -172,9 +184,9 @@ GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, s, 
   if (!is.null(regmix.gamma.independent))
     regmix.gamma.independent <- as.matrix(regmix.gamma.independent)
 
-  regmix.theta <- list(beta = as.matrix(regmix.beta), # WATCH: you might want to take a transpose for s=1 if state-dependent
+  regmix.theta <- list(beta = as.matrix(regmix.beta),
                        mu = regmix.theta$mubeta[1,],
-                       sigma = regmix.theta$sigma,
+                       sigma = regmix.sigma,
                        gamma.dependent = regmix.gamma.dependent,
                        gamma.independent = regmix.gamma.independent,
                        transition.probs = regmix.transition.probs,
