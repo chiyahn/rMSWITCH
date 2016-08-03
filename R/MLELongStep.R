@@ -1,5 +1,5 @@
-# returns a list of (theta likelihood) where theta is a list of parameters
-# and likelihood is a likelihood of the data using the parameters in theta;
+# returns a list of (theta log.likelihood) where theta is a list of parameters
+# and log.likelihood is a log.likelihood of the data using the parameters in theta;
 # this applies for univariate time series only.
 MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent)
 {
@@ -209,11 +209,11 @@ MaximizeLongStep <- function(candidates, y, y.lagged, z.dependent, z.independent
   long.likelihoods[!is.finite(long.likelihoods)] <- -Inf # abnormal values => worst log-lik.
   long.likelihoods[long.convergence < 0] <- -Inf # non-convergence -> worst log-lik.
   
-  # extract the one that returns the best likelihood
+  # extract the one that returns the best log.likelihood
   long.result <- long.results[[(which(long.likelihoods==max(long.likelihoods))[1])]]
   if (!is.finite(long.result$value))
     stop("Estimation failed. Try different settings for EM-algorithm.")
   return (list(theta = ReducedColumnToTheta(long.result$par),
-               likelihood = long.result$value,
+               log.likelihood = long.result$value,
                long.results = long.results))
 }

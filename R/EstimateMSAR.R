@@ -52,6 +52,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   y.lagged <- lagged.and.sample$y.lagged
   y.sample <- lagged.and.sample$y.sample
   n <- length(y.sample)
+  initial.params <- NULL
   
   # remove first s rows of z.dependent and z.independent
   if (!is.null(z.dependent))
@@ -60,42 +61,54 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     z.independent <- as.matrix(as.matrix(z.independent[(s+1):length(y),]))
     
   # 1. Get initial parameter using regmix if theta.initial is not given
-  if (is.null(theta.initial))
-    theta.initial <- GetInitialTheta(y.sample, y.lagged, 
-                                     z.dependent, z.independent, 
-                                     M = M, s = s, p.dependent = p.dependent,
-                                     is.beta.switching = is.beta.switching,
-                                     is.sigma.switching = is.sigma.switching)
-
-  # 2. Run short EM
-  # how many candidates would you like to find?
-  short.n.candidates <- max(2*short.n*((1+2*s)+(ncol(z.dependent) + ncol(z.independent))*M), 200)
-  short.thetas <- lapply(1:short.n.candidates,
-                        function(j) EstimateMSARInitShort(theta.initial))
-  # For compatibility with cpp codes, change gamma.dependent/gamma.independent to
-  # appropriate zero vectors. After computation, they will be returned NULL. 
-  if (is.null(z.dependent))
-    theta.initial$gamma.dependent <- matrix(rep(0,M), ncol = M)
-  if (is.null(z.independent))
-    theta.initial$gamma.independent <- as.matrix(0)
+  if (is.null(theta.initial) || M == 1)
+  {
+    initial.params <- GetInitialParams(y.sample, y.lagged, 
+                                       z.dependent, z.independent, 
+                                       M = M, s = s, p.dependent = p.dependent,
+                                       is.beta.switching = is.beta.switching,
+                                       is.sigma.switching = is.sigma.switching)
+    theta.initial <- initial.params$theta
+  }
   
-  short.thetas[[length(short.thetas) + 1]] <- theta.initial # include the original theta
-  short.results <- MaximizeShortStep(short.thetas = short.thetas,
-                        y = y.sample, y.lagged = y.lagged,
-                        z.dependent = z.dependent, z.independent = z.independent,
-                        is.beta.switching = is.beta.switching,
-                        is.sigma.switching = is.sigma.switching,
-                        maxit = short.iterations, epsilon = short.epsilon)
-  short.likelihoods <- sapply(short.results, "[[", "likelihood")
-  
-  # 3. Run long step
-  long.thetas <- lapply(short.results, "[[", "theta")
-  long.thetas <- long.thetas[order(short.likelihoods,decreasing=T)[1:
-                    min(length(long.thetas), short.n)]] # pick best short.n thetas
-  
-  long.result <- MaximizeLongStep(long.thetas,
-                                  y = y.sample, y.lagged = y.lagged,
-                                  z.dependent = z.dependent, z.independent = z.independent)
+  if (M > 1)
+  {
+    # 2. Run short EM
+    # how many candidates would you like to find?
+    short.n.candidates <- max(2*short.n*((1+2*s)+(ncol(z.dependent) + ncol(z.independent))*M), 200)
+    short.thetas <- lapply(1:short.n.candidates,
+                          function(j) EstimateMSARInitShort(theta.initial))
+    # For compatibility with cpp codes, change gamma.dependent/gamma.independent to
+    # appropriate zero vectors. After computation, they will be returned NULL. 
+    if (is.null(z.dependent))
+      theta.initial$gamma.dependent <- matrix(rep(0,M), ncol = M)
+    if (is.null(z.independent))
+      theta.initial$gamma.independent <- as.matrix(0)
+    
+    short.thetas[[length(short.thetas) + 1]] <- theta.initial # include the original theta
+    short.results <- MaximizeShortStep(short.thetas = short.thetas,
+                          y = y.sample, y.lagged = y.lagged,
+                          z.dependent = z.dependent, z.independent = z.independent,
+                          is.beta.switching = is.beta.switching,
+                          is.sigma.switching = is.sigma.switching,
+                          maxit = short.iterations, epsilon = short.epsilon)
+    short.likelihoods <- sapply(short.results, "[[", "likelihood")
+    
+    # 3. Run long step
+    long.thetas <- lapply(short.results, "[[", "theta")
+    long.thetas <- long.thetas[order(short.likelihoods,decreasing=T)[1:
+                      min(length(long.thetas), short.n)]] # pick best short.n thetas
+    
+    long.result <- MaximizeLongStep(long.thetas,
+                                    y = y.sample, y.lagged = y.lagged,
+                                    z.dependent = z.dependent, z.independent = z.independent)
+    
+  }
+  else
+  {
+    long.result <- list(log.likelihood = initial.params$log.likelihood,
+                        theta = initial.params$theta)
+  }
   
   # 4. Final formatting
   theta <- long.result$theta
@@ -106,19 +119,22 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     theta$gamma.independent <- NULL
   
   # 4.1. Sort them based on mu
-  mu.order  <- order(theta$mu)
-  theta$transition.probs <- OrderTransitionMatrix(theta$transition.probs, mu.order)
-  theta$initial.dist <- theta$initial.dist[mu.order]
-  if (is.beta.switching)
-    theta$beta <- matrix(theta$beta[,mu.order], ncol = M)
-  theta$mu        <- theta$mu[mu.order]
-  if (is.sigma.switching)
-    theta$sigma     <- theta$sigma[mu.order]
-  if (!is.null(theta$gamma.dependent))
-    theta$gamma.dependent <- theta$gamma.dependent[,mu.order]
+  if (M > 1)
+  {
+    mu.order  <- order(theta$mu)
+    theta$transition.probs <- OrderTransitionMatrix(theta$transition.probs, mu.order)
+    theta$initial.dist <- theta$initial.dist[mu.order]
+    if (is.beta.switching)
+      theta$beta <- matrix(theta$beta[,mu.order], ncol = M)
+    theta$mu        <- theta$mu[mu.order]
+    if (is.sigma.switching)
+      theta$sigma     <- theta$sigma[mu.order]
+    if (!is.null(theta$gamma.dependent))
+      theta$gamma.dependent <- theta$gamma.dependent[,mu.order]
+  }  
   
   # 4.2. Basic information 
-  log.likelihood <- long.result$likelihood
+  log.likelihood <- long.result$log.likelihood
   
   # 4-3. Based on formatted dataset, get posterior probabilities
   posterior.probs <- EstimatePosteriorProbs(theta = theta,
@@ -150,7 +166,7 @@ GetLaggedAndSample <- function(y, s)
 }
 
 # Get initial theta to run EM algorithm, using normalregMix package.
-GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, M, s, p.dependent,
+GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent, M, s, p.dependent,
                              is.beta.switching, is.sigma.switching)
 {
   regmix.result <- regmixPMLE(y = y.sample, x = cbind(y.lagged, z.dependent), z = z.independent, m = M, vcov.method="OPG")
@@ -190,7 +206,7 @@ GetInitialTheta <- function (y.sample, y.lagged, z.dependent, z.independent, M, 
                        transition.probs = regmix.transition.probs,
                        initial.dist = regmix.initial.dist)
   
-  return(regmix.theta)
+  return(list(log.likelihood = regmix.result$loglik, theta = regmix.theta))
 }
 
 # Get a column of 0 \leq j \leq s lagged variable
@@ -342,8 +358,8 @@ EstimateMSARR <- function(y = y, z = NULL, z.is.switching = FALSE, M = 3, s = 2,
 
   # 1. Get initial parameter using regmix if theta.initial is not given
   if (is.null(theta.initial))
-    theta.initial <- GetInitialTheta(y.sample, y.lagged,
-                                     z.dependent, z.independent, s, p.dependent, M)
+    theta.initial <- GetInitialParams(y.sample, y.lagged,
+                                     z.dependent, z.independent, s, p.dependent, M)$theta
   if (is.null(z.dependent))
   {
     z.dependent <- as.matrix(rep(0,n))
