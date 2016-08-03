@@ -36,13 +36,15 @@ testMode <- function(on = FALSE, seed = 8888577, hide.message = TRUE)
 #' @name DiagPlot
 #' @param msar.model An instance in msar.model represents one MSM-AR/MSI-AR model
 #' @param y n by 1 column that represents a time series
+#' @param details Determines whether the plots for posterior probabilities are
+#' going to be generated.
 #' @examples
 #' theta <- RandomTheta(M = 2, s = 3)
 #' sample.meta <- GenerateSample(theta)
 #' y <- sample.meta$y
 #' msar.model <- sample.meta$msar.model
 #' DiagPlot(msar.model, y)
-DiagPlot <- function(msar.model, y)
+DiagPlot <- function(msar.model, y, details = FALSE)
 {
   library(ggplot2)
   library(reshape2)
@@ -67,9 +69,10 @@ DiagPlot <- function(msar.model, y)
   molten.posterior.probs.filtered <- melt(df.posterior.probs.filtered, id="k",
                                           value.name="posterior.probability.filtered",
                                           variable.name="State")
-  print(ggplot(data=molten.posterior.probs.filtered,
-               aes(x=k, y=posterior.probability.filtered, colour=State)) +
-          geom_line())
+  if (details)
+    print(ggplot(data=molten.posterior.probs.filtered,
+                 aes(x=k, y=posterior.probability.filtered, colour=State)) +
+            geom_line())
   
   # 2-2. generate a plot of posterior probabilities (smoothed)
   df.posterior.probs.smoothed <- as.data.frame(cbind(posterior.probs.smoothed, k = seq(1:n)))
@@ -80,9 +83,10 @@ DiagPlot <- function(msar.model, y)
   molten.posterior.probs.smoothed <- melt(df.posterior.probs.smoothed, id="k",
                                           value.name="posterior.probability.smoothed",
                                           variable.name="State")
-  print(ggplot(data=molten.posterior.probs.smoothed,
-               aes(x=k, y=posterior.probability.smoothed, colour=State)) +
-          geom_line())
+  if (details)
+    print(ggplot(data=molten.posterior.probs.smoothed,
+                 aes(x=k, y=posterior.probability.smoothed, colour=State)) +
+            geom_line())
 
   # use smoothed probabilities for plots
   # 2-3. generate a plot of y data and shade a region for each state
@@ -123,7 +127,8 @@ DiagPlot <- function(msar.model, y)
                                   ymax=y2, fill=factor(States)),
                       color="gray", alpha=0.3) +
     geom_line(aes(x=k, y=y), color='black',data=df.states) +
-      coord_cartesian(ylim = c(-abs(min(y)) * 1.2, abs(max(y)) * 1.2)))
+      coord_cartesian(ylim = c(-abs(min(y)) * 1.2, abs(max(y)) * 1.2)) +
+    scale_fill_discrete(name="State"))
 
 }
 
