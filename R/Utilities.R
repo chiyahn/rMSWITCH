@@ -5,10 +5,11 @@ test.seed <- 8888577
 #' @export
 #' @title testMode
 #' @name testMode
-#' @description When the modified EM-algorithm is run, initial values are randomly created
-#' based on the data given. If the test mode is turned on, these initial values
-#' are going to be created with the random seed provided. This method would be suitable
-#' for users who would like to replicate experiments. By default, the test mode is turned off.
+#' @description When the modified EM-algorithm is run, initial values are
+#' randomly created based on the data given. If the test mode is turned on,
+#' these initial values are going to be created with the random seed provided.
+#' This method would be suitable for users who would like to replicate
+#' experiments. By default, the test mode is turned off.
 #' @param on Option to turn on the test mode
 #' @param seed The random seed to be used for initialization
 #' @param hide.message Determines whether to print the current seed and status
@@ -58,31 +59,35 @@ DiagPlot <- function(msar.model, y, details = FALSE)
 
   states <- msar.model$states
   posterior.probs.filtered <- msar.model$posterior.probs.filtered
-  posterior.probs.smoothed <- msar.model$posterior.probs.smoothed 
+  posterior.probs.smoothed <- msar.model$posterior.probs.smoothed
 
   # 2-1. generate a plot of posterior probabilities (filtered)
-  df.posterior.probs.filtered <- as.data.frame(cbind(posterior.probs.filtered, k = seq(1:n)))
-  colnames(df.posterior.probs.filtered) <- c(sapply(seq(1:M), function (x) paste ("State", x)),
+  df.posterior.probs.filtered <- as.data.frame(cbind(posterior.probs.filtered,
+                                                    k = seq(1:n)))
+  colnames(df.posterior.probs.filtered) <- c(sapply(seq(1:M),
+                                              function (x) paste ("State", x)),
                                              "k")
-  
-  
+
+
   molten.posterior.probs.filtered <- melt(df.posterior.probs.filtered, id="k",
-                                          value.name="posterior.probability.filtered",
-                                          variable.name="State")
+                                    value.name="posterior.probability.filtered",
+                                    variable.name="State")
   if (details)
     print(ggplot(data=molten.posterior.probs.filtered,
                  aes(x=k, y=posterior.probability.filtered, colour=State)) +
             geom_line())
-  
+
   # 2-2. generate a plot of posterior probabilities (smoothed)
-  df.posterior.probs.smoothed <- as.data.frame(cbind(posterior.probs.smoothed, k = seq(1:n)))
-  colnames(df.posterior.probs.smoothed) <- c(sapply(seq(1:M), function (x) paste ("State", x)),
+  df.posterior.probs.smoothed <- as.data.frame(cbind(posterior.probs.smoothed,
+                                                    k = seq(1:n)))
+  colnames(df.posterior.probs.smoothed) <- c(sapply(seq(1:M),
+                                              function (x) paste ("State", x)),
                                              "k")
 
 
   molten.posterior.probs.smoothed <- melt(df.posterior.probs.smoothed, id="k",
-                                          value.name="posterior.probability.smoothed",
-                                          variable.name="State")
+                                    value.name="posterior.probability.smoothed",
+                                    variable.name="State")
   if (details)
     print(ggplot(data=molten.posterior.probs.smoothed,
                  aes(x=k, y=posterior.probability.smoothed, colour=State)) +
@@ -108,7 +113,8 @@ DiagPlot <- function(msar.model, y, details = FALSE)
     plot.states.endings <- c(plot.states.endings, n)
 
 
-  df.states <- as.data.frame(cbind(y = y.original, k = seq(0,(length(y.original)-1))))
+  df.states <- as.data.frame(cbind(y = y.original,
+                                    k = seq(0,(length(y.original)-1))))
   colnames(df.states) <- c("y", "k")
   ymin <- min(y)
   ymax <- max(y)
@@ -236,9 +242,9 @@ RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0)
   transition.probs <- t(apply(transition.probs, 1,
                               function(row) (row / sum(row))))
   initial.dist <- c(0.9, rep(0.1/(M-1), (M-1)))
-  beta <- runif(s, 0.3, 0.8) * sample(c(1,-1), s, replace = T) 
+  beta <- runif(s, 0.3, 0.8) * sample(c(1,-1), s, replace = T)
   beta <- beta / (1.2 * sum(abs(beta)))
-  mu <- runif(M, 0.4, 0.8) * sample(c(1,-1), M, replace = T) 
+  mu <- runif(M, 0.4, 0.8) * sample(c(1,-1), M, replace = T)
   sigma <- runif(M, 0.3, 1.5)
 
   gamma.dependent <- NULL
@@ -419,16 +425,18 @@ ReducedStataColumnsToReducedColumns <- function(theta.matrix.stata, theta0)
               gamma.dep.indep.column))
   }
 
-  theta.matrix <- t(apply(theta.matrix.stata, 1, StataColumnToReducedThetaColumn))
+  theta.matrix <- t(apply(theta.matrix.stata, 1,
+                          StataColumnToReducedThetaColumn))
   return (theta.matrix)
 }
 
 #' Given an n by (replications) matrix of samples, where each column represents
 #' a single sample, produce a list that contains
-#' thetas: a list of (replications) thetas that have been estimated from each sample.
-#' log.likelihoods: a list of log-likelihood calculated with 
+#' thetas: a list of (replications) thetas that have been estimated from
+#' each sample.
+#' log.likelihoods: a list of log-likelihood calculated with
 #' the estimated model in each sample.
-SamplesToModels <- function(samples, M, s, 
+SamplesToModels <- function(samples, M, s,
                             is.beta.switching = FALSE,
                             is.sigma.switching = TRUE,
                             is.MSM = FALSE,
@@ -442,37 +450,37 @@ SamplesToModels <- function(samples, M, s,
     models <- foreach (i = 1:ncol(samples)) %dopar% {
       library(normalregMix)
       library(nloptr)
-      model <- EstimateMSAR (samples[,i], M = M, s = s, 
+      model <- EstimateMSAR (samples[,i], M = M, s = s,
                             is.beta.switching = is.beta.switching,
                             is.sigma.switching = is.sigma.switching,
                             is.MSM = is.MSM)
-      return (list(theta = model$theta, 
+      return (list(theta = model$theta,
                    log.likelihood = model$log.likelihood))
       }
     on.exit(cl)
   }
   else
-    models <- apply(samples, 2, function(y) 
+    models <- apply(samples, 2, function(y)
       {
         model <- EstimateMSAR(y = y, M = M, s = s,
                               is.beta.switching = is.beta.switching,
                               is.sigma.switching = is.sigma.switching,
                               is.MSM = is.MSM)
-        return (list(theta = model$theta, 
+        return (list(theta = model$theta,
                      log.likelihood = model$log.likelihood))
       })
-  
+
   thetas <- lapply(models, "[[", "theta")
   log.likelihoods <- sapply(models, "[[", "log.likelihood")
-  
+
   return (list(thetas = thetas, log.likelihoods = log.likelihoods))
 }
 
-#' Get an appropriate list of names for 
-#' reduced column form of a given theta 
+#' Get an appropriate list of names for
+#' reduced column form of a given theta
 GetColumnNames <- function(theta)
 {
-  
+
   M <- ncol(theta$transition.probs)
   s <- nrow(as.matrix(theta$beta))
   is.beta.switching <- (ncol(as.matrix(theta$beta)) > 1)
@@ -483,22 +491,24 @@ GetColumnNames <- function(theta)
     p.dep <- nrow(as.matrix(theta$gamma.dependent))
   if (!is.null(theta$gamma.independent))
     p.indep <- nrow(as.matrix(theta$gamma.independent))
-  
-  
+
+
   colnames.transition.probs <- expand.grid(seq(1:(M-1)), seq(1:M))
   colnames.transition.probs <- apply(colnames.transition.probs, 1,
-                                     function (row) paste("p", row[2], row[1], sep = ""))
+                                     function (row) paste("p",
+                                     row[2], row[1], sep = ""))
   colnames.initial.dist <- sapply(seq(1:(M-1)),
-                                  function (i) paste("initial.dist", i, sep = ""))
+                                  function (i) paste("initial.dist",
+                                  i, sep = ""))
   colnames.beta <- sapply(seq(1:s),
                           function (i) paste("beta", i, sep = ""))
   if (is.beta.switching)
   {
-    # betai.j represents 
+    # betai.j represents
     # jth switching term in state i
     colnames.beta <- expand.grid(seq(1:s), seq(1:M))
     colnames.beta <- apply(colnames.beta, 1,
-                           function (row) paste("beta", 
+                           function (row) paste("beta",
                                                 row[2], ".", row[1], sep = ""))
   }
   colnames.mu <- sapply(seq(1:M),
@@ -506,25 +516,26 @@ GetColumnNames <- function(theta)
   colnames.sigma <- "sigma"
   if (is.sigma.switching)
     colnames.sigma <- sapply(seq(1:M),
-                             function (i) paste("sigma", i, sep = "")) 
+                             function (i) paste("sigma", i, sep = ""))
   colnames.gamma.dependent <- NULL
   colnames.gamma.independent <- NULL
   if (p.dep > 0)
   {
-    # gamma.depi.j represents 
+    # gamma.depi.j represents
     # jth term in state i
     colnames.gamma.dependent <- expand.grid(seq(1:p.dep), seq(1:M))
     colnames.gamma.dependent <- apply(colnames.gamma.dependent, 1,
-                                      function (row) paste("gamma.dep", 
-                                                           row[2], ".", row[1], sep = ""))
+                                      function (row) paste("gamma.dep",
+                                                           row[2], ".",
+                                                           row[1], sep = ""))
   }
-  if (p.indep > 0)  
+  if (p.indep > 0)
     colnames.gamma.independent <- sapply(seq(1:p.indep),
-                                         function (i) paste("gamma.indep", i, sep = "")) 
-  
+                                         function (i) paste("gamma.indep",
+                                                            i, sep = ""))
+
   thetas.colnames <- c(colnames.transition.probs, colnames.initial.dist,
                        colnames.beta, colnames.mu, colnames.sigma,
                        colnames.gamma.dependent, colnames.gamma.independent)
   return (thetas.colnames)
 }
-

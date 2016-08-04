@@ -40,8 +40,10 @@
 #' theta <- RandomTheta(M = 2, s = 3)
 #' GenerateSample(theta)
 #' GenerateSample(theta, n = 200)
-GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.state = 1,
-                           z.dependent = NULL, z.independent = NULL, is.MSM = FALSE)
+GenerateSample <- function(theta = NULL, n = 100,
+                          initial.y.set = NULL, initial.state = 1,
+                          z.dependent = NULL, z.independent = NULL,
+                          is.MSM = FALSE)
 {
   if (is.null(theta))
     theta <- RandomTheta()
@@ -61,7 +63,8 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
     stop ("EXCEPTION: The length of initial.y.set cannot be smaller than s.")
   if (length(initial.y.set) > s)
     warning ("The length of initial.y.set is greater than s;
-            only the last s observations are going to be used for sample generation.")
+            only the last s observations are going to be used for
+            sample generation.")
   if (is.MSM)
     stop ("MSM models are currently not supported.")
 
@@ -75,7 +78,7 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
   }
   if (length(sigma) < M) # even if sigma is not switching make it a matrix
     sigma <- matrix(rep(theta$sigma, M), nrow = M)
-  
+
   if (nrow(beta) > length(initial.y.set))
     stop("EXCEPTION: the initial y set must have a length greater than equal to
          the number of regressive terms in the model.")
@@ -92,7 +95,8 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
            smaller than the length of samples, n.")
     z.dependent <- rbind(matrix(rep(NaN, (s*ncol(z.dependent))),
                                   ncol = ncol(z.dependent)),
-                         as.matrix(z.dependent[(nrow(z.dependent) - n + 1):(nrow(z.dependent)),]))
+                         as.matrix(z.dependent[(nrow(z.dependent) - n + 1):
+                                                (nrow(z.dependent)),]))
     gamma.dependent <- as.matrix(theta$gamma.dependent)
   }
   if (is.null(z.independent))
@@ -105,13 +109,15 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
            smaller than the length of samples, n.")
     z.independent <- rbind(matrix(rep(NaN, (s*ncol(z.independent))),
                                   ncol = ncol(z.independent)),
-                           as.matrix(z.independent[(nrow(z.independent) - n + 1):(nrow(z.independent)),]))
+                         as.matrix(z.independent[(nrow(z.independent) - n + 1):
+                                    (nrow(z.independent)),]))
     gamma.independent <- as.matrix(theta$gamma.independent)
   }
 
   # initialization
   initial.y.set <- as.numeric(initial.y.set)
-  initial.y.set <- initial.y.set[(length(initial.y.set) - s + 1):length(initial.y.set)] # only last s
+  initial.y.set <- initial.y.set[(length(initial.y.set) - s + 1):
+                                  length(initial.y.set)] # only last s
   y <- c(initial.y.set, rep(-Inf, n))
   states <- c(rep(-1, (length(initial.y.set) - 1)),
               initial.state,
@@ -186,15 +192,16 @@ GenerateSample <- function(theta = NULL, n = 100, initial.y.set = NULL, initial.
 #' @param is.MSM Determines whether the model follows MSM-AR. If it is set to be
 #' TRUE, the model is assumed to be MSI-AR. MSM-AR is not supported now.
 #' @return  A list with items:
-#' \item{samples}{(n + length(initial.y.set)) by 1 column that represents a sample
-#' appended with previous values used to estimate autoregressive terms}
+#' \item{samples}{(n + length(initial.y.set)) by 1 column that represents
+#' a sample appended with previous values used to estimate autoregressive terms}
 #' \item{states}{n by 1 column that represents a sample of the model}
 #' @examples
 #' theta <- RandomTheta(M = 2, s = 3)
 #' GenerateSamples(theta)
 #' theta <- RandomTheta(M = 3, s = 2)
 #' GenerateSamples(theta, n = 800)
-GenerateSamples <- function(theta, n = 200, replications = 200, initial.y.set = NULL, 
+GenerateSamples <- function(theta, n = 200, replications = 200,
+                            initial.y.set = NULL,
                             is.MSM = FALSE)
 {
   if (is.MSM)
@@ -216,7 +223,8 @@ GenerateSamples <- function(theta, n = 200, replications = 200, initial.y.set = 
 
   initial.dist.cumsum <- cumsum(theta$initial.dist)
   for (j in 2:M)
-    states[which(probs > initial.dist.cumsum[j-1] && probs <= initial.dist.cumsum[j])] <- j
+    states[which(probs > initial.dist.cumsum[j-1] &&
+          probs <= initial.dist.cumsum[j])] <- j
 
   samples <- sapply(states, GenerateSampleQuick,
                     theta = theta, n = n,
@@ -225,7 +233,8 @@ GenerateSamples <- function(theta, n = 200, replications = 200, initial.y.set = 
   return (samples)
 }
 
-GenerateSampleQuick <- function(initial.state, theta, n, initial.y.set, s, is.MSM = FALSE)
+GenerateSampleQuick <- function(initial.state, theta, n,
+                                initial.y.set, s, is.MSM = FALSE)
 {
   if (is.MSM)
     stop("MSM models are currently not supported.")
