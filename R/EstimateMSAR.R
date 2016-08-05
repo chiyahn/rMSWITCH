@@ -29,6 +29,12 @@
 #' coefficients for state-independent exogenous variables}
 #' \item{transition.probs}{M by M matrix that contains transition probabilities}
 #' \item{initial.dist}{M by 1 column that represents an initial distribution}
+#' @examples
+#' theta <- RandomTheta()
+#' y <- GenerateSample(theta = theta)$y
+#' EstimateMSAR(y = y, M = 2, s = 1,
+#'              is.beta.switching = FALSE,
+#'              is.sigma.switching = TRUE)
 EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         M = 3, s = 2,
                         is.beta.switching = FALSE,
@@ -148,11 +154,15 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                       y = y.sample, y.lagged = y.lagged,
                       z.dependent = z.dependent, z.independent = z.independent)
   states <- EstimateStates(posterior.probs$xi.n) # use smoothed probabilities
+  fisher.estimated <- EstimateFisherInformation(theta = theta,
+                      y = y.sample, y.lagged = y.lagged,
+                      z.dependent = z.dependent, z.independent = z.independent)
 
   msar.model <- list(theta = theta,
                      log.likelihood = log.likelihood,
                      posterior.probs.filtered = posterior.probs$xi.k,
                      posterior.probs.smoothed = posterior.probs$xi.n,
+                     fisher.estimated = fisher.estimated,
                      states = states,
                      call = match.call(),
                      is.MSM = is.MSM,
@@ -312,4 +322,101 @@ VariationInRow <- function(row)
   row <- sapply((row + variations),
                 function(i) min(max.value, max(min.value, i)))
   return (row / sum(row))
+}
+
+EstimateFisherInformation <- function(theta, y, y.lagged,
+                                      z.dependent, z.independent,
+                                      eps = 1e-6)
+{
+  # use the first candidate to save the information about dimensions
+  n <- length(y)
+  M <- ncol(theta$transition.probs)
+  s <- nrow(as.matrix(theta$beta))
+  is.beta.switching <- (ncol(as.matrix(theta$beta)) > 1)
+  is.sigma.switching <- (length(theta$sigma) > 1)
+  p.dep <- 1 # even if gamma.dependent is NULL, use a zero vector
+  p.indep <- 1 # same reason.
+  if (!is.null(z.dependent))
+    p.dep <- nrow(as.matrix(theta$gamma.independent))
+  else
+    z.dependent <- as.matrix(rep(0,n))
+  if (!is.null(z.independent))
+    p.indep <- nrow(as.matrix(theta$gamma.independent))
+  else
+    z.independent <- as.matrix(rep(0,n))
+
+  # this holds only for univariate time series.
+  initial.dist.index <- M * (M-1) + 1 # reduced case
+  beta.index <- (M-1) + initial.dist.index # reduced case
+  mu.index <- s * ifelse(is.beta.switching, M, 1) + beta.index
+  sigma.index <- M + mu.index
+  # if gamma.dependent does not exist,
+  # should have the same value as (gamma.indep.index - M)
+  gamma.dep.index <- ifelse(is.sigma.switching, M, 1) + sigma.index
+  # if gamma.independent does not exist,
+  # should have the same value as length(theta.vectorized) + 1
+  gamma.indep.index <- p.dep * M + gamma.dep.index
+
+  LogLikelihoods <- function(theta.vectorized)
+  {
+    transition.probs <- as.matrix(1)
+    if (M > 1)
+    {
+      transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
+                                ncol = (M-1), byrow = T)
+      transition.probs <- t(apply(transition.probs, 1,
+                                  function (row) c(row, (1-sum(row)))))
+    }
+    initial.dist <- c(theta.vectorized[initial.dist.index:(beta.index - 1)])
+    initial.dist <- c(initial.dist, (1-initial.dist))
+
+    beta <- theta.vectorized[beta.index:(mu.index - 1)]
+    if (!is.beta.switching) # make it as a switching parameter if not.
+      beta <- rep(beta, M)
+    beta <- matrix(beta, ncol = M)
+
+    sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)]
+    if (!is.sigma.switching) # make it as a switching parameter if not.
+      sigma <- rep(sigma, M)
+
+    gamma.dependent <- t(rep(0,M))
+    gamma.independent <- 0
+    # i.e. gamma.dependent exists
+    if (gamma.dep.index != (gamma.indep.index - M))
+      gamma.dependent   <- matrix(theta.vectorized[gamma.dep.index:
+                                                     (gamma.indep.index - 1)],
+                                  ncol = M)
+    # i.e. gamma.independent exists
+    if (gamma.indep.index <= length(theta.vectorized))
+      gamma.independent <- theta.vectorized[gamma.indep.index:
+                                            length(theta.vectorized)]
+
+    LikelihoodsMSAR(y, y.lagged, z.dependent, z.independent,
+                    transition.probs,
+                    initial.dist,  # initial.dist
+                    beta = beta,  # beta
+                    theta.vectorized[mu.index:(sigma.index - 1)],  # mu
+                    sigma,    # sigma
+                    gamma.dependent,
+                    gamma.independent) # gamma.indep
+  }
+
+  x <- ThetaToReducedColumn(theta)
+  # Defines a step (make sure it does not bind with the ub/lb)
+  h <- pmax(eps, abs(x)) * eps ^ {2/3}
+  xh <- x + h
+  h <- xh - x
+  h.diag <- diag(h)
+
+  G <- matrix(0, nrow = length(x), ncol = n)
+  H <- matrix(0, nrow = length(x), ncol = length(x))
+
+  for (i in 1:length(x))
+    G[i,] <- (LogLikelihoods(x + h.diag[i,]) - LogLikelihoods(x - h.diag[i,])) /
+              (2 * h[i])
+
+  for (k in 1:n)
+    H <- H + G[,k] %*% t(G[,k])
+
+  return (H / n)
 }

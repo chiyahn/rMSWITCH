@@ -307,6 +307,11 @@ ThetaToReducedColumn <- function(theta)
     return (NULL) # sanity check and return null if necessary.
   }
   M <- ncol(theta$transition.probs)
+  if (M < 2)
+    return (c(c(theta$beta), c(theta$mu), c(theta$sigma),
+              c(theta$gamma.dependent),
+              c(theta$gamma.independent)))
+  
   reduced.transition.probs <- theta$transition.probs[,1:(M-1)]
   reduced.initial.dist <- theta$initial.dist[1:(M-1)]
   return (c(c(t(reduced.transition.probs)),
@@ -534,8 +539,10 @@ GetColumnNames <- function(theta)
                                          function (i) paste("gamma.indep",
                                                             i, sep = ""))
 
-  thetas.colnames <- c(colnames.transition.probs, colnames.initial.dist,
-                       colnames.beta, colnames.mu, colnames.sigma,
-                       colnames.gamma.dependent, colnames.gamma.independent)
-  return (thetas.colnames)
+  if (M < 2)
+    return (c(colnames.beta, colnames.mu, colnames.sigma,
+              colnames.gamma.dependent, colnames.gamma.independent))
+  return (c(colnames.transition.probs, colnames.initial.dist,
+           colnames.beta, colnames.mu, colnames.sigma,
+           colnames.gamma.dependent, colnames.gamma.independent))
 }

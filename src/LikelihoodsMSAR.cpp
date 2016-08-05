@@ -5,12 +5,14 @@ using namespace Rcpp;
 const double SQRT2PI = 2.50662827463; // sqrt(2*pi)
 const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 
-// Returns likelihood of univariate MS-AR model where beta is switching.
+// Returns an n by 1 column that represents the likelihoods of
+// an estimated univariate MS-AR model for each k where 1 \leq k \leq n where
+// beta is switching.
 // Note that even if beta is non-switching, setting beta as a s by M matrix with
 // repeated column of the original beta will give you the likelihood for
 // MS-AR model with non-switching beta.
 // [[Rcpp::export]]
-SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
+SEXP LikelihoodsMSAR (Rcpp::NumericVector y_rcpp,
 					Rcpp::NumericMatrix y_lagged_rcpp,
 					Rcpp::NumericMatrix z_dependent_rcpp,
 					Rcpp::NumericMatrix z_independent_rcpp,
@@ -52,8 +54,7 @@ SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 	arma::colvec gamma_independent(gamma_independent_rcpp.begin(),
 								gamma_independent_rcpp.size(), false);
 
-
-  double likelihood = 0;
+	arma::colvec likelihoods(n);
 
 	for (int k = 0; k < n; k++)
 	{
@@ -101,11 +102,11 @@ SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
 
 		xi_k_t.col(k) /= row_sum;
 
-		likelihood += log(row_sum) - min_value + log(ratios[min_index]);
+		likelihoods(k) = log(row_sum) - min_value + log(ratios[min_index]) -
+											LOG2PI_OVERTWO;
 
 		delete[] ratios; // clear memory
 	}
-	likelihood -= n * LOG2PI_OVERTWO;
 
-	return (wrap(likelihood));
+	return (wrap(likelihoods));
 }
