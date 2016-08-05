@@ -29,7 +29,7 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
   sigma.index <- M + mu.index
 
   # if gamma.dependent does not exist,
-  # should have the same value as gamma.indep.index
+  # should have the same value as (gamma.indep.index - M)
   gamma.dep.index <- ifelse(is.sigma.switching, M, 1) + sigma.index
   # if gamma.independent does not exist,
   # should have the same value as length(theta.vectorized) + 1
@@ -43,11 +43,11 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
       beta <- matrix(beta, ncol = M)
     gamma.dependent <- NULL
     gamma.independent <- NULL
-    if (!gamma.dep.index == gamma.indep.index)
+    if (gamma.dep.index != (gamma.indep.index - M))
       gamma.dependent <- matrix(theta.vectorized[gamma.dep.index:
                                                    (gamma.indep.index - 1)],
                                 ncol = M)
-    if (!gamma.indep.index == length(theta.vectorized) + 1)
+    if (gamma.indep.index != length(theta.vectorized) + 1)
       gamma.independent <- theta.vectorized[gamma.indep.index:
                                               length(theta.vectorized)]
     return (list
@@ -77,11 +77,11 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
       beta <- matrix(beta, ncol = M)
     gamma.dependent <- NULL
     gamma.independent <- NULL
-    if (!gamma.dep.index == gamma.indep.index)
+    if (gamma.dep.index != (gamma.indep.index - M))
       gamma.dependent <- matrix(theta.vectorized[gamma.dep.index:
                                                    (gamma.indep.index - 1)],
                                 ncol = M)
-    if (!gamma.indep.index == length(theta.vectorized) + 1)
+    if (gamma.indep.index != length(theta.vectorized) + 1)
       gamma.independent <- theta.vectorized[gamma.indep.index:
                                               length(theta.vectorized)]
 
@@ -148,11 +148,13 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
 
       gamma.dependent <- t(rep(0,M))
       gamma.independent <- 0
-      if (gamma.dep.index != gamma.indep.index) # i.e. gamma.dependent exists
+      # i.e. gamma.dependent exists
+      if (gamma.dep.index != (gamma.indep.index - M)) 
         gamma.dependent   <- matrix(theta.vectorized[gamma.dep.index:
                                                        (gamma.indep.index - 1)],
                                     ncol = M)
-      if (gamma.indep.index <= length(theta.vectorized)) # i.e. gamma.independent exists
+      # i.e. gamma.independent exists
+      if (gamma.indep.index <= length(theta.vectorized)) 
         gamma.independent <- theta.vectorized[gamma.indep.index:
                                               length(theta.vectorized)]
 
