@@ -2,7 +2,8 @@
 # and log.likelihood is a log.likelihood of the data using
 # the parameters in theta; this applies for univariate time series only.
 MaximizeLongStep <- function(candidates, y, y.lagged,
-                            z.dependent, z.independent)
+                            z.dependent, z.independent,
+                            epsilon, maxit)
 {
   # use the first candidate to save the information about dimensions
   theta <- candidates[[1]]
@@ -209,10 +210,15 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
             mu.ub,
             sigma.ub)
     ub <- c(ub, rep(Inf, (length(theta.vectorized) - length(ub))))
-
+    
+    # sanity check for derivatives.
+    if (!LongStepSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
+      return (list (convergence = -Inf, value = -Inf))
+      
     result <- slsqp(theta.vectorized,
                     fn = ObjectiveLogLikelihood,
-                    lower = lb, upper = ub, hin = ConstraintMCTransition)
+                    lower = lb, upper = ub, hin = ConstraintMCTransition,
+                    control = list(maxeval = maxit, ftol_abs = epsilon))
     result$value <- -result$value # take negative back to make it actual
     return (result)
   }
@@ -237,4 +243,18 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
   return (list(theta = ReducedColumnToTheta(long.result$par),
                log.likelihood = long.result$value,
                long.results = long.results))
+}
+
+LongStepSanityCheck <- function (x0, fn)
+{
+  # sanity check for derivatives
+  heps <- .Machine$double.eps^(1/3) # epsilon used in nloptr package 
+  n <- length(x0)
+  hh <- diag(heps, n)
+  gr <- numeric(n)
+  for (i in 1:n) 
+    if (is.na(fn(x0 + hh[,i])) || is.na(fn(x0 - hh[,i])))
+      return (FALSE)
+  return (TRUE)
+  
 }

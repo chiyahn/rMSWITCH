@@ -113,7 +113,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     long.result <- MaximizeLongStep(long.thetas,
                                     y = y.sample, y.lagged = y.lagged,
                                     z.dependent = z.dependent,
-                                    z.independent = z.independent)
+                                    z.independent = z.independent,
+                                    epsilon = epsilon, maxit = maxit)
 
   }
   else
