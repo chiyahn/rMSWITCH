@@ -254,13 +254,14 @@ GenerateSampleQuick <- function(initial.state, theta, n,
     previous.state <- states[(k-1)]
     trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
     prob <- runif(1) # decision to switch
-    state = 1
-
-    for (j in 2:M)
-      if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
-        state <- j
-        break
-      }
+    state <- 1
+    
+    if (M > 1)
+      for (j in 2:M)
+        if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
+          state <- j
+          break
+        }
 
     states[k] <- state
     y[k] <- theta$mu[state,1] +
