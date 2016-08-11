@@ -228,13 +228,14 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
 
   samples <- sapply(states, GenerateSampleQuick,
                     theta = theta, n = n,
-                    initial.y.set = initial.y.set, s = s, is.MSM = is.MSM)
+                    initial.y.set = initial.y.set, 
+                    M = M, s = s, is.MSM = is.MSM)
 
   return (samples)
 }
 
 GenerateSampleQuick <- function(initial.state, theta, n,
-                                initial.y.set, s, is.MSM = FALSE)
+                                initial.y.set, M, s, is.MSM = FALSE)
 {
   if (is.MSM)
     stop("MSM models are currently not supported.")
