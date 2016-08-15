@@ -24,8 +24,8 @@
 #' have switching coefficeints.
 #' @param z_independent n by p_indep matrix of data for exogenous variables that
 #' have non-switching coefficeints.
-#' @param is.MSM Determines whether the model follows MSM-AR. If it is set to be
-#' TRUE, the model is assumed to be MSI-AR. MSM-AR is not supported now.
+#' @param is.MSM Determines whether the model follows MSI-AR. If it is set to be
+#' TRUE, the model is assumed to be MSI-AR. MSI-AR is not supported now.
 #' @return  A list with items:
 #' \item{y}{(n + length(initial.y.set)) by 1 column that represents a sample
 #' appended with previous values used to estimate autoregressive terms}
@@ -189,8 +189,8 @@ GenerateSample <- function(theta = NULL, n = 100,
 #' coefficients for state-independent exogenous variables}
 #' @param n The number of sample observations to be created.
 #' @param replications The number of replications for samples.
-#' @param is.MSM Determines whether the model follows MSM-AR. If it is set to be
-#' TRUE, the model is assumed to be MSI-AR. MSM-AR is not supported now.
+#' @param is.MSM Determines whether the model follows MSI-AR. If it is set to be
+#' TRUE, the model is assumed to be MSI-AR. MSI-AR is not supported now.
 #' @return  A list with items:
 #' \item{samples}{(n + length(initial.y.set)) by 1 column that represents
 #' a sample appended with previous values used to estimate autoregressive terms}

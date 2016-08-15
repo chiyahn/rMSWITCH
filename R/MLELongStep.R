@@ -150,18 +150,18 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
       gamma.dependent <- t(rep(0,M))
       gamma.independent <- 0
       # i.e. gamma.dependent exists
-      if (gamma.dep.index != (gamma.indep.index - M)) 
+      if (gamma.dep.index != (gamma.indep.index - M))
         gamma.dependent   <- matrix(theta.vectorized[gamma.dep.index:
                                                        (gamma.indep.index - 1)],
                                     ncol = M)
       # i.e. gamma.independent exists
-      if (gamma.indep.index <= length(theta.vectorized)) 
+      if (gamma.indep.index <= length(theta.vectorized))
         gamma.independent <- theta.vectorized[gamma.indep.index:
                                               length(theta.vectorized)]
 
       # slsqp solves a minimization problem;
       # take a negative value to turn the problem into max. problem
-      -LikelihoodMSAR(y, y.lagged, z.dependent, z.independent,
+      -LikelihoodMSIAR(y, y.lagged, z.dependent, z.independent,
                       transition.probs,
                       initial.dist,  # initial.dist
                       beta = beta,  # beta
@@ -210,11 +210,11 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
             mu.ub,
             sigma.ub)
     ub <- c(ub, rep(Inf, (length(theta.vectorized) - length(ub))))
-    
+
     # sanity check for derivatives.
     if (!LongStepSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
       return (list (convergence = -Inf, value = -Inf))
-      
+
     result <- slsqp(theta.vectorized,
                     fn = ObjectiveLogLikelihood,
                     lower = lb, upper = ub, hin = ConstraintMCTransition,
@@ -248,13 +248,13 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
 LongStepSanityCheck <- function (x0, fn)
 {
   # sanity check for derivatives
-  heps <- .Machine$double.eps^(1/3) # epsilon used in nloptr package 
+  heps <- .Machine$double.eps^(1/3) # epsilon used in nloptr package
   n <- length(x0)
   hh <- diag(heps, n)
   gr <- numeric(n)
-  for (i in 1:n) 
+  for (i in 1:n)
     if (is.na(fn(x0 + hh[,i])) || is.na(fn(x0 - hh[,i])))
       return (FALSE)
   return (TRUE)
-  
+
 }

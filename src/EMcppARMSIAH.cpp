@@ -13,7 +13,7 @@ const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 // Computes xi_k and likelihood at this stage, and returns
 // an instance of Xi that contains xi_k, likelihood, and empty xi_n that needs
 // to be computed in the smooth step.
-Xi FilterARMSMH (arma::colvec* py,
+Xi FilterARMSIAH (arma::colvec* py,
                 arma::mat* py_lagged,
                 arma::mat* pz_dependent,
                 arma::mat* pz_independent,
@@ -43,7 +43,7 @@ Xi FilterARMSMH (arma::colvec* py,
     for (int j = 0; j < M; j++)
     {
       arma::colvec xi_k_t_jk = py->row(k) -
-        py_lagged->row(k) * ptheta->beta -
+        py_lagged->row(k) * ptheta->beta.col(j) -
         pz_dependent->row(k) * ptheta->gamma_dependent.col(j) -
         pz_independent->row(k) * ptheta->gamma_independent - ptheta->mu(j);
       xi_k_t(j,k) = xi_k_t_jk(0) * xi_k_t_jk(0); // explicit gluing
@@ -81,13 +81,13 @@ Xi FilterARMSMH (arma::colvec* py,
 }
 
 // Returns Xi, which contains xi_k, xi_n, and likelihood at this stage.
-Xi ExpectationStepARMSMH	(arma::colvec* py,
+Xi ExpectationStepARMSIAH	(arma::colvec* py,
                           arma::mat* py_lagged,
                           arma::mat* pz_dependent,
                           arma::mat* pz_independent,
                           Theta* ptheta)
 {
-  Xi filter = FilterARMSMH(py, py_lagged, pz_dependent, pz_independent,
+  Xi filter = FilterARMSIAH(py, py_lagged, pz_dependent, pz_independent,
                             ptheta);
   filter.xi_n = Smooth(&filter.xi_k, &filter.xi_past_t,
                         &(ptheta->transition_probs));
@@ -95,7 +95,7 @@ Xi ExpectationStepARMSMH	(arma::colvec* py,
 }
 
 // Returns an maximized theta based on computed xi_k and xi_n from an E-step.
-Theta MaximizationStepARMSMH (arma::colvec* py,
+Theta MaximizationStepARMSIAH (arma::colvec* py,
                             arma::mat* py_lagged,
                             arma::mat* pz_dependent,
                             arma::mat* pz_independent,
@@ -116,7 +116,7 @@ Theta MaximizationStepARMSMH (arma::colvec* py,
   int n_minus_one = n - 1;
 
   arma::mat 		transition_probs(M, M);
-  arma::mat 		beta(s, M); // s by M matrix (ind. case=>beta is a single col.)
+  arma::mat 		beta(s, M);
   arma::colvec 	mu(M);  // M-length vec
   arma::colvec 	sigma(M); // M-length vec
   arma::mat 		gamma_dependent(p_dep, M); // p_dep by M mat
@@ -150,10 +150,10 @@ Theta MaximizationStepARMSMH (arma::colvec* py,
   // 2-1. mu
   for (int j = 0; j < M; j++)
     mu(j) = sum(pxi_n->col(j) %
-            (*py - *py_lagged * ptheta0->beta -
+            (*py - *py_lagged * ptheta0->beta.col(j) -
               *pz_dependent * (ptheta0->gamma_dependent).col(j) -
               *pz_independent * ptheta0->gamma_independent)) /
-            sum(pxi_n->col(j));
+              sum(pxi_n->col(j));
 
 
   // 2-2. gamma_dependent
@@ -167,7 +167,7 @@ Theta MaximizationStepARMSMH (arma::colvec* py,
         gamma_dependent_part_one += pxi_n->at(k,j) *
           (pz_dependent_t->col(k) * pz_dependent->row(k));
         gamma_dependent_part_two += pxi_n->at(k,j) * pz_dependent_t->col(k) *
-          (py->at(k) - py_lagged->row(k) * ptheta0->beta -
+          (py->at(k) - py_lagged->row(k) * ptheta0->beta.col(j) -
           pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
       }
 
@@ -175,25 +175,21 @@ Theta MaximizationStepARMSMH (arma::colvec* py,
                                 gamma_dependent_part_two;
     }
 
-  // 2-3. beta (non-switching)
-  arma::mat 		beta_part_one(s, s);
-  arma::colvec 	beta_part_two(s);
-  for (int k = 0; k < n; k++)
+  // 2-3. beta (switching)
+  for (int j = 0; j < M; j++)
   {
-    double prop_sum = 0;
-    for (int j = 0; j < M; j++)
+    arma::mat 		beta_part_one(s, s);
+    arma::colvec 	beta_part_two(s);
+    for (int k = 0; k < n; k++)
     {
-      double prop = pxi_n->at(k,j) / (ptheta0->sigma(j) * ptheta0->sigma(j));
-      prop_sum += prop;
-      beta_part_two += prop * py_lagged_t->col(k) *
-        (py->at(k) -
-        pz_independent->row(k) * ptheta0->gamma_independent -
-        pz_dependent->row(k) * gamma_dependent.col(j) - mu(j));
+      beta_part_one += pxi_n->at(k,j) *
+        (py_lagged_t->col(k) * py_lagged->row(k));
+      beta_part_two += pxi_n->at(k,j) * py_lagged_t->col(k) *
+        (py->at(k) - pz_dependent->row(k) * gamma_dependent.col(j) -
+        pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
     }
-    beta_part_one += prop_sum *
-      (py_lagged_t->col(k) * (py_lagged->row(k)));
+    beta.col(j) = inv(beta_part_one) * beta_part_two;
   }
-  beta = inv(beta_part_one) * beta_part_two;
 
   // 2-4. gamma_independent
   if (!SetToZeroIfAlmostZero(&ptheta0->gamma_independent)) // validity check
@@ -209,7 +205,7 @@ Theta MaximizationStepARMSMH (arma::colvec* py,
         prop_sum += prop;
         gamma_independent_part_two += prop * pz_independent_t->col(k) *
           (py->at(k) -
-            py_lagged->row(k) * beta -
+            py_lagged->row(k) * beta.col(j) -
             pz_dependent->row(k) * gamma_dependent.col(j) - mu(j));
       }
       gamma_independent_part_one += prop_sum *
@@ -227,7 +223,7 @@ Theta MaximizationStepARMSMH (arma::colvec* py,
     {
       // res is a scalar, with one element
       arma::colvec res = py->at(k) -
-        py_lagged->row(k) * beta -
+        py_lagged->row(k) * beta.col(j) -
         pz_independent->row(k) * gamma_independent -
         pz_dependent->row(k) * gamma_dependent.col(j) -
         mu(j);
@@ -246,7 +242,7 @@ Theta MaximizationStepARMSMH (arma::colvec* py,
 }
 
 // [[Rcpp::export]]
-SEXP EMcppARMSMH (Rcpp::NumericVector y_rcpp,
+SEXP EMcppARMSIAH (Rcpp::NumericVector y_rcpp,
                   Rcpp::NumericMatrix y_lagged_rcpp,
                   Rcpp::NumericMatrix z_dependent_rcpp,
                   Rcpp::NumericMatrix z_independent_rcpp,
@@ -304,7 +300,7 @@ SEXP EMcppARMSMH (Rcpp::NumericVector y_rcpp,
   for (int i = 1; i < maxit; i++)
   {
     index_exit++;
-    Xi 		e_step = ExpectationStepARMSMH(&y, &y_lagged, &z_dependent, &z_independent,
+    Xi 		e_step = ExpectationStepARMSIAH(&y, &y_lagged, &z_dependent, &z_independent,
                           &theta_temp);
 
     likelihoods(i) = e_step.likelihood;
@@ -317,7 +313,7 @@ SEXP EMcppARMSMH (Rcpp::NumericVector y_rcpp,
       break;
 
     theta = theta_temp;
-    theta_temp = MaximizationStepARMSMH(&y, &y_lagged,
+    theta_temp = MaximizationStepARMSIAH(&y, &y_lagged,
                                   &z_dependent, &z_independent,
                                   &y_lagged_t, &z_dependent_t, &z_independent_t,
                                   &theta,

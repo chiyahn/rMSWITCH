@@ -5,14 +5,13 @@ using namespace Rcpp;
 const double SQRT2PI = 2.50662827463; // sqrt(2*pi)
 const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 
-// Returns an n by 1 column that represents the likelihoods of
-// an estimated univariate MS-AR model for each k where 1 \leq k \leq n where
-// beta is switching.
+// Returns n by M matrix that represents a posterior probs of observations for
+//  univariate MS-AR model where beta is switching.
 // Note that even if beta is non-switching, setting beta as a s by M matrix with
-// repeated column of the original beta will give you the likelihood for
-// MS-AR model with non-switching beta.
+// repeated column of the original beta will give you the posterior probs
+// matrix for MS-AR model with non-switching beta.
 // [[Rcpp::export]]
-SEXP LikelihoodsMSAR (Rcpp::NumericVector y_rcpp,
+SEXP PosteriorProbsMSIAR (Rcpp::NumericVector y_rcpp,
 					Rcpp::NumericMatrix y_lagged_rcpp,
 					Rcpp::NumericMatrix z_dependent_rcpp,
 					Rcpp::NumericMatrix z_independent_rcpp,
@@ -26,8 +25,9 @@ SEXP LikelihoodsMSAR (Rcpp::NumericVector y_rcpp,
 					)
 {
 	int n = y_rcpp.size();
-	int M = transition_probs_rcpp.ncol();
+	int M = mu_rcpp.size();
 	arma::mat xi_k_t(M, n); // make a transpose first for easier column operations.
+	arma::mat xi_past_t(M, n);
 
 	arma::colvec y(y_rcpp.begin(), y_rcpp.size(), false);
 	arma::mat    y_lagged(y_lagged_rcpp.begin(),
@@ -54,23 +54,19 @@ SEXP LikelihoodsMSAR (Rcpp::NumericVector y_rcpp,
 	arma::colvec gamma_independent(gamma_independent_rcpp.begin(),
 								gamma_independent_rcpp.size(), false);
 
-	arma::colvec likelihoods(n);
-
 	for (int k = 0; k < n; k++)
 	{
 		// initial setting; keep track of minimum value and its index
 		// to divide everything by the min. value in order to prevent
 		// possible numerical errors when computing posterior probs.
-		int min_index = -1;
+		int min_index = 0;
 		double min_value = std::numeric_limits<double>::infinity();
 		double* ratios = new double[M];
 		double row_sum = 0;
-
-		arma::colvec xi_past;
 		if (k > 0)
-			xi_past = transition_probs * xi_k_t.col(k-1);
+			xi_past_t.col(k) = transition_probs * xi_k_t.col(k-1);
 		else
-			xi_past = initial_dist;
+			xi_past_t.col(k) = initial_dist;
 
 		for (int j = 0; j < M; j++)
 		{
@@ -86,8 +82,8 @@ SEXP LikelihoodsMSAR (Rcpp::NumericVector y_rcpp,
 				min_index = j;
 			}
 			// SQRT2PI only matters in calculation of eta;
-			// you can remove it in the final log-likelihood.
-			ratios[j] = xi_past(j) / sigma(j);
+			// you can add it in the final log-likelihood.
+			ratios[j] = xi_past_t(j,k) / sigma(j);
 		}
 
 		for (int j = 0; j < M; j++)
@@ -96,17 +92,26 @@ SEXP LikelihoodsMSAR (Rcpp::NumericVector y_rcpp,
 				xi_k_t(j,k) = 1.0;
 			else
 				xi_k_t(j,k) = (ratios[j] / ratios[min_index]) *
-											exp(min_value - xi_k_t(j,k));
+					exp(min_value - xi_k_t(j,k));
 			row_sum += xi_k_t(j,k);
 		}
-
+		// normalize
 		xi_k_t.col(k) /= row_sum;
-
-		likelihoods(k) = log(row_sum) - min_value + log(ratios[min_index]) -
-											LOG2PI_OVERTWO;
 
 		delete[] ratios; // clear memory
 	}
 
-	return (wrap(likelihoods));
+	// smoothed probabilities
+	arma::mat xi_n_t(M, n);
+	arma::mat	transition_probs_t = transition_probs.t();
+  xi_n_t.col(n-1) = xi_k_t.col(n-1);
+  for (int k = (n-2); k >= 0; k--)
+  {
+    xi_n_t.col(k) = xi_k_t.col(k) %
+  (transition_probs_t * (xi_n_t.col(k+1) / (xi_past_t.col(k+1))));
+    xi_n_t.col(k) /= sum(xi_n_t.col(k)); // normalize
+  }
+
+	return Rcpp::List::create(Named("xi.k") = wrap(xi_k_t.t()),
+														Named("xi.n") = wrap(xi_n_t.t()));
 }

@@ -1,5 +1,5 @@
 ###########################################################
-# Compares the result with MSwM for MSMH-AR models
+# Compares the result with MSwM for MSIH-AR models
 ###########################################################
 #install.packages("MswM")
 #install.packages("nloptr")

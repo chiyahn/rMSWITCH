@@ -19,57 +19,57 @@ MaximizeShortStep <- function(short.thetas,
   
   if (is.beta.switching)
     if (is.sigma.switching)
-      return (lapply(short.thetas, EM.MSMAH.AR,
+      return (lapply(short.thetas, EM.MSIAH.AR,
                      y = y, y.lagged = y.lagged,
                      z.dependent = z.dependent, z.independent = z.independent,
                      maxit = maxit, epsilon = epsilon))
     else
-      return (lapply(short.thetas, EM.MSMA.AR,
+      return (lapply(short.thetas, EM.MSIA.AR,
                      y = y, y.lagged = y.lagged,
                      z.dependent = z.dependent, z.independent = z.independent,
                      maxit = maxit, epsilon = epsilon))
   else
     if (is.sigma.switching)
-      return (lapply(short.thetas, EM.MSMH.AR,
+      return (lapply(short.thetas, EM.MSIH.AR,
                      y = y, y.lagged = y.lagged,
                      z.dependent = z.dependent, z.independent = z.independent,
                      maxit = maxit, epsilon = epsilon))
     else
-      return (lapply(short.thetas, EM.MSM.AR,
+      return (lapply(short.thetas, EM.MSI.AR,
                      y = y, y.lagged = y.lagged,
                      z.dependent = z.dependent, z.independent = z.independent,
                      maxit = maxit, epsilon = epsilon))
 }
-EM.MSMA.AR <- function (theta, y, y.lagged,
+EM.MSIA.AR <- function (theta, y, y.lagged,
                          z.dependent, z.independent, 
                          maxit, epsilon)
 {
   
-  EMcppARMSMA(y, y.lagged, z.dependent, z.independent,
+  EMcppARMSIA(y, y.lagged, z.dependent, z.independent,
                theta$beta, theta$mu, theta$sigma,
                theta$gamma.dependent, theta$gamma.independent,
                theta$transition.probs, theta$initial.dist,
                maxit, epsilon)
 }
 
-EM.MSMAH.AR <- function (theta, y, y.lagged,
+EM.MSIAH.AR <- function (theta, y, y.lagged,
                          z.dependent, z.independent, 
                          maxit, epsilon)
 {
   
-  EMcppARMSMAH(y, y.lagged, z.dependent, z.independent,
+  EMcppARMSIAH(y, y.lagged, z.dependent, z.independent,
               theta$beta, theta$mu, theta$sigma,
               theta$gamma.dependent, theta$gamma.independent,
               theta$transition.probs, theta$initial.dist,
               maxit, epsilon)
 }
 
-EM.MSM.AR <- function (theta, y, y.lagged,
+EM.MSI.AR <- function (theta, y, y.lagged,
                         z.dependent, z.independent, 
                         maxit, epsilon)
 {
   
-  EMcppARMSM(y, y.lagged, z.dependent, z.independent,
+  EMcppARMSI(y, y.lagged, z.dependent, z.independent,
               theta$beta, theta$mu, theta$sigma,
               theta$gamma.dependent, theta$gamma.independent,
               theta$transition.probs, theta$initial.dist,
@@ -77,12 +77,12 @@ EM.MSM.AR <- function (theta, y, y.lagged,
 }
 
 
-EM.MSMH.AR <- function (theta, y, y.lagged,
+EM.MSIH.AR <- function (theta, y, y.lagged,
                        z.dependent, z.independent, 
                        maxit, epsilon)
 {
 
-  EMcppARMSMH(y, y.lagged, z.dependent, z.independent,
+  EMcppARMSIH(y, y.lagged, z.dependent, z.independent,
              theta$beta, theta$mu, theta$sigma,
              theta$gamma.dependent, theta$gamma.independent,
              theta$transition.probs, theta$initial.dist,

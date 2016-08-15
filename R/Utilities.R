@@ -35,7 +35,7 @@ testMode <- function(on = FALSE, seed = 8888577, hide.message = TRUE)
 #' @export
 #' @title DiagPlot
 #' @name DiagPlot
-#' @param msar.model An instance in msar.model represents one MSM-AR/MSI-AR model
+#' @param msar.model An instance in msar.model represents one MSI-AR/MSI-AR model
 #' @param y n by 1 column that represents a time series
 #' @param details Determines whether the plots for posterior probabilities are
 #' going to be generated.
@@ -202,7 +202,7 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
     z.independent <- as.matrix(rep(0,n))
 
 
-  return (PosteriorProbsMSAR(y, y.lagged, z.dependent, z.independent,
+  return (PosteriorProbsMSIAR(y, y.lagged, z.dependent, z.independent,
                              theta$transition.probs,
                              theta$initial.dist,
                              beta,

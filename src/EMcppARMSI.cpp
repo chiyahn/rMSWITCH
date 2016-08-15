@@ -13,7 +13,7 @@ const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 // Computes xi_k and likelihood at this stage, and returns
 // an instance of Xi that contains xi_k, likelihood, and empty xi_n that needs
 // to be computed in the smooth step.
-Xi FilterARMSM (arma::colvec* py,
+Xi FilterARMSI (arma::colvec* py,
                 arma::mat* py_lagged,
                 arma::mat* pz_dependent,
                 arma::mat* pz_independent,
@@ -82,13 +82,13 @@ Xi FilterARMSM (arma::colvec* py,
 }
 
 // Returns Xi, which contains xi_k, xi_n, and likelihood at this stage.
-Xi ExpectationStepARMSM	(arma::colvec* py,
+Xi ExpectationStepARMSI	(arma::colvec* py,
                           arma::mat* py_lagged,
                           arma::mat* pz_dependent,
                           arma::mat* pz_independent,
                           Theta* ptheta)
 {
-  Xi filter = FilterARMSM(py, py_lagged, pz_dependent, pz_independent,
+  Xi filter = FilterARMSI(py, py_lagged, pz_dependent, pz_independent,
                             ptheta);
   filter.xi_n = Smooth(&filter.xi_k, &filter.xi_past_t,
                         &(ptheta->transition_probs));
@@ -96,7 +96,7 @@ Xi ExpectationStepARMSM	(arma::colvec* py,
 }
 
 // Returns an maximized theta based on computed xi_k and xi_n from an E-step.
-Theta MaximizationStepARMSM (arma::colvec* py,
+Theta MaximizationStepARMSI (arma::colvec* py,
                             arma::mat* py_lagged,
                             arma::mat* pz_dependent,
                             arma::mat* pz_independent,
@@ -245,7 +245,7 @@ Theta MaximizationStepARMSM (arma::colvec* py,
 }
 
 // [[Rcpp::export]]
-SEXP EMcppARMSM (Rcpp::NumericVector y_rcpp,
+SEXP EMcppARMSI (Rcpp::NumericVector y_rcpp,
                   Rcpp::NumericMatrix y_lagged_rcpp,
                   Rcpp::NumericMatrix z_dependent_rcpp,
                   Rcpp::NumericMatrix z_independent_rcpp,
@@ -303,7 +303,7 @@ SEXP EMcppARMSM (Rcpp::NumericVector y_rcpp,
   for (int i = 1; i < maxit; i++)
   {
     index_exit++;
-    Xi 		e_step = ExpectationStepARMSM(&y, &y_lagged, &z_dependent, &z_independent,
+    Xi 		e_step = ExpectationStepARMSI(&y, &y_lagged, &z_dependent, &z_independent,
                           &theta_temp);
 
     likelihoods(i) = e_step.likelihood;
@@ -316,7 +316,7 @@ SEXP EMcppARMSM (Rcpp::NumericVector y_rcpp,
       break;
 
     theta = theta_temp;
-    theta_temp = MaximizationStepARMSM(&y, &y_lagged,
+    theta_temp = MaximizationStepARMSI(&y, &y_lagged,
                                   &z_dependent, &z_independent,
                                   &y_lagged_t, &z_dependent_t, &z_independent_t,
                                   &theta,

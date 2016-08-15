@@ -10,7 +10,7 @@ const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 // repeated column of the original beta will give you the likelihood for
 // MS-AR model with non-switching beta.
 // [[Rcpp::export]]
-SEXP LikelihoodMSAR (Rcpp::NumericVector y_rcpp,
+SEXP LikelihoodMSIAR (Rcpp::NumericVector y_rcpp,
 					Rcpp::NumericMatrix y_lagged_rcpp,
 					Rcpp::NumericMatrix z_dependent_rcpp,
 					Rcpp::NumericMatrix z_independent_rcpp,

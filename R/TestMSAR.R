@@ -1,3 +1,82 @@
+TestMSARSequence <- function(y, z.dependent = NULL, z.independent = NULL,
+                             s = 1, max.M = 3,
+                             is.beta.switching = FALSE,
+                             is.sigma.switching = TRUE,
+                             is.MSM = FALSE,
+                             cl = NULL, parallel = TRUE,
+                             bootstrap.count = 199)
+{
+  initial.theta <- NULL
+  aic <- bic <- double(max.M)
+  pvals <- LRT.statistics <- double(max.M)
+  log.likelihoods <- double(max.M)
+  model.chosen <- NULL
+  
+  for (M in 1:max.M)
+  {
+    msar.model0 <- EstimateMSAR(y = y, 
+                                z.dependent = z.dependent, z.independent = z.independent,
+                                M = M, s = s,
+                                is.beta.switching = is.beta.switching,
+                                is.sigma.switching = is.sigma.switching,
+                                is.MSM = is.MSM,
+                                crit.method = NULL)
+    
+    msar.model1 <- EstimateMSAR(y = y, 
+                                z.dependent = z.dependent, z.independent = z.independent,
+                                M = (M+1), s = s,
+                                is.beta.switching = is.beta.switching,
+                                is.sigma.switching = is.sigma.switching,
+                                is.MSM = is.MSM,
+                                crit.method = NULL)
+    
+    aic[M] <- -2*x$log.likelihood + 2*NumberOfParameters(msar.model0$theta)
+    bic[M] <- -2*x$log.likelihood + log(n)*NumberOfParameters(msar.model0$theta)
+    
+    LRT.statistics[M] <- 2*(msar.model1$log.likelihood - msar.model0$log.likelihood)
+    initial.theta <- msar.model1$theta
+    print(sprintf("%d-regime switching model estimate:\n", M))
+    print(msar.model0)
+    
+    cat("LRT statistic ", sprintf('%.3f', LRT.statistics[M]), "\n")
+    
+    crit.result <- TestMSARCritBoot(LRT.statistic0 = LRT.statistics[M],
+                                    msar.model0 = msar.model0, 
+                                    is.beta.switching,
+                                    is.sigma.switching,
+                                    y = y,
+                                    z.dependent = z.dependent,
+                                    z.independent = z.independent,
+                                    cl = cl, parallel = parallel,
+                                    bootstrap.count = bootstrap.count)
+    pvals[M] <- crit.result$pval
+  }
+  
+  for (M in 1:max.M)
+    if (pvals[M] >= 0.05) {
+      cat(sprintf("\nThe number of components selected by Sequential Hypothesis Testing (alpha=0.05) = %.i", M), 
+          " \n")
+      cat(sprintf("The number of components selected by AIC = %.i", 
+                  which.min(aics)), " \n")
+      cat(sprintf("The number of components selected by BIC = %.i", 
+                  which.min(bics)), " \n")
+      
+      model.chosen   <-  EstimateMSAR(y = y, 
+                                      z.dependent = z.dependent, z.independent = z.independent,
+                                      M = M, s = s,
+                                      is.beta.switching = is.beta.switching,
+                                      is.sigma.switching = is.sigma.switching,
+                                      is.MSM = is.MSM,
+                                      crit.method = NULL)
+      
+      cat(sprintf("\nThe summary of estimated Markov %.i", M), "regime switching model is as follows \n")
+      print(summary(model.chosen))
+      break
+    }
+  
+  return (model.chosen)
+}
+
 #' Returns a LRT statistic given the data for y, z, s based on
 #' the null hypothesis H_0: M = m_0 with the alternative H_1: M = m_0 + 1
 #' @export
@@ -81,13 +160,14 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
     crit.result$pval <- NA
     crit.result$bootstrap.estimates.null <- NULL
   }
-
-  return (list(LRT.statistic = LRT.statistic,
-               crit = crit.result$crit,
-               pval = crit.result$pval,
-               msar.model0 = msar.model0, msar.model1 = msar.model1,
-               bootstrap.estimates.null = crit.result$bootstrap.estimates.null,
-               crit.method = crit.method))
+  msar.test <- list(LRT.statistic = LRT.statistic,
+                    crit = crit.result$crit,
+                    pval = crit.result$pval,
+                    msar.model0 = msar.model0, msar.model1 = msar.model1,
+                    bootstrap.estimates.null = crit.result$bootstrap.estimates.null,
+                    crit.method = crit.method)
+  class(msar.test) <- "msar.test"
+  return (msar.test)
 }
 
 #' Calculate p-values and critical value given a LRT.statistic based on

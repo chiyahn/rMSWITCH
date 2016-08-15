@@ -392,7 +392,7 @@ EstimateFisherInformation <- function(theta, y, y.lagged,
       gamma.independent <- theta.vectorized[gamma.indep.index:
                                             length(theta.vectorized)]
 
-    LikelihoodsMSAR(y, y.lagged, z.dependent, z.independent,
+    LikelihoodsMSIAR(y, y.lagged, z.dependent, z.independent,
                     transition.probs,
                     initial.dist,  # initial.dist
                     beta = beta,  # beta
