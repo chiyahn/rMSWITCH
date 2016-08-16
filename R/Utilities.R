@@ -546,3 +546,19 @@ GetColumnNames <- function(theta)
            colnames.beta, colnames.mu, colnames.sigma,
            colnames.gamma.dependent, colnames.gamma.independent))
 }
+
+ComputeStationaryDist <- function(transition.probs)
+{
+  M <- ncol(transition.probs)
+  eigen.list <- eigen(t(transition.probs))
+  eigen.values <- eigen.list$values
+  eigen.vectors <- eigen.list$vectors
+  stationary.dist.index <- -1
+  for (i in 1:M)
+    if (eigen.values[i] == 1)
+      stationary.dist.index = i;
+  stationary.dist <- eigen.vectors[,stationary.dist.index]
+  stationary.dist <- abs(stationary.dist) / sum(abs(stationary.dist));
+  return (stationary.dist)
+}
+
