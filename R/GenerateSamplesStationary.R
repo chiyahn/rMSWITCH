@@ -27,7 +27,8 @@ GenerateSamplesStationary <- function (theta, n = 200, replications = 200,
     initial.y.values <- matrix(rnorm(replications*s, 
                                 mean = 0, 
                                 sd = as.numeric(theta$sigma) / 
-                                      (1 - sum(abs(theta$beta)))),
+                                      ((1 - sum(theta$beta * 
+                                                theta$beta)))),
                                ncol = replications)
     states <- rep(1,replications)
     samples <- matrix(0, ncol = replications, nrow = (n + s))
@@ -60,6 +61,4 @@ GenerateSamplesStationary <- function (theta, n = 200, replications = 200,
                                        is.MSM = is.MSM)
   
   return (samples[(burn.in + 1):(nrow(samples)),])
-
-  
 }
