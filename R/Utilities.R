@@ -562,3 +562,66 @@ ComputeStationaryDist <- function(transition.probs)
   return (stationary.dist)
 }
 
+ComputeLikelihood <- function(theta, y, 
+                              z.dependent = NULL, z.independent = NULL, 
+                              is.MSM = FALSE)
+{
+  if (is.MSM)
+    stop ("MSM models are currently not supported.")
+  
+
+
+  transition.probs <- theta$transition.probs
+  initial.dist <- theta$initial.dist
+  beta <- as.matrix(theta$beta)
+  mu <- theta$mu
+  sigma <- theta$sigma
+  
+  M <- ncol(transition.probs)
+  s <- nrow(beta)
+  
+  lagged.and.sample <- GetLaggedAndSample(y, s)
+  y.lagged <- lagged.and.sample$y.lagged
+  y.sample <- lagged.and.sample$y.sample
+  n <- length(y.sample)
+  
+  
+  # remove first s rows of z.dependent or/and z.independent if exists
+  if (!is.null(z.dependent))
+    z.dependent <- as.matrix(as.matrix(z.dependent[(s+1):length(y),]))
+  else
+    z.dependent <- as.matrix(rep(0, n))
+  if (!is.null(z.independent))
+    z.independent <- as.matrix(as.matrix(z.independent[(s+1):length(y),]))
+  else
+    z.independent <- as.matrix(rep(0, n))
+  
+  
+  if (ncol(beta) < 2) # make it as a switching parameter if not.
+    beta <- matrix(rep(beta, M), ncol = M)
+  if (length(sigma) < 2) # make it as a switching parameter if not.
+    sigma <- rep(sigma, M)
+  
+  
+  # i.e. gamma.dependent exists
+  if (!is.null(theta$gamma.dependent))
+    gamma.dependent <- as.matrix(theta$gamma.dependent)
+  else
+    gamma.dependent <- t(rep(0,M))
+  # i.e. gamma.independent exists
+  if (!is.null(theta$gamma.independent))
+    gamma.independent <- as.matrix(theta$gamma.independent)
+  else
+    gamma.independent <- 0
+  
+  if (!is.MSM)
+    return (LikelihoodMSIAR(y.sample, y.lagged, z.dependent, z.independent,
+                    transition.probs,
+                    initial.dist,  # initial.dist
+                    beta,  
+                    mu,  # mu
+                    sigma,    # sigma
+                    gamma.dependent,
+                    gamma.independent))
+  return (-Inf) # stub for MSM models
+}
