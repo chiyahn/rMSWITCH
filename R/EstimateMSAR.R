@@ -14,7 +14,7 @@
 #' @param is.sigma.swithcing Specifies whether the model is heteroscedastic.
 #' @param is.MSM Specifies whether the model is switching in mean (MSM) or
 #' intercept (MSI).
-#' @param theta.initial An initial guess for MS-AR model
+#' @param initial.theta An initial guess for MS-AR model
 #' @param epsilon Epsilon used as convergence criterion.
 #' @param maxit The maximum number of iterations.
 #' @param short.n Number of short EMs
@@ -40,7 +40,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         is.beta.switching = FALSE,
                         is.sigma.switching = TRUE,
                         is.MSM = FALSE,
-                        theta.initial = NULL,
+                        initial.theta = NULL,
                         epsilon = 1e-08, maxit = 2000,
                         short.n = 20, short.epsilon = 1e-03,
                         short.iterations = 200) {
@@ -69,15 +69,21 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   if (!is.null(z.independent))
     z.independent <- as.matrix(as.matrix(z.independent[(s+1):length(y),]))
 
-  # 1. Get initial parameter using regmix if theta.initial is not given
-  if (is.null(theta.initial) || M == 1)
+  # 1. Get initial parameter using regmix if initial.theta is not given
+  if (is.null(initial.theta) || M == 1)
   {
     initial.params <- GetInitialParams(y.sample, y.lagged,
                                        z.dependent, z.independent,
                                        M = M, s = s, p.dependent = p.dependent,
                                        is.beta.switching = is.beta.switching,
                                        is.sigma.switching = is.sigma.switching)
-    theta.initial <- initial.params$theta
+    initial.theta <- initial.params$theta
+  }
+  else
+  {
+    initial.theta$beta <- as.matrix(initial.theta$beta)
+    if (!is.null(initial.theta$gamma.dependent))
+      initial.theta$gamma.dependent <- as.matrix(initial.theta$gamma.dependent)
   }
 
   if (M > 1)
@@ -87,15 +93,15 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     short.n.candidates <- max(2*short.n*((1+2*s)+(ncol(z.dependent)+
                               ncol(z.independent))*M), 200)
     short.thetas <- lapply(1:short.n.candidates,
-                          function(j) EstimateMSARInitShort(theta.initial))
+                          function(j) EstimateMSARInitShort(initial.theta))
     # For compatibility with cpp codes, change gammas to
     # appropriate zero vectors. After computation, they will be returned NULL.
     if (is.null(z.dependent))
-      theta.initial$gamma.dependent <- matrix(rep(0,M), ncol = M)
+      initial.theta$gamma.dependent <- matrix(rep(0,M), ncol = M)
     if (is.null(z.independent))
-      theta.initial$gamma.independent <- as.matrix(0)
+      initial.theta$gamma.independent <- as.matrix(0)
     # include the original theta
-    short.thetas[[length(short.thetas) + 1]] <- theta.initial
+    short.thetas[[length(short.thetas) + 1]] <- initial.theta
     short.results <- MaximizeShortStep(short.thetas = short.thetas,
                           y = y.sample, y.lagged = y.lagged,
                           z.dependent = z.dependent,
