@@ -3,7 +3,10 @@
 # the parameters in theta; this applies for univariate time series only.
 MaximizeLongStep <- function(candidates, y, y.lagged,
                             z.dependent, z.independent,
-                            epsilon, maxit)
+                            epsilon, maxit,
+                            transition.probs.min = 0.01,
+                            lb.prob.density = 10e-6,
+                            ub.prob.density = (1-10e-6))
 {
   # use the first candidate to save the information about dimensions
   theta <- candidates[[1]]
@@ -108,21 +111,20 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
       index <- 1 + (i - 1) * (M-1)
       sum.ith <- sum(theta.vectorized[index:(index + M - 2)])
       constraint.vectorized <- c(constraint.vectorized,
-                                 1-sum.ith)
+                                 (1-transition.probs.min)-sum.ith)
     }
 
     # initial.dist (indices are M*(M-1)+1:M*(M-1)+(M-1))
     constraint.vectorized <- c(constraint.vectorized,
-                               1-sum(theta.vectorized[(M*(M-1)+1):(M*M-1)]))
+                               ub.prob.density-
+                                 sum(theta.vectorized[(M*(M-1)+1):(M*M-1)]))
 
     return (constraint.vectorized)
   }
 
   # define it dynamically (for indices)
   SLSQPNonSwitchingAR <- function(theta.vectorized,
-                                  y, y.lagged, z.dependent, z.independent,
-                                  lb.prob.density = 10e-6,
-                                  ub.prob.density = (1-10e-6))
+                                  y, y.lagged, z.dependent, z.independent)
   {
     # sanity check; if a candidate contains a singularity, you must not use it.
     if (anyNA(theta.vectorized) || is.null(theta.vectorized))
@@ -172,8 +174,8 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
     }
 
     # hard constraints to prevent values from bounding off
-    transition.probs.lb <- rep(0.05, M*(M-1))
-    transition.probs.ub <- rep(0.95, M*(M-1))
+    transition.probs.lb <- rep(transition.probs.min, M*(M-1))
+    transition.probs.ub <- rep((1-(M-1)*transition.probs.min), M*(M-1))
     theta.vectorized[1:(M*(M-1))] <- pmax(transition.probs.lb,
                                           theta.vectorized[1:(M*(M-1))])
     theta.vectorized[1:(M*(M-1))] <- pmin(transition.probs.ub,
