@@ -625,3 +625,53 @@ ComputeLikelihood <- function(theta, y,
                     gamma.independent))
   return (-Inf) # stub for MSM models
 }
+
+
+ThetaToModel <- function(theta,  y, 
+                         z.dependent = NULL, z.independent = NULL, 
+                         is.MSM = FALSE)
+{
+  # make theta in a proper form
+  theta$beta <- as.matrix(theta$beta)
+  if (!is.null(theta$gamma.dependent))
+    theta$gamma.dependent <- as.matrix(theta$gamma.dependent)
+  s <- nrow(theta$beta)
+  
+  if (s + 1 > length(y))
+  {
+    print ("EXCEPTION: The length of observations must be greater than s.")
+    return (NULL)
+  }
+  if (is.MSM)
+    stop ("MSM models are currently not supported.")
+  
+  # formatting dataset
+  lagged.and.sample <- GetLaggedAndSample(y, s)
+  y.lagged <- lagged.and.sample$y.lagged
+  y.sample <- lagged.and.sample$y.sample
+  n <- length(y.sample)
+  initial.params <- NULL
+  
+  log.likelihood <- ComputeLikelihood(theta = theta, 
+                      y = y, 
+                      z.dependent = z.dependent, z.independent = z.independent, 
+                      is.MSM = is.MSM)
+  posterior.probs <- EstimatePosteriorProbs(theta = theta,
+                      y = y.sample, y.lagged = y.lagged,
+                      z.dependent = z.dependent, z.independent = z.independent)
+  states <- EstimateStates(posterior.probs$xi.n) # use smoothed probabilities
+  fisher.estimated <- EstimateFisherInformation(theta = theta,
+                      y = y.sample, y.lagged = y.lagged,
+                      z.dependent = z.dependent, z.independent = z.independent)
+
+  msar.model <- list(theta = theta,
+                     log.likelihood = log.likelihood,
+                     posterior.probs.filtered = posterior.probs$xi.k,
+                     posterior.probs.smoothed = posterior.probs$xi.n,
+                     fisher.estimated = fisher.estimated,
+                     states = states,
+                     call = match.call(),
+                     is.MSM = is.MSM,
+                     label = "msar.model")
+}
+
