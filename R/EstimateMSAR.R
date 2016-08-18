@@ -121,7 +121,11 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                                     z.dependent = z.dependent,
                                     z.independent = z.independent,
                                     epsilon = epsilon, maxit = maxit)
-
+    if (!long.result$succeeded)
+    {
+      print("Estimation failed. Try different settings for EM-algorithm.")
+      return (NULL)
+    }
   }
   else
   {

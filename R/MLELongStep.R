@@ -38,6 +38,13 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
   # if gamma.independent does not exist,
   # should have the same value as length(theta.vectorized) + 1
   gamma.indep.index <- p.dep * M + gamma.dep.index
+  
+  # hard constraints
+  transition.probs.lb <- rep(transition.probs.min, M*(M-1))
+  transition.probs.ub <- rep((1-(M-1)*transition.probs.min), M*(M-1))
+  initial.dist.lb <- rep(lb.prob.density, (M-1))
+  initial.dist.ub <- rep(ub.prob.density, (M-1))
+  
 
   # Transform a vectorized theta back to a list form
   ColumnToTheta <- function(theta.vectorized)
@@ -174,14 +181,12 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
     }
 
     # hard constraints to prevent values from bounding off
-    transition.probs.lb <- rep(transition.probs.min, M*(M-1))
-    transition.probs.ub <- rep((1-(M-1)*transition.probs.min), M*(M-1))
+    # transition.probs
     theta.vectorized[1:(M*(M-1))] <- pmax(transition.probs.lb,
                                           theta.vectorized[1:(M*(M-1))])
     theta.vectorized[1:(M*(M-1))] <- pmin(transition.probs.ub,
                                           theta.vectorized[1:(M*(M-1))])
-    initial.dist.lb <- rep(lb.prob.density, (M-1))
-    initial.dist.ub <- rep(ub.prob.density, (M-1))
+    # initial.dist
     theta.vectorized[(M*(M-1)+1):(M*M-1)] <- pmax(initial.dist.lb,
                                                   theta.vectorized[(M*(M-1)+1):
                                                   (M*M-1)])
@@ -241,10 +246,11 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
   long.result <- long.results[[(which(long.likelihoods==
                                       max(long.likelihoods))[1])]]
   if (!is.finite(long.result$value))
-    stop("Estimation failed. Try different settings for EM-algorithm.")
+    return (list (succeeded = FALSE))
   return (list(theta = ReducedColumnToTheta(long.result$par),
                log.likelihood = long.result$value,
-               long.results = long.results))
+               long.results = long.results,
+               succeeded = TRUE))
 }
 
 LongStepSanityCheck <- function (x0, fn)
