@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // EMcppARMSI
-SEXP EMcppARMSI(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon);
-RcppExport SEXP rMSWITCH_EMcppARMSI(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP) {
+SEXP EMcppARMSI(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon, double transition_probs_min, double transition_probs_max);
+RcppExport SEXP rMSWITCH_EMcppARMSI(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP, SEXP transition_probs_minSEXP, SEXP transition_probs_maxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -25,13 +25,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist0_rcpp(initial_dist0_rcppSEXP);
     Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
-    __result = Rcpp::wrap(EMcppARMSI(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon));
+    Rcpp::traits::input_parameter< double >::type transition_probs_min(transition_probs_minSEXP);
+    Rcpp::traits::input_parameter< double >::type transition_probs_max(transition_probs_maxSEXP);
+    __result = Rcpp::wrap(EMcppARMSI(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max));
     return __result;
 END_RCPP
 }
 // EMcppARMSIA
-SEXP EMcppARMSIA(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon);
-RcppExport SEXP rMSWITCH_EMcppARMSIA(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP) {
+SEXP EMcppARMSIA(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon, double transition_probs_min, double transition_probs_max);
+RcppExport SEXP rMSWITCH_EMcppARMSIA(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP, SEXP transition_probs_minSEXP, SEXP transition_probs_maxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -48,13 +50,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist0_rcpp(initial_dist0_rcppSEXP);
     Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
-    __result = Rcpp::wrap(EMcppARMSIA(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon));
+    Rcpp::traits::input_parameter< double >::type transition_probs_min(transition_probs_minSEXP);
+    Rcpp::traits::input_parameter< double >::type transition_probs_max(transition_probs_maxSEXP);
+    __result = Rcpp::wrap(EMcppARMSIA(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max));
     return __result;
 END_RCPP
 }
 // EMcppARMSIAH
-SEXP EMcppARMSIAH(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon);
-RcppExport SEXP rMSWITCH_EMcppARMSIAH(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP) {
+SEXP EMcppARMSIAH(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon, double transition_probs_min, double transition_probs_max);
+RcppExport SEXP rMSWITCH_EMcppARMSIAH(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP, SEXP transition_probs_minSEXP, SEXP transition_probs_maxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -71,13 +75,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist0_rcpp(initial_dist0_rcppSEXP);
     Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
-    __result = Rcpp::wrap(EMcppARMSIAH(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon));
+    Rcpp::traits::input_parameter< double >::type transition_probs_min(transition_probs_minSEXP);
+    Rcpp::traits::input_parameter< double >::type transition_probs_max(transition_probs_maxSEXP);
+    __result = Rcpp::wrap(EMcppARMSIAH(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max));
     return __result;
 END_RCPP
 }
 // EMcppARMSIH
-SEXP EMcppARMSIH(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon);
-RcppExport SEXP rMSWITCH_EMcppARMSIH(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP) {
+SEXP EMcppARMSIH(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix beta0_rcpp, Rcpp::NumericVector mu0_rcpp, Rcpp::NumericVector sigma0_rcpp, Rcpp::NumericMatrix gamma_dependent0_rcpp, Rcpp::NumericMatrix gamma_independent0_rcpp, Rcpp::NumericMatrix transition_probs0_rcpp, Rcpp::NumericVector initial_dist0_rcpp, int maxit, double epsilon, double transition_probs_min, double transition_probs_max);
+RcppExport SEXP rMSWITCH_EMcppARMSIH(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP beta0_rcppSEXP, SEXP mu0_rcppSEXP, SEXP sigma0_rcppSEXP, SEXP gamma_dependent0_rcppSEXP, SEXP gamma_independent0_rcppSEXP, SEXP transition_probs0_rcppSEXP, SEXP initial_dist0_rcppSEXP, SEXP maxitSEXP, SEXP epsilonSEXP, SEXP transition_probs_minSEXP, SEXP transition_probs_maxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -94,7 +100,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist0_rcpp(initial_dist0_rcppSEXP);
     Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
-    __result = Rcpp::wrap(EMcppARMSIH(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon));
+    Rcpp::traits::input_parameter< double >::type transition_probs_min(transition_probs_minSEXP);
+    Rcpp::traits::input_parameter< double >::type transition_probs_max(transition_probs_maxSEXP);
+    __result = Rcpp::wrap(EMcppARMSIH(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max));
     return __result;
 END_RCPP
 }

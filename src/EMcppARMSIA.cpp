@@ -107,7 +107,9 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
                             arma::mat* pxi_k,
                             arma::mat* pxi_past_t,
                             arma::mat* pxi_n,
-                            arma::colvec* sigma_first_step)
+                            arma::colvec* sigma_first_step,
+                            double transition_probs_min,
+                            double transition_probs_max)
 {
   int M = ptheta0->initial_dist.size();
   int s = ptheta0->beta.n_rows;
@@ -140,8 +142,10 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
                     pxi_past_t->at(j,k);
       transition_probs(i,j) = prob_ij / total;
       // enforce ub/lb (hard constraints)
-      transition_probs(i,j) = std::max(transition_probs(i,j), 0.05);
-      transition_probs(i,j) = std::min(transition_probs(i,j), 0.95);
+      transition_probs(i,j) = std::max(transition_probs(i,j),
+                                        transition_probs_min);
+      transition_probs(i,j) = std::min(transition_probs(i,j),
+                                        transition_probs_max);
     }
     // normalize
     transition_probs.row(i) = transition_probs.row(i) /
@@ -253,7 +257,9 @@ SEXP EMcppARMSIA (Rcpp::NumericVector y_rcpp,
                   Rcpp::NumericMatrix transition_probs0_rcpp,
                   Rcpp::NumericVector initial_dist0_rcpp,
                   int maxit,
-                  double epsilon)
+                  double epsilon,
+                  double transition_probs_min,
+                  double transition_probs_max)
 {
   // conversion first
   arma::colvec y(y_rcpp.begin(), y_rcpp.size(), false);
@@ -318,7 +324,9 @@ SEXP EMcppARMSIA (Rcpp::NumericVector y_rcpp,
                                   &theta,
                                   &(e_step.xi_k), &(e_step.xi_past_t),
                                   &(e_step.xi_n),
-                                  &theta_original.sigma);
+                                  &theta_original.sigma,
+                                  transition_probs_min,
+                                  transition_probs_max);
 
   }
   likelihood = likelihoods(index_exit); // copy the most recent likelihood

@@ -43,7 +43,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         initial.theta = NULL,
                         epsilon = 1e-08, maxit = 2000,
                         short.n = 20, short.epsilon = 1e-03,
-                        short.iterations = 200) {
+                        short.iterations = 200,
+                        transition.probs.min = 0.01) {
   if (test.on) # initial values controlled by test.on
     set.seed(test.seed)
 
@@ -57,6 +58,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     stop ("MSM models are currently not supported.")
 
   # formatting dataset
+  transition.probs.max <- 1 - (M-1)*transition.probs.min
+  
   lagged.and.sample <- GetLaggedAndSample(y, s)
   y.lagged <- lagged.and.sample$y.lagged
   y.sample <- lagged.and.sample$y.sample
@@ -108,7 +111,9 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                           z.independent = z.independent,
                           is.beta.switching = is.beta.switching,
                           is.sigma.switching = is.sigma.switching,
-                          maxit = short.iterations, epsilon = short.epsilon)
+                          maxit = short.iterations, epsilon = short.epsilon,
+                          transition.probs.min = transition.probs.min,
+                          transition.probs.max = transition.probs.max)
     short.likelihoods <- sapply(short.results, "[[", "likelihood")
 
     # 3. Run long step
@@ -120,7 +125,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                                     y = y.sample, y.lagged = y.lagged,
                                     z.dependent = z.dependent,
                                     z.independent = z.independent,
-                                    epsilon = epsilon, maxit = maxit)
+                                    epsilon = epsilon, maxit = maxit,
+                                    transition.probs.min = transition.probs.min)
     if (!long.result$succeeded)
     {
       print("Estimation failed. Try different settings for EM-algorithm.")
