@@ -42,7 +42,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         is.MSM = FALSE,
                         initial.theta = NULL,
                         epsilon = 1e-08, maxit = 2000,
-                        short.n = 40, short.epsilon = 1e-03,
+                        short.n = 20, short.epsilon = 1e-03,
                         short.iterations = 200) {
   if (test.on) # initial values controlled by test.on
     set.seed(test.seed)
@@ -90,8 +90,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   {
     # 2. Run short EM
     # how many candidates would you like to find?
-    short.n.candidates <- max(2*short.n*((1+2*s)+(ncol(z.dependent)+
-                              ncol(z.independent))*M), 200)
+    short.n.candidates <- max(4*short.n*((1+2*s)+(ncol(z.dependent)+
+                              ncol(z.independent))*(M*M)), 200)
     short.thetas <- lapply(1:short.n.candidates,
                           function(j) EstimateMSARInitShort(initial.theta))
     # For compatibility with cpp codes, change gammas to
