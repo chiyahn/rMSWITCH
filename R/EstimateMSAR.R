@@ -205,7 +205,7 @@ GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent,
                               is.beta.switching, is.sigma.switching)
 {
   regmix.result <- regmixPMLE(y = y.sample, x = cbind(y.lagged, z.dependent),
-                              z = z.independent, m = M, vcov.method="OPG")
+                              z = z.independent, m = M, vcov.method="none")
   regmix.theta <- regmix.result$parlist
   regmix.transition.probs <- StatesToTransitionProbs(states =
                                                 regmix.result$indices, M = M)
