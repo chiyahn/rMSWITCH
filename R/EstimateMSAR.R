@@ -96,7 +96,12 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     short.n.candidates <- max(4*short.n*((1+2*s)+(ncol(z.dependent)+
                               ncol(z.independent))*(M*M)), 200)
     short.thetas <- lapply(1:short.n.candidates,
-                          function(j) EstimateMSARInitShort(initial.theta))
+                           function(j) 
+                             EstimateMSARInitShort(theta = initial.theta,
+                                                   transition.probs.min =
+                                                     transition.probs.min,
+                                                   transition.probs.max =
+                                                     transition.probs.max))
     # For compatibility with cpp codes, change gammas to
     # appropriate zero vectors. After computation, they will be returned NULL.
     if (is.null(z.dependent))
@@ -257,7 +262,10 @@ GetLaggedColumn <- function (j, col, s) {
 }
 
 # Gives variation in theta given
-EstimateMSARInitShort <- function(theta) {
+EstimateMSARInitShort <- function(theta, 
+                                  transition.probs.min,
+                                  transition.probs.max) 
+{
   beta0 <- theta$beta
   mu0 <- theta$mu
   sigma0 <- theta$sigma
@@ -269,7 +277,14 @@ EstimateMSARInitShort <- function(theta) {
 
   sigma.epsilon <- 0.6 # minimum sigma
 
-  transition.probs = t(apply(transition.probs0, 1, VariationInRow))
+  transition.probs <- matrix(0, ncol = M, nrow = M)
+  for (i in 1:M)
+  {
+    transition.probs[i,i] <- runif(1, (transition.probs.max * 0.7), transition.probs.max)
+    transition.probs[i,][-i] <- runif((M-1), transition.probs.min, transition.probs[i,i])  
+    transition.probs[i,] <- transition.probs[i,] / sum(transition.probs[i,])
+  }
+  
   initial.dist = VariationInRow(initial.dist0)
   beta <- beta0 # beta estimate should be accurate enough
   mu <- mu0 + rnorm(length(mu0))
