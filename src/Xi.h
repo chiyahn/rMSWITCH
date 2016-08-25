@@ -12,14 +12,8 @@ struct Xi
   arma::mat xi_n;				// n by M matrix
   double		likelihood;
 
-  Xi (arma::mat xi_k_, arma::mat xi_past_t_,
-      arma::mat xi_n_, double likelihood_)
-  {
-    xi_k = xi_k_;
-    xi_past_t = xi_past_t_;
-    xi_n = xi_n_;
-    likelihood = likelihood_;
-  }
+  Xi (arma::mat _xi_k, arma::mat _xi_past_t,
+      arma::mat _xi_n, double _likelihood);
 };
 
 #endif
