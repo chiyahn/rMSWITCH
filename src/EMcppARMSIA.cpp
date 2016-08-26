@@ -21,8 +21,10 @@ Xi FilterARMSIA (arma::colvec* py,
 {
   int n = py->n_rows;
   int M = ptheta->transition_probs.n_cols;
-  arma::mat xi_k_t(M, n); // make transpose first for easier column operations.
-  arma::mat xi_past_t(M, n);
+  arma::mat xi_k_t(M, n, arma::fill::zeros); // make transpose first for easier column operations.
+  arma::mat xi_past_t(M, n, arma::fill::zeros);
+  arma::mat transition_probs_t = (ptheta->transition_probs).t();
+
   double likelihood = 0;
 
   for (int k = 0; k < n; k++)
@@ -34,12 +36,12 @@ Xi FilterARMSIA (arma::colvec* py,
     double min_value = std::numeric_limits<double>::infinity();
     double* ratios = new double[M];
     double row_sum = 0;
-    double sigma = ptheta->sigma(0); // non-switching sigma
 
     if (k > 0)
-      xi_past_t.col(k) = ptheta->transition_probs * xi_k_t.col(k-1);
+      xi_past_t.col(k) = transition_probs_t * xi_k_t.col(k-1);
     else
       xi_past_t.col(k) = ptheta->initial_dist;
+    xi_past_t.col(k) = xi_past_t.col(k) / arma::sum(xi_past_t.col(k));
 
     for (int j = 0; j < M; j++)
     {
@@ -48,7 +50,7 @@ Xi FilterARMSIA (arma::colvec* py,
         pz_dependent->row(k) * ptheta->gamma_dependent.col(j) -
         pz_independent->row(k) * ptheta->gamma_independent - ptheta->mu(j);
       xi_k_t(j,k) = xi_k_t_jk(0) * xi_k_t_jk(0); // explicit gluing
-      xi_k_t(j,k) = xi_k_t(j,k) / (2 * (sigma * sigma));
+      xi_k_t(j,k) = xi_k_t(j,k) / (2 * (ptheta->sigma(0) * ptheta->sigma(0)));
       if (min_value > xi_k_t(j,k))
       {
         min_value = xi_k_t(j,k);
@@ -56,7 +58,7 @@ Xi FilterARMSIA (arma::colvec* py,
       }
       // SQRT2PI only matters in calculation of eta;
       // you can add it in the final log-likelihood.
-      ratios[j] = xi_past_t(j, k) / sigma;
+      ratios[j] = xi_past_t(j, k) / ptheta->sigma(0);
     }
 
     for (int j = 0; j < M; j++)
@@ -76,8 +78,8 @@ Xi FilterARMSIA (arma::colvec* py,
     delete[] ratios; // clear memory
   }
   likelihood -= n * LOG2PI_OVERTWO;
-
-  Xi xi(xi_k_t.t(), xi_past_t, arma::mat(), likelihood);
+  ptheta->likelihood = likelihood;
+  Xi xi(xi_k_t.t(), xi_past_t, arma::mat());
   return xi;
 }
 
@@ -107,9 +109,9 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
                             arma::mat* pxi_k,
                             arma::mat* pxi_past_t,
                             arma::mat* pxi_n,
-                            arma::colvec* sigma_first_step,
                             double transition_probs_min,
-                            double transition_probs_max)
+                            double transition_probs_max,
+                            double sigma_min)
 {
   int M = ptheta0->initial_dist.size();
   int s = ptheta0->beta.n_rows;
@@ -117,19 +119,18 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
   int p_indep = ptheta0->gamma_independent.n_rows;
   int n = py->n_rows;
   int n_minus_one = n - 1;
-  double sigma0 = ptheta0->sigma(0); // non-switching sigma
 
-  arma::mat 		transition_probs(M, M);
-  arma::mat 		beta(s, M);
-  arma::colvec 	mu(M);  // M-length vec
-  arma::colvec 	sigma(1); // 1-length vec
-  arma::mat 		gamma_dependent(p_dep, M); // p_dep by M mat
-  arma::colvec	gamma_independent(p_indep); // p_indep-length vec
-  arma::colvec	initial_dist(M);
+  arma::mat 		transition_probs(M, M, arma::fill::zeros);
+  arma::mat 		beta(s, M, arma::fill::zeros); // s by M matrix WATCH: A case?
+  arma::colvec 	mu(M, arma::fill::zeros);  // M-length vec
+  arma::colvec 	sigma(1, arma::fill::zeros); // M-length vec WATCH: H case?
+  arma::mat 		gamma_dependent(p_dep, M, arma::fill::zeros); // p_dep by M mat
+  arma::colvec	gamma_independent(p_indep, arma::fill::zeros); // p_indep-length vec
+  arma::colvec	initial_dist(M, arma::fill::zeros);
 
   // 1. Estimation for transition_probs
   for (int i = 0; i < M; i++)
-   {
+  {
     double total = 0;
     for (int k = 0; k < n_minus_one; k++)
       total += pxi_n->at(k,i);
@@ -140,13 +141,14 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
         prob_ij += pxi_n->at(k,j) *
                     ptheta0->transition_probs(i,j) * pxi_k->at((k-1),i) /
                     pxi_past_t->at(j,k);
-      transition_probs(i,j) = prob_ij / total;
-      // enforce ub/lb (hard constraints)
+      // impose the hard constraints
       transition_probs(i,j) = std::max(transition_probs(i,j),
-                                        transition_probs_min);
+                       transition_probs_min);
       transition_probs(i,j) = std::min(transition_probs(i,j),
-                                        transition_probs_max);
+                       transition_probs_max);
+      transition_probs(i,j) = prob_ij / total;
     }
+
     // normalize
     transition_probs.row(i) = transition_probs.row(i) /
                               sum(transition_probs.row(i));
@@ -159,15 +161,15 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
             (*py - *py_lagged * ptheta0->beta.col(j) -
               *pz_dependent * (ptheta0->gamma_dependent).col(j) -
               *pz_independent * ptheta0->gamma_independent)) /
-              sum(pxi_n->col(j));
+            sum(pxi_n->col(j));
 
 
   // 2-2. gamma_dependent
   if (!SetToZeroIfAlmostZero(&ptheta0->gamma_dependent)) // validity check
     for (int j = 0; j < M; j++)
     {
-      arma::mat     gamma_dependent_part_one(p_dep, p_dep);
-      arma::colvec  gamma_dependent_part_two(p_dep);
+      arma::mat     gamma_dependent_part_one(p_dep, p_dep, arma::fill::zeros);
+      arma::colvec  gamma_dependent_part_two(p_dep, arma::fill::zeros);
       for (int k = 0; k < n; k++)
       {
         gamma_dependent_part_one += pxi_n->at(k,j) *
@@ -184,8 +186,8 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
   // 2-3. beta (switching)
   for (int j = 0; j < M; j++)
   {
-    arma::mat 		beta_part_one(s, s);
-    arma::colvec 	beta_part_two(s);
+    arma::mat 		beta_part_one(s, s, arma::fill::zeros);
+    arma::colvec 	beta_part_two(s, arma::fill::zeros);
     for (int k = 0; k < n; k++)
     {
       beta_part_one += pxi_n->at(k,j) *
@@ -200,14 +202,14 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
   // 2-4. gamma_independent
   if (!SetToZeroIfAlmostZero(&ptheta0->gamma_independent)) // validity check
   {
-    arma::mat 		gamma_independent_part_one(p_indep, p_indep);
-    arma::colvec 	gamma_independent_part_two(p_indep);
+    arma::mat 		gamma_independent_part_one(p_indep, p_indep, arma::fill::zeros);
+    arma::colvec 	gamma_independent_part_two(p_indep, arma::fill::zeros);
     for (int k = 0; k < n; k++)
     {
       double prop_sum = 0;
       for (int j = 0; j < M; j++)
       {
-        double prop = pxi_n->at(k,j) / (sigma0 * sigma0);
+        double prop = pxi_n->at(k,j) / (ptheta0->sigma(0) * ptheta0->sigma(0));
         prop_sum += prop;
         gamma_independent_part_two += prop * pz_independent_t->col(k) *
           (py->at(k) -
@@ -222,19 +224,20 @@ Theta MaximizationStepARMSIA (arma::colvec* py,
   }
 
   // 2-5. sigma (non-switching)
-  for (int j = 0; j < M; j++)
-    for (int k = 0; k < n; k++)
-    {
-      // res is a scalar, with one element
-      arma::colvec res = py->at(k) -
-        py_lagged->row(k) * beta.col(j) -
-        pz_independent->row(k) * gamma_independent -
-        pz_dependent->row(k) * gamma_dependent.col(j) -
-        mu(j);
-      sigma(0) += pxi_n->at(k,j) * res(0) * res(0);
-    }
-  // impose the hard constraint; sigma >= 0.5 * sigma.hat
-  sigma(0) = std::max(sqrt(sigma(0)), 0.5 * sigma_first_step->at(0));
+  double sum_xi_n = arma::accu(*pxi_n);
+  for (int k = 0; k < n; k++)
+    for (int j = 0; j < M; j++)
+      {
+        // res is a scalar, with one element
+        arma::colvec res = py->at(k) -
+          py_lagged->row(k) * beta.col(j) -
+          pz_independent->row(k) * gamma_independent -
+          pz_dependent->row(k) * gamma_dependent.col(j) -
+          mu(j);
+        sigma(0) += (pxi_n->at(k,j) / sum_xi_n) * res(0) * res(0);
+      }
+  // impose the hard constraint
+  sigma(0) = std::max(sqrt(sigma(0)), sigma_min);
 
   // 2-6. initial_dist
   initial_dist = (pxi_n->row(0)).t();
@@ -259,7 +262,8 @@ SEXP EMcppARMSIA (Rcpp::NumericVector y_rcpp,
                   int maxit,
                   double epsilon,
                   double transition_probs_min,
-                  double transition_probs_max)
+                  double transition_probs_max,
+                  double sigma_min)
 {
   // conversion first
   arma::colvec y(y_rcpp.begin(), y_rcpp.size(), false);
@@ -288,49 +292,49 @@ SEXP EMcppARMSIA (Rcpp::NumericVector y_rcpp,
   arma::mat z_dependent_t = z_dependent.t();
   arma::mat z_independent_t = z_independent.t();
 
-  arma::colvec likelihoods(maxit);
-  double likelihood;
-  int index_exit = 0;
+  arma::colvec likelihoods(maxit, arma::fill::zeros);
+  int index_exit = -1;
 
   Theta theta_original(beta0, mu0, sigma0,
              gamma_dependent0, gamma_independent0,
              transition_probs0, initial_dist0);
-  Theta theta_temp = theta_original;
-  Theta theta = theta_temp;
-
+  Theta theta_updated = theta_original;
+  Theta theta = theta_updated;
+  theta.likelihood = -std::numeric_limits<double>::infinity();
   likelihoods(0) = -std::numeric_limits<double>::infinity();
-  likelihood = likelihoods(0);
 
   // 1. EM iterations
   for (int i = 1; i < maxit; i++)
   {
     index_exit++;
     Xi 		e_step = ExpectationStepARMSIA(&y, &y_lagged, &z_dependent, &z_independent,
-                          &theta_temp);
+                          &theta_updated);
 
-    likelihoods(i) = e_step.likelihood;
+    likelihoods(i) = theta_updated.likelihood;
 
-    // stop if 1. the difference in likelihoods is small enough
+    // Stop if 1. the difference in likelihoods is small enough
     // or 2. likelihood decreases (a decrease is due to locating local max.
     // out of hard constraints in maximization step, which suggests that this
     // is not a good candidate anyway.)
-    if ((likelihoods(i) - likelihoods(i-1)) < epsilon)
+    // Use negative condition to stop if 3. the updated likelihood is NaN.
+    if (!((theta_updated.likelihood - theta.likelihood) >= epsilon))
       break;
 
-    theta = theta_temp;
-    theta_temp = MaximizationStepARMSIA(&y, &y_lagged,
+    theta = theta_updated;
+    theta_updated = MaximizationStepARMSIA(&y, &y_lagged,
                                   &z_dependent, &z_independent,
                                   &y_lagged_t, &z_dependent_t, &z_independent_t,
                                   &theta,
                                   &(e_step.xi_k), &(e_step.xi_past_t),
                                   &(e_step.xi_n),
-                                  &theta_original.sigma,
                                   transition_probs_min,
-                                  transition_probs_max);
-
+                                  transition_probs_max,
+                                  sigma_min);
+    // printf("sigma updated at %d: %f", i, theta_updated.sigma(0));
   }
-  likelihood = likelihoods(index_exit); // copy the most recent likelihood
-  likelihoods = likelihoods.subvec(0, index_exit); // remove unused elements
+
+
+  likelihoods = likelihoods.subvec(0, std::min((index_exit + 1), (maxit - 1))); // remove unused elements
 
   Rcpp::List theta_R = Rcpp::List::create(Named("beta") = wrap(theta.beta),
                             Named("mu") = wrap(theta.mu),
@@ -346,6 +350,6 @@ SEXP EMcppARMSIA (Rcpp::NumericVector y_rcpp,
                             );
 
   return Rcpp::List::create(Named("theta") = wrap(theta_R),
-                            Named("likelihood") = wrap(likelihood),
+                            Named("likelihood") = wrap(theta.likelihood),
                             Named("likelihoods") = wrap(likelihoods));
 }

@@ -12,4 +12,5 @@ Theta::Theta(arma::mat _beta, arma::mat _mu, arma::mat _sigma,
     gamma_independent = _gamma_independent;
     transition_probs = _transition_probs;
     initial_dist = _initial_dist;
+    likelihood = 0; // set to zero as it is impossible.
 }

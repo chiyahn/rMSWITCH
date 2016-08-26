@@ -19,6 +19,8 @@
 #' @param maxit The maximum number of iterations.
 #' @param short.n Number of short EMs
 #' @param short.iterations Maximum iteration used to perform short EMs
+#' @param transition.probs.min Minimum set for transition prob. matrix
+#' @param sigma.min Minimum set for variance.
 #' @return  A list with items:
 #' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
 #' \item{mu}{M by 1 column that contains state-dependent mu}
@@ -29,6 +31,8 @@
 #' coefficients for state-independent exogenous variables}
 #' \item{transition.probs}{M by M matrix that contains transition probabilities}
 #' \item{initial.dist}{M by 1 column that represents an initial distribution}
+#' \item{nlotpr}{Determines whether nonlinear optimization package is used
+#' in estimation.}
 #' @examples
 #' theta <- RandomTheta()
 #' y <- GenerateSample(theta = theta)$y
@@ -42,9 +46,11 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         is.MSM = FALSE,
                         initial.theta = NULL,
                         epsilon = 1e-08, maxit = 2000,
-                        short.n = 20, short.epsilon = 1e-03,
+                        short.n = 50, short.epsilon = 1e-03,
                         short.iterations = 200,
-                        transition.probs.min = 0.01) {
+                        transition.probs.min = 0.01,
+                        sigma.min = 0.02,
+                        nloptr = FALSE) {
   if (test.on) # initial values controlled by test.on
     set.seed(test.seed)
 
@@ -93,15 +99,14 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   {
     # 2. Run short EM
     # how many candidates would you like to find?
-    short.n.candidates <- max(4*short.n*((1+2*s)+(ncol(z.dependent)+
-                              ncol(z.independent))*(M*M)), 200)
+    short.n.candidates <- max(floor(8*n^(0.25)*short.n*(1+s)*M), 400)
     short.thetas <- lapply(1:short.n.candidates,
-                           function(j) 
-                             EstimateMSARInitShort(theta = initial.theta,
-                                                   transition.probs.min =
-                                                     transition.probs.min,
-                                                   transition.probs.max =
-                                                     transition.probs.max))
+                          function(j) 
+                            EstimateMSARInitShort(theta = initial.theta,
+                                                  transition.probs.min =
+                                                    transition.probs.min,
+                                                  transition.probs.max =
+                                                    transition.probs.max))
     # For compatibility with cpp codes, change gammas to
     # appropriate zero vectors. After computation, they will be returned NULL.
     if (is.null(z.dependent))
@@ -118,20 +123,38 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                           is.sigma.switching = is.sigma.switching,
                           maxit = short.iterations, epsilon = short.epsilon,
                           transition.probs.min = transition.probs.min,
-                          transition.probs.max = transition.probs.max)
-    short.likelihoods <- sapply(short.results, "[[", "likelihood")
+                          transition.probs.max = transition.probs.max,
+                          sigma.min = sigma.min)
 
+    short.likelihoods <- sapply(short.results, "[[", "likelihood")
+    
     # 3. Run long step
     long.thetas <- lapply(short.results, "[[", "theta")
     long.thetas <- long.thetas[order(short.likelihoods,decreasing=T)[1:
-                      min(length(long.thetas), short.n)]] # pick best thetas
+                                           min(length(long.thetas), short.n)]] 
 
-    long.result <- MaximizeLongStep(long.thetas,
-                                    y = y.sample, y.lagged = y.lagged,
-                                    z.dependent = z.dependent,
-                                    z.independent = z.independent,
-                                    epsilon = epsilon, maxit = maxit,
-                                    transition.probs.min = transition.probs.min)
+    if (nloptr)
+      long.result <- MaximizeLongStepNLOPTR(long.thetas,
+                                      y = y.sample, y.lagged = y.lagged,
+                                      z.dependent = z.dependent,
+                                      z.independent = z.independent,
+                                      is.beta.switching = is.beta.switching,
+                                      is.sigma.switching = is.sigma.switching,
+                                      epsilon = epsilon, maxit = maxit,
+                                      transition.probs.min = transition.probs.min,
+                                      transition.probs.max = transition.probs.max,
+                                      sigma.min = sigma.min)    
+    else
+      long.result <- MaximizeLongStep(long.thetas,
+                                      y = y.sample, y.lagged = y.lagged,
+                                      z.dependent = z.dependent,
+                                      z.independent = z.independent,
+                                      is.beta.switching = is.beta.switching,
+                                      is.sigma.switching = is.sigma.switching,
+                                      epsilon = epsilon, maxit = maxit,
+                                      transition.probs.min = transition.probs.min,
+                                      transition.probs.max = transition.probs.max,
+                                      sigma.min = sigma.min)
     if (!long.result$succeeded)
     {
       print("Estimation failed. Try different settings for EM-algorithm.")
@@ -264,8 +287,7 @@ GetLaggedColumn <- function (j, col, s) {
 # Gives variation in theta given
 EstimateMSARInitShort <- function(theta, 
                                   transition.probs.min,
-                                  transition.probs.max) 
-{
+                                  transition.probs.max) {
   beta0 <- theta$beta
   mu0 <- theta$mu
   sigma0 <- theta$sigma
@@ -284,8 +306,10 @@ EstimateMSARInitShort <- function(theta,
     transition.probs[i,][-i] <- runif((M-1), transition.probs.min, transition.probs[i,i])  
     transition.probs[i,] <- transition.probs[i,] / sum(transition.probs[i,])
   }
-  
-  initial.dist = VariationInRow(initial.dist0)
+
+  initial.dist = VariationInRow(initial.dist0, 
+                                transition.probs.min,
+                                transition.probs.max)
   beta <- beta0 # beta estimate should be accurate enough
   mu <- mu0 + rnorm(length(mu0))
   sigma <- sapply(sigma0, function(sig) max(sig + rnorm(1), sigma.epsilon))
@@ -346,13 +370,11 @@ StatesToInitialDist <- function(states, M)
 }
 
 # Gives a random variation in a row of a transition probability matrix
-VariationInRow <- function(row)
+VariationInRow <- function(row, transition.probs.min,
+                           transition.probs.max)
 {
-  min.value <- min((0.02*length(row)), 0.02)
-  max.value <- max(0.5, (1-0.02*length(row)))
-  variations <- runif(length(row), min = 0, max = 0.3)
-  row <- sapply((row + variations),
-                function(i) min(max.value, max(min.value, i)))
+  row <- runif(length(row),transition.probs.min,
+               transition.probs.max)
   return (row / sum(row))
 }
 

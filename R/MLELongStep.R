@@ -1,15 +1,79 @@
+MaximizeLongStep <- function(long.thetas, y, y.lagged,
+                             z.dependent, z.independent,
+                             is.beta.switching = is.beta.switching,
+                             is.sigma.switching = is.sigma.switching,
+                             epsilon, maxit,
+                             transition.probs.min,
+                             transition.probs.max, 
+                             sigma.min, ...)
+{
+  n <- length(y)
+  
+  if (is.null(z.dependent))
+    z.dependent <- as.matrix(rep(0,n))
+  
+  if (is.null(z.independent))
+    z.independent <- as.matrix(rep(0,n))
+  
+  if (is.beta.switching) 
+  {
+    if (is.sigma.switching)
+      long.results <- (lapply(long.thetas, EM.MSIAH.AR,
+                     y = y, y.lagged = y.lagged,
+                     z.dependent = z.dependent, z.independent = z.independent,
+                     maxit = maxit, epsilon = epsilon,
+                     transition.probs.min, transition.probs.max,
+                     sigma.min))
+    else
+      long.results <- (lapply(long.thetas, EM.MSIA.AR,
+                     y = y, y.lagged = y.lagged,
+                     z.dependent = z.dependent, z.independent = z.independent,
+                     maxit = maxit, epsilon = epsilon,
+                     transition.probs.min, transition.probs.max,
+                     sigma.min))
+  } else {
+    if (is.sigma.switching)
+      long.results <- (lapply(long.thetas, EM.MSIH.AR,
+                     y = y, y.lagged = y.lagged,
+                     z.dependent = z.dependent, z.independent = z.independent,
+                     maxit = maxit, epsilon = epsilon,
+                     transition.probs.min, transition.probs.max,
+                     sigma.min))
+    else
+      long.results <- (lapply(long.thetas, EM.MSI.AR,
+                     y = y, y.lagged = y.lagged,
+                     z.dependent = z.dependent, z.independent = z.independent,
+                     maxit = maxit, epsilon = epsilon,
+                     transition.probs.min, transition.probs.max,
+                     sigma.min))
+  }  
+  
+  long.likelihoods <- sapply(long.results, "[[", "likelihood")
+  long.likelihoods[!is.finite(long.likelihoods)] <- -Inf # abnormal values
+  # extract the one that returns the best log.likelihood
+  
+  long.result <- long.results[[(which(long.likelihoods==
+                                        max(long.likelihoods))[1])]]
+  if (!is.finite(long.result$likelihood))
+    return (list (succeeded = FALSE))
+  return (list(theta = long.result$theta,
+               log.likelihood = long.result$likelihood,
+               long.results = long.results,
+               succeeded = TRUE))
+}
+
 # returns a list of (theta log.likelihood) where theta is a list of parameters
 # and log.likelihood is a log.likelihood of the data using
 # the parameters in theta; this applies for univariate time series only.
-MaximizeLongStep <- function(candidates, y, y.lagged,
+MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                             z.dependent, z.independent,
                             epsilon, maxit,
                             transition.probs.min = 0.01,
                             lb.prob.density = 10e-6,
-                            ub.prob.density = (1-10e-6))
+                            ub.prob.density = (1-10e-6), ...)
 {
   # use the first candidate to save the information about dimensions
-  theta <- candidates[[1]]
+  theta <- long.thetas[[1]]
   n <- length(y)
   M <- ncol(theta$transition.probs)
   s <- nrow(as.matrix(theta$beta))
@@ -230,11 +294,11 @@ MaximizeLongStep <- function(candidates, y, y.lagged,
     return (result)
   }
 
-  candidates.matrix <- sapply(candidates,
+  long.thetas.matrix <- sapply(long.thetas,
                               function (theta) ThetaToReducedColumn(theta))
 
   # perform non-linear optimization in each candidate
-  long.results <- apply(candidates.matrix, 2,
+  long.results <- apply(long.thetas.matrix, 2,
                         SLSQPNonSwitchingAR,
                         y, y.lagged, z.dependent, z.independent)
   long.convergence <- unlist(lapply(long.results, "[[", "convergence"))

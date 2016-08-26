@@ -13,6 +13,9 @@ struct Xi
   double		likelihood;
 
   Xi (arma::mat _xi_k, arma::mat _xi_past_t,
+      arma::mat _xi_n);
+
+  Xi (arma::mat _xi_k, arma::mat _xi_past_t,
       arma::mat _xi_n, double _likelihood);
 };
 
