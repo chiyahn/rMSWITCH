@@ -33,6 +33,8 @@
 #' \item{initial.dist}{M by 1 column that represents an initial distribution}
 #' \item{nlotpr}{Determines whether nonlinear optimization package is used
 #' in estimation.}
+#' \item{estimate.fisher}{Determines whether the variance of each estimate is going
+#' to be computed.}
 #' @examples
 #' theta <- RandomTheta()
 #' y <- GenerateSample(theta = theta)$y
@@ -50,7 +52,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         short.iterations = 200,
                         transition.probs.min = 0.01,
                         sigma.min = 0.02,
-                        nloptr = FALSE) {
+                        nloptr = FALSE,
+                        estimate.fisher = TRUE) {
   if (test.on) # initial values controlled by test.on
     set.seed(test.seed)
 
@@ -199,9 +202,12 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                       y = y.sample, y.lagged = y.lagged,
                       z.dependent = z.dependent, z.independent = z.independent)
   states <- EstimateStates(posterior.probs$xi.n) # use smoothed probabilities
-  fisher.estimated <- EstimateFisherInformation(theta = theta,
-                      y = y.sample, y.lagged = y.lagged,
-                      z.dependent = z.dependent, z.independent = z.independent)
+  fisher.estimated <- NULL
+  
+  if (estimate.fisher)
+    fisher.estimated <- EstimateFisherInformation(theta = theta,
+                        y = y.sample, y.lagged = y.lagged,
+                        z.dependent = z.dependent, z.independent = z.independent)
 
   msar.model <- list(theta = theta,
                      log.likelihood = log.likelihood,
