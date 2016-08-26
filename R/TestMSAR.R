@@ -20,6 +20,7 @@ TestMSARSequence <- function(y, z.dependent = NULL, z.independent = NULL,
                                 is.beta.switching = is.beta.switching,
                                 is.sigma.switching = is.sigma.switching,
                                 is.MSM = is.MSM,
+                                initial.theta = initial.theta,
                                 crit.method = NULL)
     
     msar.model1 <- EstimateMSAR(y = y, 
