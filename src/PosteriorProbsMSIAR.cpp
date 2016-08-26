@@ -53,6 +53,7 @@ SEXP PosteriorProbsMSIAR (Rcpp::NumericVector y_rcpp,
 								gamma_dependent_rcpp.ncol(), false);
 	arma::colvec gamma_independent(gamma_independent_rcpp.begin(),
 								gamma_independent_rcpp.size(), false);
+	arma::mat transition_probs_t = transition_probs.t();
 
 	for (int k = 0; k < n; k++)
 	{
@@ -64,7 +65,7 @@ SEXP PosteriorProbsMSIAR (Rcpp::NumericVector y_rcpp,
 		double* ratios = new double[M];
 		double row_sum = 0;
 		if (k > 0)
-			xi_past_t.col(k) = transition_probs * xi_k_t.col(k-1);
+      xi_past_t.col(k) = transition_probs_t * xi_k_t.col(k-1);
 		else
 			xi_past_t.col(k) = initial_dist;
 
@@ -103,7 +104,6 @@ SEXP PosteriorProbsMSIAR (Rcpp::NumericVector y_rcpp,
 
 	// smoothed probabilities
 	arma::mat xi_n_t(M, n);
-	arma::mat	transition_probs_t = transition_probs.t();
   xi_n_t.col(n-1) = xi_k_t.col(n-1);
   for (int k = (n-2); k >= 0; k--)
   {

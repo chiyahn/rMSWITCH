@@ -52,7 +52,7 @@ SEXP LikelihoodMSIAR (Rcpp::NumericVector y_rcpp,
 	arma::colvec gamma_independent(gamma_independent_rcpp.begin(),
 								gamma_independent_rcpp.size(), false);
 
-
+  arma::mat transition_probs_t = transition_probs.t();
   double likelihood = 0;
 
 	for (int k = 0; k < n; k++)
@@ -67,9 +67,10 @@ SEXP LikelihoodMSIAR (Rcpp::NumericVector y_rcpp,
 
 		arma::colvec xi_past;
 		if (k > 0)
-			xi_past = transition_probs * xi_k_t.col(k-1);
+			xi_past = transition_probs_t * xi_k_t.col(k-1);
 		else
 			xi_past = initial_dist;
+    xi_past /= arma::sum(xi_past);
 
 		for (int j = 0; j < M; j++)
 		{
