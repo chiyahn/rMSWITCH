@@ -122,6 +122,7 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                       is.MSM = FALSE,
                       cl = NULL, parallel = TRUE,
                       crit.method = c('none', 'bootstrap'),
+                      estimate.fisher = TRUE,
                       bootstrap.count = 199)
 {
   crit.method <- match.arg(crit.method)
@@ -132,14 +133,16 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                               M = M, s = s,
                               is.beta.switching = is.beta.switching,
                               is.sigma.switching = is.sigma.switching,
-                              is.MSM = is.MSM)
+                              is.MSM = is.MSM,
+                              estimate.fisher = estimate.fisher)
   msar.model1 <- EstimateMSAR(y = y,
                               z.dependent = z.dependent,
                               z.independent = z.independent,
                               M = (M + 1), s = s,
                               is.beta.switching = is.beta.switching,
                               is.sigma.switching = is.sigma.switching,
-                              is.MSM = is.MSM)
+                              is.MSM = is.MSM,
+                              estimate.fisher = estimate.fisher)
 
   LRT.statistic <- 2*(msar.model1$log.likelihood - msar.model0$log.likelihood)
 
@@ -204,7 +207,7 @@ TestMSARCritBoot <- function (LRT.statistic0,
                   is.sigma.switching = is.sigma.switching,
                   is.MSM = msar.model0$is.MSM,
                   cl = NULL, parallel = FALSE,
-                  crit.method = 'none')
+                  crit.method = 'none', estimate.fisher = FALSE)
         return (list(LRT.statistic = test.result$LRT.statistic,
                      bootstrap.estimate.null = 
                        ThetaToReducedColumn((test.result$msar.model0)$theta)))
@@ -221,7 +224,7 @@ TestMSARCritBoot <- function (LRT.statistic0,
                               is.sigma.switching = is.sigma.switching,
                               is.MSM = msar.model0$is.MSM,
                               cl = NULL, parallel = FALSE,
-                              crit.method = 'none')
+                              crit.method = 'none', estimate.fisher = FALSE)
       return (list(LRT.statistic = test.result$LRT.statistic,
                    bootstrap.estimate.null = 
                      ThetaToReducedColumn((test.result$msar.model0)$theta)))  
