@@ -68,9 +68,11 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
 MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                             z.dependent, z.independent,
                             epsilon, maxit,
-                            transition.probs.min = 0.01,
+                            transition.probs.min,
+                            transition.probs.max,
                             lb.prob.density = 10e-6,
-                            ub.prob.density = (1-10e-6), ...)
+                            ub.prob.density = (1-10e-6),
+                            sigma.min, ...)
 {
   # use the first candidate to save the information about dimensions
   theta <- long.thetas[[1]]
@@ -105,10 +107,10 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
   
   # hard constraints
   transition.probs.lb <- rep(transition.probs.min, M*(M-1))
-  transition.probs.ub <- rep((1-(M-1)*transition.probs.min), M*(M-1))
+  transition.probs.ub <- rep(transition.probs.max, M*(M-1))
   initial.dist.lb <- rep(lb.prob.density, (M-1))
   initial.dist.ub <- rep(ub.prob.density, (M-1))
-  
+  sigma.lb <- rep(sigma.min, ifelse(is.sigma.switching, M, 1))
 
   # Transform a vectorized theta back to a list form
   ColumnToTheta <- function(theta.vectorized)
@@ -264,7 +266,6 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
     mu.lb <- pmin(-1, mu * (1 - 0.8 * sign(mu)))
     mu.ub <- pmax(1, mu * (1 + 0.8 * sign(mu)))
     sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)]
-    sigma.lb <- sigma * 0.9
     sigma.ub <- sigma * 8
 
     # hard constraints on
