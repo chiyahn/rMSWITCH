@@ -753,5 +753,5 @@ ThetaToModel <- function(theta,  y,
 
 GetStateConversionMat <- function (M, s)
 {
-  t(rev(expand.grid(lapply(seq(1,(M+1)), function(i) return (seq(1,s))))))
+  t(rev(expand.grid(lapply(seq(1,(M+1)), function(i) return (seq(1,s)))))) - 1
 }
