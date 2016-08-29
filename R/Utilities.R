@@ -231,22 +231,35 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
 #' coefficients for state-dependent exogenous variables}
 #' \item{gamma.independent}{p_indep by 1 column that contains non-switching
 #' coefficients for state-independent exogenous variables}
+#' \item{is.beta.switching}{Determines whether beta is dependent on regimes.}
+#' \item{is.sigma.switching}{Determines whether sigma is dependent on regimes.}
 #' @examples
 #' RandomTheta()
 #' RandomTheta(M = 3, s = 2)
 #' RandomTheta(M = 3, s = 3, p.dep = 1)
-RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0)
+RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0, 
+                        is.beta.switching = FALSE, is.sigma.switching = TRUE)
 {
   transition.probs <- matrix(runif(M*M, 0.3, 0.5), ncol = M)
   diag(transition.probs) <- 2 # stay in your current state longer.
   transition.probs <- t(apply(transition.probs, 1,
                               function(row) (row / sum(row))))
   initial.dist <- c(0.9, rep(0.1/(M-1), (M-1)))
+  
   beta <- runif(s, 0.3, 0.8) * sample(c(1,-1), s, replace = T)
   beta <- beta / (1.2 * sum(abs(beta)))
-  mu <- runif(M, 0.4, 0.8) * sample(c(1,-1), M, replace = T)
-  sigma <- runif(M, 0.3, 1.5)
+  if (is.beta.switching && M > 1)
+    for (i in 1:(M-1))
+    {
+      beta.col <- runif(s, 0.3, 0.8) * sample(c(1,-1), s, replace = T)
+      beta.col <- beta.col / (1.2 * sum(abs(beta.col)))
+      beta <- cbind(beta, beta.col)
+    }
+  beta <- as.matrix(beta)
 
+  mu <- runif(M, 0.4, 0.8) * sample(c(1,-1), M, replace = T)
+  sigma <- runif(ifelse(is.sigma.switching, M, 1), 0.3, 1.5)
+  
   gamma.dependent <- NULL
   gamma.independent <- NULL
   if (p.dep > 0)
@@ -301,11 +314,6 @@ ThetaToReducedColumn <- function(theta)
   # p11, p21, ..., pM1, p12, ..., pM2, ..., p1(M-1), ..., pM(M-1)
   # taking a transpose will make it listed as
   # p11, p12, ..., p1(M-1), p21, ..., p2(M-1), ..., pM(M-1)
-  if (is.null(theta$transition.probs) || is.null(theta$initial.dist))
-  {
-    warning("WARNING: theta is invalid to be transformed into a vector.")
-    return (NULL) # sanity check and return null if necessary.
-  }
   M <- ncol(theta$transition.probs)
   if (M < 2)
     return (c(c(theta$beta), c(theta$mu), c(theta$sigma),
@@ -320,6 +328,26 @@ ThetaToReducedColumn <- function(theta)
             c(theta$gamma.dependent),
             c(theta$gamma.independent)))
 
+}
+
+#' Transform a theta to a reduced column, ordered in
+#' transition.probs, initial.dist, beta, mu, sigma, gamma.dep, gamma.indep.
+#' where each row of transition.probs is reduced to have a length of M-1,
+#' initial.dist is reduced to have a length of M-1.
+ThetaToFullColumn <- function(theta)
+{
+  # transition.probs could have been listed in the order of
+  # p11, p21, ..., pM1, p12, ..., pM2, ..., p1M, ..., pMM
+  # taking a transpose will make it listed as
+  # p11, p12, ..., p1(M-1), p21, ..., p2M, ..., pMM
+  M <- ncol(theta$transition.probs)
+  
+  return (c(c(t(theta$transition.probs)),
+            c(theta$initial.dist),
+            c(theta$beta), c(theta$mu), c(theta$sigma),
+            c(theta$gamma.dependent),
+            c(theta$gamma.independent)))
+  
 }
 
 #' Given a |theta.reduced| by n matrix, whose column represents a reduced form of
@@ -380,6 +408,54 @@ ReducedColumnsToThetas <- function(theta.matrix, theta0)
   }
 
   return (apply(theta.matrix, 2, ReducedColumnToThetaDynamic))
+}
+
+FullColumnToTheta <- function(theta.vectorized, theta0)
+{
+  M <- ncol(theta0$transition.probs)
+  s <- nrow(as.matrix(theta0$beta))
+  is.beta.switching <- (ncol(as.matrix(theta0$beta)) > 1)
+  is.sigma.switching <- (length(theta0$sigma) > 1)
+  p.dep <- 0
+  p.indep <- 0
+  if (!is.null(theta0$gamma.dependent))
+    p.dep <- nrow(as.matrix(theta0$gamma.dependent))
+  if (!is.null(theta0$gamma.independent))
+    p.indep <- nrow(as.matrix(theta0$gamma.independent))
+  
+  # this holds only for univariate time series.
+  initial.dist.index <- M * M + 1 # full case
+  beta.index <- M + initial.dist.index # full case
+  mu.index <- s * ifelse(is.beta.switching, M, 1) + beta.index
+  sigma.index <- M + mu.index
+  gamma.dep.index <- ifelse(is.sigma.switching, M, 1) + sigma.index
+  gamma.indep.index <- p.dep * M + gamma.dep.index
+  
+  
+  transition.probs <- matrix(theta.vectorized[1:(M*M)],
+                             ncol = M, byrow = T)
+  initial.dist <- theta.vectorized[initial.dist.index:(beta.index - 1)]
+  beta <- theta.vectorized[beta.index:(mu.index - 1)]
+  if (is.beta.switching)
+    beta <- matrix(beta, ncol = M)
+  gamma.dependent <- NULL
+  gamma.independent <- NULL
+  if (!gamma.dep.index == gamma.indep.index)
+    gamma.dependent <- matrix(theta.vectorized[gamma.dep.index:
+                                                 (gamma.indep.index - 1)], ncol = M)
+  if (!gamma.indep.index == length(theta.vectorized) + 1)
+    gamma.independent <- theta.vectorized[gamma.indep.index:
+                                            length(theta.vectorized)]
+  
+  return (list
+          (transition.probs = transition.probs,
+          initial.dist = initial.dist,
+          beta = beta,
+          mu = theta.vectorized[mu.index:(sigma.index - 1)],
+          sigma = theta.vectorized[sigma.index:(gamma.dep.index - 1)],
+          gamma.dependent = gamma.dependent,
+          gamma.independent = gamma.independent
+          ))
 }
 
 #' Given a |theta.reduced| by n matrix, whose column represents a reduced form of
