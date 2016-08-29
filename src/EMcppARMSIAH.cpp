@@ -142,11 +142,11 @@ Theta MaximizationStepARMSIAH (arma::colvec* py,
                     ptheta0->transition_probs(i,j) * pxi_k->at((k-1),i) /
                     pxi_past_t->at(j,k);
       // impose the hard constraints
+      transition_probs(i,j) = prob_ij / total;
       transition_probs(i,j) = std::max(transition_probs(i,j),
                        transition_probs_min);
       transition_probs(i,j) = std::min(transition_probs(i,j),
                        transition_probs_max);
-      transition_probs(i,j) = prob_ij / total;
     }
 
     // normalize
