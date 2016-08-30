@@ -755,3 +755,37 @@ GetStateConversionMat <- function (M, s)
 {
   t(rev(expand.grid(lapply(seq(1,(M+1)), function(i) return (seq(1,s)))))) - 1
 }
+
+
+GetExtendedTransitionProbs <- function(transition.probs, state.conversion.mat)
+{
+  s <- nrow(state.conversion.mat) - 1
+  s.minus.one <- s - 1
+  s.plus.one <- s + 1
+  M <- ncol(transition.probs)
+  M.extended <- ncol(state.conversion.mat)
+  M.to.s <- M ^ s
+  M.squared <- M * M
+  transition.probs.extended <- matrix(0, ncol = M.extended, nrow = M.extended)
+  for (j in 1:M.extended)
+  {
+    sub.index <- j %% M.to.s 
+    if (sub.index == 0) # sub.index == M.to.s - 1 in rcpp
+      sub.index <- M.to.s
+    print(sub.index)
+    last.state <- state.conversion.mat[1, j] + 1 # remove + 1 in cpp
+    
+    for (i in 1:M) # 0:M in cpp
+      transition.probs.extended[j, (M.to.s * (i - 1) + sub.index)] <- transition.probs[last.state, i] 
+  }
+  return (transition.probs.extended)
+}
+
+GetExtendedInitialDist <- function(initial.dist, M, s)
+{
+  initial.dist.extended <- vector()
+  M.to.s <- M ^ s
+  for (i in 1:M)
+    initial.dist.extended <- c(initial.dist.extended, rep(initial.dist[i] / (M.to.s), M.to.s))
+  return (initial.dist.extended)
+}
