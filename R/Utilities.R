@@ -238,14 +238,16 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
 #' RandomTheta(M = 3, s = 2)
 #' RandomTheta(M = 3, s = 3, p.dep = 1)
 RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0, 
-                        is.beta.switching = FALSE, is.sigma.switching = TRUE)
+                        is.beta.switching = FALSE, is.sigma.switching = TRUE,
+                        is.MSM = FALSE)
 {
   transition.probs <- matrix(runif(M*M, 0.3, 0.5), ncol = M)
   diag(transition.probs) <- 2 # stay in your current state longer.
   transition.probs <- t(apply(transition.probs, 1,
                               function(row) (row / sum(row))))
   initial.dist <- c(0.9, rep(0.1/(M-1), (M-1)))
-  
+  if (is.MSM)
+    initial.dist <- c(0.9, rep(0.1/(M^(s+1)-1), (M^(s+1)-1)))
   beta <- runif(s, 0.3, 0.8) * sample(c(1,-1), s, replace = T)
   beta <- beta / (1.2 * sum(abs(beta)))
   if (is.beta.switching && M > 1)
