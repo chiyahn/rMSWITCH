@@ -42,13 +42,13 @@
 #'              is.beta.switching = FALSE,
 #'              is.sigma.switching = TRUE)
 EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
-                        M = 3, s = 2,
+                        M = 2, s = 2,
                         is.beta.switching = FALSE,
                         is.sigma.switching = TRUE,
                         is.MSM = FALSE,
                         initial.theta = NULL,
                         epsilon = 1e-08, maxit = 2000,
-                        short.n = 50, short.epsilon = 1e-03,
+                        short.n = 25, short.epsilon = 1e-03,
                         short.iterations = 200,
                         transition.probs.min = 0.01,
                         sigma.min = 0.02,
@@ -102,7 +102,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   {
     # 2. Run short EM
     # how many candidates would you like to find?
-    short.n.candidates <- max(floor(8*n^(0.25)*short.n*(1+s)*M), 400)
+    short.n.candidates <- max(floor(n^(0.25)*short.n*(1+s)*M), 400)
     short.thetas <- lapply(1:short.n.candidates,
                           function(j) 
                             EstimateMSARInitShort(theta = initial.theta,
