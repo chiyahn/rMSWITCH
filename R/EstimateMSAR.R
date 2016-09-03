@@ -242,13 +242,13 @@ GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent,
                               z = z.independent, m = M, vcov.method="none")
   regmix.theta <- regmix.result$parlist
   regmix.transition.probs <- StatesToTransitionProbs(states =
-                                                regmix.result$indices, M = M)
+                                                regmix.result$components, M = M)
   regmix.beta <- mean(regmix.theta$mubeta[2:(s+1),])
   regmix.sigma <- 1
   regmix.gamma.dependent <- NULL
   regmix.gamma.independent <- regmix.theta$gamma
 
-  regmix.initial.dist <- StatesToInitialDist(states = regmix.result$indices,
+  regmix.initial.dist <- StatesToInitialDist(states = regmix.result$components,
                                             M = M)
 
   if (is.beta.switching) # estimate for state-dependent. beta
