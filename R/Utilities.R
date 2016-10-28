@@ -75,7 +75,8 @@ DiagPlot <- function(msar.model, y, details = FALSE)
   if (details)
     print(ggplot(data=molten.posterior.probs.filtered,
                  aes(x=k, y=posterior.probability.filtered, colour=State)) +
-            geom_line())
+            geom_line() +
+            scale_fill_discrete(name="State"))
 
   # 2-2. generate a plot of posterior probabilities (smoothed)
   df.posterior.probs.smoothed <- as.data.frame(cbind(posterior.probs.smoothed,
@@ -237,7 +238,7 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
 #' RandomTheta()
 #' RandomTheta(M = 3, s = 2)
 #' RandomTheta(M = 3, s = 3, p.dep = 1)
-RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0, 
+RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0,
                         is.beta.switching = FALSE, is.sigma.switching = TRUE,
                         is.MSM = FALSE)
 {
@@ -261,7 +262,7 @@ RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0,
 
   mu <- runif(M, 0.4, 0.8) * sample(c(1,-1), M, replace = T)
   sigma <- runif(ifelse(is.sigma.switching, M, 1), 0.3, 1.5)
-  
+
   gamma.dependent <- NULL
   gamma.independent <- NULL
   if (p.dep > 0)
@@ -321,9 +322,11 @@ ThetaToReducedColumn <- function(theta)
     return (c(c(theta$beta), c(theta$mu), c(theta$sigma),
               c(theta$gamma.dependent),
               c(theta$gamma.independent)))
-  
+
   reduced.transition.probs <- theta$transition.probs[,1:(M-1)]
   reduced.initial.dist <- theta$initial.dist[1:(M-1)]
+  if (length(theta$initial.dist) > M) # if is MSM
+    reduced.initial.dist <- theta$initial.dist[1:((M^(s+1))-1)]
   return (c(c(t(reduced.transition.probs)),
             c(reduced.initial.dist),
             c(theta$beta), c(theta$mu), c(theta$sigma),
@@ -343,13 +346,13 @@ ThetaToFullColumn <- function(theta)
   # taking a transpose will make it listed as
   # p11, p12, ..., p1(M-1), p21, ..., p2M, ..., pMM
   M <- ncol(theta$transition.probs)
-  
+
   return (c(c(t(theta$transition.probs)),
             c(theta$initial.dist),
             c(theta$beta), c(theta$mu), c(theta$sigma),
             c(theta$gamma.dependent),
             c(theta$gamma.independent)))
-  
+
 }
 
 #' Given a |theta.reduced| by n matrix, whose column represents a reduced form of
@@ -424,7 +427,7 @@ FullColumnToTheta <- function(theta.vectorized, theta0)
     p.dep <- nrow(as.matrix(theta0$gamma.dependent))
   if (!is.null(theta0$gamma.independent))
     p.indep <- nrow(as.matrix(theta0$gamma.independent))
-  
+
   # this holds only for univariate time series.
   initial.dist.index <- M * M + 1 # full case
   beta.index <- M + initial.dist.index # full case
@@ -432,8 +435,8 @@ FullColumnToTheta <- function(theta.vectorized, theta0)
   sigma.index <- M + mu.index
   gamma.dep.index <- ifelse(is.sigma.switching, M, 1) + sigma.index
   gamma.indep.index <- p.dep * M + gamma.dep.index
-  
-  
+
+
   transition.probs <- matrix(theta.vectorized[1:(M*M)],
                              ncol = M, byrow = T)
   initial.dist <- theta.vectorized[initial.dist.index:(beta.index - 1)]
@@ -448,7 +451,7 @@ FullColumnToTheta <- function(theta.vectorized, theta0)
   if (!gamma.indep.index == length(theta.vectorized) + 1)
     gamma.independent <- theta.vectorized[gamma.indep.index:
                                             length(theta.vectorized)]
-  
+
   return (list
           (transition.probs = transition.probs,
           initial.dist = initial.dist,
@@ -640,13 +643,13 @@ ComputeStationaryDist <- function(transition.probs)
   return (stationary.dist)
 }
 
-ComputeLikelihood <- function(theta, y, 
-                              z.dependent = NULL, z.independent = NULL, 
+ComputeLikelihood <- function(theta, y,
+                              z.dependent = NULL, z.independent = NULL,
                               is.MSM = FALSE)
 {
   if (is.MSM)
     stop ("MSM models are currently not supported.")
-  
+
 
 
   transition.probs <- theta$transition.probs
@@ -654,16 +657,16 @@ ComputeLikelihood <- function(theta, y,
   beta <- as.matrix(theta$beta)
   mu <- theta$mu
   sigma <- theta$sigma
-  
+
   M <- ncol(transition.probs)
   s <- nrow(beta)
-  
+
   lagged.and.sample <- GetLaggedAndSample(y, s)
   y.lagged <- lagged.and.sample$y.lagged
   y.sample <- lagged.and.sample$y.sample
   n <- length(y.sample)
-  
-  
+
+
   # remove first s rows of z.dependent or/and z.independent if exists
   if (!is.null(z.dependent))
     z.dependent <- as.matrix(as.matrix(z.dependent[(s+1):length(y),]))
@@ -673,14 +676,14 @@ ComputeLikelihood <- function(theta, y,
     z.independent <- as.matrix(as.matrix(z.independent[(s+1):length(y),]))
   else
     z.independent <- as.matrix(rep(0, n))
-  
-  
+
+
   if (ncol(beta) < 2) # make it as a switching parameter if not.
     beta <- matrix(rep(beta, M), ncol = M)
   if (length(sigma) < 2) # make it as a switching parameter if not.
     sigma <- rep(sigma, M)
-  
-  
+
+
   # i.e. gamma.dependent exists
   if (!is.null(theta$gamma.dependent))
     gamma.dependent <- as.matrix(theta$gamma.dependent)
@@ -691,12 +694,12 @@ ComputeLikelihood <- function(theta, y,
     gamma.independent <- as.matrix(theta$gamma.independent)
   else
     gamma.independent <- 0
-  
+
   if (!is.MSM)
     return (LikelihoodMSIAR(y.sample, y.lagged, z.dependent, z.independent,
                     transition.probs,
                     initial.dist,  # initial.dist
-                    beta,  
+                    beta,
                     mu,  # mu
                     sigma,    # sigma
                     gamma.dependent,
@@ -705,8 +708,8 @@ ComputeLikelihood <- function(theta, y,
 }
 
 
-ThetaToModel <- function(theta,  y, 
-                         z.dependent = NULL, z.independent = NULL, 
+ThetaToModel <- function(theta,  y,
+                         z.dependent = NULL, z.independent = NULL,
                          is.MSM = FALSE)
 {
   # make theta in a proper form
@@ -714,7 +717,7 @@ ThetaToModel <- function(theta,  y,
   if (!is.null(theta$gamma.dependent))
     theta$gamma.dependent <- as.matrix(theta$gamma.dependent)
   s <- nrow(theta$beta)
-  
+
   if (s + 1 > length(y))
   {
     print ("EXCEPTION: The length of observations must be greater than s.")
@@ -722,17 +725,17 @@ ThetaToModel <- function(theta,  y,
   }
   if (is.MSM)
     stop ("MSM models are currently not supported.")
-  
+
   # formatting dataset
   lagged.and.sample <- GetLaggedAndSample(y, s)
   y.lagged <- lagged.and.sample$y.lagged
   y.sample <- lagged.and.sample$y.sample
   n <- length(y.sample)
   initial.params <- NULL
-  
-  log.likelihood <- ComputeLikelihood(theta = theta, 
-                      y = y, 
-                      z.dependent = z.dependent, z.independent = z.independent, 
+
+  log.likelihood <- ComputeLikelihood(theta = theta,
+                      y = y,
+                      z.dependent = z.dependent, z.independent = z.independent,
                       is.MSM = is.MSM)
   posterior.probs <- EstimatePosteriorProbs(theta = theta,
                       y = y.sample, y.lagged = y.lagged,
@@ -755,32 +758,55 @@ ThetaToModel <- function(theta,  y,
 
 GetStateConversionMat <- function (M, s)
 {
-  t(rev(expand.grid(lapply(seq(1,(M+1)), function(i) return (seq(1,s)))))) - 1
+  t(rev(expand.grid(lapply(seq(1,(s+1)), function(i) return (seq(1,M)))))) - 1
+}
+
+GetStateConversionMatForR <- function (M, s)
+{
+  t(rev(expand.grid(lapply(seq(1,(s+1)), function(i) return (seq(1,M))))))
 }
 
 
 GetExtendedTransitionProbs <- function(transition.probs, state.conversion.mat)
 {
   s <- nrow(state.conversion.mat) - 1
-  s.minus.one <- s - 1
-  s.plus.one <- s + 1
   M <- ncol(transition.probs)
   M.extended <- ncol(state.conversion.mat)
   M.to.s <- M ^ s
-  M.squared <- M * M
   transition.probs.extended <- matrix(0, ncol = M.extended, nrow = M.extended)
   for (j in 1:M.extended)
   {
-    sub.index <- j %% M.to.s 
+    sub.index <- ((j - 1) - (j - 1) %% M) / M + 1# remove + 1 in cpp; what's the index of first s states?
     if (sub.index == 0) # sub.index == M.to.s - 1 in rcpp
       sub.index <- M.to.s
-    print(sub.index)
-    last.state <- state.conversion.mat[1, j] + 1 # remove + 1 in cpp
+    last.state <- state.conversion.mat[1, j]
     
     for (i in 1:M) # 0:M in cpp
-      transition.probs.extended[j, (M.to.s * (i - 1) + sub.index)] <- transition.probs[last.state, i] 
+      transition.probs.extended[j, (M.to.s * (i - 1) + sub.index)] <- transition.probs[last.state, i]
+    
   }
   return (transition.probs.extended)
+}
+
+ExtendedTransToReduced <- function(transition.probs.extended, state.conversion.mat, M)
+{
+  s <- nrow(state.conversion.mat) - 1
+  M.extended <- ncol(state.conversion.mat)
+  M.to.s <- M ^ s
+  transition.probs <- matrix(0, ncol = M, nrow = M)
+  for (j in 1:M.extended)
+  {
+    sub.index <- ((j - 1) - (j - 1) %% M) / M + 1# remove + 1 in cpp; what's the index of first s states?
+    if (sub.index == 0) # sub.index == M.to.s - 1 in rcpp
+      sub.index <- M.to.s
+    last.state <- state.conversion.mat[1, j]
+    
+    for (i in 1:M) # 0:M in cpp
+      transition.probs[last.state, i] <- transition.probs[last.state, i] + 
+      transition.probs.extended[j, (M.to.s * (i - 1) + sub.index)]
+  }
+  transition.probs <- transition.probs / M.to.s
+  return (transition.probs)
 }
 
 GetExtendedInitialDist <- function(initial.dist, M, s)
