@@ -25,20 +25,58 @@ inline bool SetToZeroIfAlmostZero (arma::mat* pmatrix)
   return TRUE;
 }
 
-// TODO: DO I IMPLEMENT THIS? DECIDE IT.
-// void MatrixToThetas (int theta_count arma::mat* ptheta_matrix, Theta* pthetas);
-inline Theta ColumnToTheta (arma::colvec* ptheta_col)
+// Assume exp > 0.
+inline int IntPower(int base, int exp)
 {
-  // TODO: FINISH THIS
-  return Theta(); // stub
-}
-inline arma::colvec ThetaToColumn (Theta* ptheta, int col_length)
-{
-  arma::colvec col(col_length);
-  arma::conv_to< arma::colvec >::from(ptheta->transition_probs);
+  int result = 1;
+  while (exp)
+  {
+    if (exp & 1)
+      result *= base;
+    exp >>= 1;
+    base *= base;
+  }
 
-  // TODO: FINISH THIS
-  return arma::colvec(1); // stub
+  return result;
+}
+
+inline arma::mat GetExtendedTransitionProbs(arma::mat transition_probs,
+                                            arma::imat state_conversion_mat)
+{
+  int s = state_conversion_mat.n_rows - 1;
+  int M = transition_probs.n_cols;
+  int M_extended = state_conversion_mat.n_cols;
+  int M_to_s = IntPower(M, s);
+  arma::mat transition_probs_extended(M_extended, M_extended, arma::fill::zeros);
+  for (int j = 0; j < M_extended; j++)
+  {
+    int sub_index = j % M_to_s;
+    int last_state = state_conversion_mat.at(0, j);
+
+    for (int i = 0; i < M; i++)
+      transition_probs_extended(j, (M_to_s * i + sub_index)) = transition_probs.at(last_state, i);
+  }
+  return (transition_probs_extended);
+}
+
+inline arma::mat ExtendedTransMatToReduced(arma::mat transition_probs_extended,
+                                        arma::imat state_conversion_mat,
+                                        int M_reduced)
+{
+  int s = state_conversion_mat.n_rows - 1;
+  int M_extended = state_conversion_mat.n_cols;
+  int M_to_s = IntPower(M_reduced, s);
+  arma::mat transition_probs(M_reduced, M_reduced, arma::fill::zeros);
+  for (int j = 0; j < M_extended; j++)
+  {
+    int sub_index = j % M_to_s;
+    int last_state = state_conversion_mat.at(0, j);
+
+    for (int i = 0; i < M_reduced; i++)
+      transition_probs(last_state, i) += transition_probs_extended.at(j, (M_to_s * i + sub_index));
+  }
+  transition_probs /= M_to_s; // smooth it by averaging out
+  return (transition_probs);
 }
 
 #endif
