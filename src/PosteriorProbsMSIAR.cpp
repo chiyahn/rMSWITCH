@@ -1,3 +1,8 @@
+/*
+// Computes posterior probabilities given a AR-MSI model.
+// Written by Chiyoung Ahn
+*/
+#define ARMA_NO_DEBUG
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;

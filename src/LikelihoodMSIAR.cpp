@@ -1,3 +1,8 @@
+/*
+// Computes likelihood given a MSI-AR model.
+// Written by Chiyoung Ahn
+*/
+#define ARMA_NO_DEBUG
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;

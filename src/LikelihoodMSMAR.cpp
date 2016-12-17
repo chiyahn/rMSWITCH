@@ -1,3 +1,8 @@
+/*
+// Computes likelihood given a MSM-AR model.
+// Written by Chiyoung Ahn
+*/
+#define ARMA_NO_DEBUG
 #include <RcppArmadillo.h>
 #include "Utilities.h"
 
@@ -62,7 +67,6 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 	int M_extended = transition_probs_extended_t.n_rows;
 	int M = gamma_dependent.n_cols;
 	int s = beta.n_rows;
-	int s_plus_one = s + 1;
 	int M_extended_block = IntPower(M, s);
 	arma::mat xi_k_t(M_extended, n, arma::fill::zeros); // make a transpose first for col operations.
 

@@ -1,3 +1,8 @@
+/*
+// Computes estimates for AR-MSIAH models with EM-algorithm.
+// Written by Chiyoung Ahn
+*/
+#define ARMA_NO_DEBUG
 #include <RcppArmadillo.h>
 #include "Smooth.h"
 #include "Theta.h"
