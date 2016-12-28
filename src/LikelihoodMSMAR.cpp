@@ -98,7 +98,7 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 				for (int lag = 0; lag < s; lag++)
 				{
 					int lagged_index = state_conversion_mat.at((lag + 1), j);
-					xi_k_t_jk -= beta.at(lag, lagged_index) *
+					xi_k_t_jk -= beta.at(lag, j_M) *
 												(y_lagged.at(k, lag) - mu(lagged_index));
 				}
 				xi_k_t(j,k) = xi_k_t_jk(0); // explicit gluing
