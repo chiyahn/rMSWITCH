@@ -184,8 +184,8 @@ Theta MaximizationStepARMSIAH (arma::colvec* py,
           pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
       }
 
-      gamma_dependent.col(j) = inv(gamma_dependent_part_one) *
-                                gamma_dependent_part_two;
+      gamma_dependent.col(j) = solve(gamma_dependent_part_one,
+                                gamma_dependent_part_two);
     }
 
   // 2-3. beta (switching)
@@ -201,7 +201,7 @@ Theta MaximizationStepARMSIAH (arma::colvec* py,
         (py->at(k) - pz_dependent->row(k) * gamma_dependent.col(j) -
         pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
     }
-    beta.col(j) = inv(beta_part_one) * beta_part_two;
+    beta.col(j) = solve(beta_part_one, beta_part_two);
   }
 
   // 2-4. gamma_independent
@@ -224,8 +224,8 @@ Theta MaximizationStepARMSIAH (arma::colvec* py,
       gamma_independent_part_one += prop_sum *
         (pz_independent_t->col(k) * pz_independent->row(k));
     }
-    gamma_independent = inv(gamma_independent_part_one) *
-                          gamma_independent_part_two;
+    gamma_independent = solve(gamma_independent_part_one,
+                          gamma_independent_part_two);
   }
 
   // 2-5. sigma (switching)

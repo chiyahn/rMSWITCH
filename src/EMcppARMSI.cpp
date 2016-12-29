@@ -184,8 +184,8 @@ Theta MaximizationStepARMSI (arma::colvec* py,
           pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
       }
 
-      gamma_dependent.col(j) = inv(gamma_dependent_part_one) *
-                                gamma_dependent_part_two;
+      gamma_dependent.col(j) = solve(gamma_dependent_part_one,
+                                gamma_dependent_part_two);
     }
 
   // 2-3. beta (non-switching)
@@ -206,7 +206,7 @@ Theta MaximizationStepARMSI (arma::colvec* py,
     beta_part_one += prop_sum *
       (py_lagged_t->col(k) * (py_lagged->row(k)));
   }
-  beta = inv(beta_part_one) * beta_part_two;
+  beta = solve(beta_part_one, beta_part_two);
 
   // 2-4. gamma_independent
   if (!SetToZeroIfAlmostZero(&ptheta0->gamma_independent)) // validity check
@@ -228,8 +228,8 @@ Theta MaximizationStepARMSI (arma::colvec* py,
       gamma_independent_part_one += prop_sum *
         (pz_independent_t->col(k) * pz_independent->row(k));
     }
-    gamma_independent = inv(gamma_independent_part_one) *
-                          gamma_independent_part_two;
+    gamma_independent = solve(gamma_independent_part_one,
+                          gamma_independent_part_two);
   }
 
   // 2-5. sigma (non-switching)
