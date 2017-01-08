@@ -5,9 +5,11 @@ GenerateSamplesStationary <- function (theta, n = 200, replications = 200,
     stop("MSM models are currently not supported.")
   
   M <- ncol(theta$transition.probs)
-  if (sum(abs(theta$beta)) >= 1)
+  beta <- as.matrix(theta$beta)
+  apply(beta, 2, function (col)
+  { if (sum(abs(col)) >= 1)
     stop("The corresponding model is not stationary as the autoregressive
-         coefficients are not located inside a unit circle.")
+         coefficients are not located inside a unit circle.") })
   s <- nrow(as.matrix(theta$beta))
   probs <- runif(replications)
   states <- rep(1, replications)
