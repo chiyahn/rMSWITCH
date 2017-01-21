@@ -17,10 +17,13 @@
 #' @param initial.theta An initial guess for MS-AR model
 #' @param epsilon Epsilon used as convergence criterion.
 #' @param maxit The maximum number of iterations.
-#' @param short.n Number of short EMs
+#' @param short.n Number of initial draws for EM estimation
 #' @param short.iterations Maximum iteration used to perform short EMs
 #' @param transition.probs.min Minimum set for transition prob. matrix
 #' @param sigma.min Minimum set for variance.
+#' @param nloptr Determines whether nonlinear optimization package is used.
+#' @param estimate.fisher Determines whether the variance of each estimate is going
+#' to be computed.
 #' @return  A list with items:
 #' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
 #' \item{mu}{M by 1 column that contains state-dependent mu}
