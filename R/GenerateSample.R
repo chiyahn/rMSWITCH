@@ -56,6 +56,9 @@ GenerateSample <- function(theta = NULL, n = 100,
   s <- nrow(beta)
   gamma.dependent <- matrix(rep(0,M), ncol = M)
   gamma.independent <- as.matrix(0)
+  is.beta.switching = (ncol(as.matrix(beta)) > 1)
+  is.sigma.switching = (length(sigma) > 1)
+  
   if (is.null(initial.y.set))
     initial.y.set <- rnorm(s)
 
@@ -65,8 +68,6 @@ GenerateSample <- function(theta = NULL, n = 100,
     warning ("The length of initial.y.set is greater than s;
             only the last s observations are going to be used for
             sample generation.")
-  if (is.MSM)
-    stop ("MSM models are currently not supported.")
 
   # reformatting parameters & safety check
   if (ncol(beta) < M) # even if beta is not switching make it a matrix
@@ -119,29 +120,91 @@ GenerateSample <- function(theta = NULL, n = 100,
   initial.y.set <- initial.y.set[(length(initial.y.set) - s + 1):
                                   length(initial.y.set)] # only last s
   y <- c(initial.y.set, rep(-Inf, n))
-  states <- c(rep(-1, (length(initial.y.set) - 1)),
-              initial.state,
-              rep(0, n))
+  states <- vector()
+  if (is.MSM)
+  {
+    if (length(initial.state) == (s + 1))
+      states <- c(initial.state,
+                  rep(0, n))
+    else
+    {
+      # determine initial.state by initial.dist
+      initial.dist.cumsum <- cumsum(theta$initial.dist)
+      if (length(theta$initial.dist) == M) # if in short form, uniformly draw.
+      {
+        states <- sample(1:M, s, replace = T)
+        states <- c(states, 1)
+        prob <- runif(1)
+        for (j in 2:M)
+          if (prob > initial.dist.cumsum[j-1] &&
+                         prob <= initial.dist.cumsum[j])
+            states[length(states)] <- j
+      }
+      else
+      {
+        state.conversion.mat <- GetStateConversionMatForR(M = M, s = s)
+        M.extended <- ncol(state.conversion.mat)
+        prob <- runif(1)
+        states <- state.conversion.mat[,1]
+        for (j in 2:M.extended)
+          if (prob > initial.dist.cumsum[j-1] &&
+              prob <= initial.dist.cumsum[j])
+            states <- state.conversion.mat[,j]
+      }
+      states <- c(states, rep(0, n))
+    }
+  }
+  else
+    states <- c(rep(-1, (length(initial.y.set) - 1)),
+                initial.state,
+                rep(0, n))
   initial.index <- length(initial.y.set) + 1
   last.index <- length(initial.y.set) + n
-  for (k in initial.index:last.index)
-  {
-    previous.state <- states[(k-1)]
-    trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
-    prob <- runif(1) # decision to switch
-    state = 1
-    for (j in 2:M)
-      if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
-        state <- j
-        break
+  if (is.MSM)
+    for (k in initial.index:last.index)
+    {
+      previous.state <- states[(k-1)]
+      trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
+      prob <- runif(1) # decision to switch
+      state = 1
+      for (j in 2:M)
+        if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
+          state <- j
+          break
+        }
+      states[k] <- state
+      y[k] <- mu[state,1] +
+        z.dependent[k,] %*% as.matrix(gamma.dependent[,state]) +
+        z.independent[k,] %*% as.matrix(gamma.independent) +
+        rnorm(1,sd=sigma[state,1])
+      for (lagged.index in 1:s)
+      {
+        # TODO: add lagged z variables in ar terms.
+        lagged.state <- states[(k-lagged.index)]
+        y[k] <- as.numeric(beta[lagged.index,lagged.state]) *
+                  (y[(k - lagged.index)] - mu[lagged.state]) +
+                  y[k]
       }
-    states[k] <- state
-    y[k] <- mu[state,1] +
-      t(rev(y[(k-s):(k-1)])) %*% as.numeric(beta[,state]) +
-      z.dependent[k,] %*% as.matrix(gamma.dependent[,state]) +
-      z.independent[k,] %*% as.matrix(gamma.independent) +
-      rnorm(1,sd=sigma[state,1])
-  }
+    }
+  else
+    for (k in initial.index:last.index)
+    {
+      previous.state <- states[(k-1)]
+      trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
+      prob <- runif(1) # decision to switch
+      state = 1
+      for (j in 2:M)
+        if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
+          state <- j
+          break
+        }
+      states[k] <- state
+      y[k] <- mu[state,1] +
+        t(rev(y[(k-s):(k-1)])) %*% as.numeric(beta[,state]) +
+        z.dependent[k,] %*% as.matrix(gamma.dependent[,state]) +
+        z.independent[k,] %*% as.matrix(gamma.independent) +
+        rnorm(1,sd=sigma[state,1])
+    }
   states <- states[initial.index:last.index]
 
   posterior.probs <- matrix(rep(0,M*n), ncol = M)
@@ -156,8 +219,8 @@ GenerateSample <- function(theta = NULL, n = 100,
                      call = match.call(),
                      M = M,
                      s = s,
-                     is.beta.switching = (ncol(as.matrix(beta)) > 1),
-                     is.sigma.switching = (length(sigma) > 1),
+                     is.beta.switching = is.beta.switching,
+                     is.sigma.switching = is.sigma.switching,
                      is.MSM = is.MSM,
                      label = "msar.model")
 
@@ -165,11 +228,19 @@ GenerateSample <- function(theta = NULL, n = 100,
   y.sample <- lagged.and.sample$y.sample
   y.lagged <- lagged.and.sample$y.lagged
 
-  return (list(y = y,
-               y.sample = y.sample,
-               y.lagged = y.lagged,
-               states = states[initial.index:length(states)],
-               msar.model = msar.model))
+  
+  if (is.MSM)
+    return (list(y = y,
+                 y.sample = y.sample,
+                 y.lagged = y.lagged,
+                 states = states,
+                 msar.model = msar.model))
+  else
+    return (list(y = y,
+                 y.sample = y.sample,
+                 y.lagged = y.lagged,
+                 states = states[initial.index:length(states)],
+                 msar.model = msar.model))
 }
 
 #' Returns an (n + s) by replications matrix that represents samples of
