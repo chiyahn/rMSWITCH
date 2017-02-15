@@ -258,6 +258,7 @@ RandomTheta <- function(M = 2, s = 1, p.dep = 0, p.indep = 0,
       beta.col <- beta.col / (1.2 * sum(abs(beta.col)))
       beta <- cbind(beta, beta.col)
     }
+  
   beta <- as.matrix(beta)
 
   mu <- runif(M, 0.4, 0.8) * sample(c(1,-1), M, replace = T)
@@ -333,6 +334,29 @@ ThetaToReducedColumn <- function(theta)
             c(theta$gamma.dependent),
             c(theta$gamma.independent)))
 
+}
+
+#' Transform a theta to a reduced column, ordered in
+#' transition.probs, beta, mu, sigma, gamma.dep, gamma.indep.
+#' where each row of transition.probs is reduced to have a length of M-1,
+#' initial.dist is reduced to have a length of M-1.
+ThetaToEssentialColumn <- function(theta)
+{
+  # transition.probs could have been listed in the order of
+  # p11, p21, ..., pM1, p12, ..., pM2, ..., p1(M-1), ..., pM(M-1)
+  # taking a transpose will make it listed as
+  # p11, p12, ..., p1(M-1), p21, ..., p2(M-1), ..., pM(M-1)
+  M <- ncol(theta$transition.probs)
+  if (M < 2)
+    return (c(c(theta$beta), c(theta$mu), c(theta$sigma),
+              c(theta$gamma.dependent),
+              c(theta$gamma.independent)))
+  
+  reduced.transition.probs <- theta$transition.probs[,1:(M-1)]
+  return (c(c(t(reduced.transition.probs)),
+            c(theta$beta), c(theta$mu), c(theta$sigma),
+            c(theta$gamma.dependent),
+            c(theta$gamma.independent)))
 }
 
 #' Transform a theta to a reduced column, ordered in
