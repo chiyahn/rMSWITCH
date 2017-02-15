@@ -21,7 +21,9 @@ const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 					Rcpp::NumericMatrix y_lagged_rcpp,
 					Rcpp::NumericMatrix z_dependent_rcpp,
+					Rcpp::NumericMatrix z_dependent_lagged_rcpp,
 					Rcpp::NumericMatrix z_independent_rcpp,
+					Rcpp::NumericMatrix z_independent_lagged_rcpp,
 					Rcpp::NumericMatrix transition_probs_extended_rcpp,
 					Rcpp::NumericVector initial_dist_extended_rcpp,
 					Rcpp::NumericMatrix beta_rcpp,
@@ -41,9 +43,15 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 	arma::mat    z_dependent(z_dependent_rcpp.begin(),
 								z_dependent_rcpp.nrow(),
 								z_dependent_rcpp.ncol(), false);
+	arma::mat    z_dependent_lagged(z_dependent_lagged_rcpp.begin(),
+								z_dependent_lagged_rcpp.nrow(),
+								z_dependent_lagged_rcpp.ncol(), false);
 	arma::mat    z_independent(z_independent_rcpp.begin(),
 								z_independent_rcpp.nrow(),
 								z_independent_rcpp.ncol(), false);
+	arma::mat    z_independent_lagged(z_independent_lagged_rcpp.begin(),
+								z_independent_lagged_rcpp.nrow(),
+								z_independent_lagged_rcpp.ncol(), false);
 	arma::mat    transition_probs_extended(transition_probs_extended_rcpp.begin(),
 								transition_probs_extended_rcpp.nrow(),
 								transition_probs_extended_rcpp.ncol(), false);
@@ -69,6 +77,21 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 	int s = beta.n_rows;
 	int M_extended_block = IntPower(M, s);
 	arma::mat xi_k_t(M_extended, n, arma::fill::zeros); // make a transpose first for col operations.
+
+	// partition blocks
+	int p = gamma_dependent.n_rows;
+	int q = gamma_independent.size();
+	arma::mat* z_dependent_lagged_blocks = new arma::mat[s];
+	arma::mat* z_independent_lagged_blocks = new arma::mat[s];
+	for (int i = 0; i < s; i++)
+	{
+		int z_dependent_block_first = i * p;
+		int z_independent_block_first = i * q;
+		z_dependent_lagged_blocks[i] = z_dependent_lagged.cols(z_dependent_block_first,
+			z_dependent_block_first + p - 1);
+		z_independent_lagged_blocks[i] = z_independent_lagged.cols(z_independent_block_first,
+			z_independent_block_first + q - 1);
+	}
 
 	for (int k = 0; k < n; k++)
 	{
@@ -99,7 +122,10 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 				{
 					int lagged_index = state_conversion_mat.at((lag + 1), j);
 					xi_k_t_jk -= beta.at(lag, j_M) *
-												(y_lagged.at(k, lag) - mu(lagged_index));
+												(y_lagged.at(k, lag) -
+												z_dependent_lagged_blocks[lag].row(k) * gamma_dependent.col(lagged_index) -
+												z_independent_lagged_blocks[lag].row(k) * gamma_independent -
+												mu(lagged_index));
 				}
 				xi_k_t(j,k) = xi_k_t_jk(0); // explicit gluing
 		    xi_k_t(j,k) *= xi_k_t(j,k);
@@ -132,6 +158,10 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 		delete[] ratios; // clear memory
 	}
 	likelihood -= n * LOG2PI_OVERTWO;
+	
+	// clear memory for blocks
+	delete[] z_dependent_lagged_blocks;
+	delete[] z_independent_lagged_blocks;
 
 	return (wrap(likelihood));
 }
