@@ -278,7 +278,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         # take a negative value to turn the problem into max. problem
         -LikelihoodMSMAR(y, y.lagged, z.dependent, z.independent, 
                          z.dependent.lagged, z.independent.lagged,
-                         GetExtendedTransitionProbs(transition.probs, state.conversion.mat),
+                         transition.probs,
                          initial.dist, # initial.dist
                          beta = beta,  # beta
                          theta.vectorized[mu.index:(sigma.index - 1)],  # mu

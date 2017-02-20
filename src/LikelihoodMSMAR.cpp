@@ -21,10 +21,10 @@ const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 					Rcpp::NumericMatrix y_lagged_rcpp,
 					Rcpp::NumericMatrix z_dependent_rcpp,
-					Rcpp::NumericMatrix z_dependent_lagged_rcpp,
 					Rcpp::NumericMatrix z_independent_rcpp,
+					Rcpp::NumericMatrix z_dependent_lagged_rcpp,
 					Rcpp::NumericMatrix z_independent_lagged_rcpp,
-					Rcpp::NumericMatrix transition_probs_extended_rcpp,
+					Rcpp::NumericMatrix transition_probs_rcpp,
 					Rcpp::NumericVector initial_dist_extended_rcpp,
 					Rcpp::NumericMatrix beta_rcpp,
 					Rcpp::NumericVector mu_rcpp,
@@ -52,9 +52,9 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 	arma::mat    z_independent_lagged(z_independent_lagged_rcpp.begin(),
 								z_independent_lagged_rcpp.nrow(),
 								z_independent_lagged_rcpp.ncol(), false);
-	arma::mat    transition_probs_extended(transition_probs_extended_rcpp.begin(),
-								transition_probs_extended_rcpp.nrow(),
-								transition_probs_extended_rcpp.ncol(), false);
+	arma::mat    transition_probs(transition_probs_rcpp.begin(),
+								transition_probs_rcpp.nrow(),
+								transition_probs_rcpp.ncol(), false);
 	arma::colvec initial_dist_extended(initial_dist_extended_rcpp.begin(),
 								initial_dist_extended_rcpp.size(), false);
 	arma::mat    beta(beta_rcpp.begin(),
@@ -70,6 +70,8 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 								state_conversion_mat_rcpp.nrow(),
 								state_conversion_mat_rcpp.ncol(), false);
 
+	arma::mat transition_probs_extended = GetExtendedTransitionProbs(
+                              transition_probs, state_conversion_mat);
   arma::mat transition_probs_extended_t = transition_probs_extended.t();
   double likelihood = 0;
 	int M_extended = transition_probs_extended_t.n_rows;
@@ -158,7 +160,7 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 		delete[] ratios; // clear memory
 	}
 	likelihood -= n * LOG2PI_OVERTWO;
-	
+
 	// clear memory for blocks
 	delete[] z_dependent_lagged_blocks;
 	delete[] z_independent_lagged_blocks;
