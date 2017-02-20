@@ -12,6 +12,7 @@ struct Theta
   arma::mat 		gamma_dependent;
   arma::mat 		gamma_independent;
   arma::mat 		transition_probs;
+  arma::mat     transition_probs_extended;
   arma::colvec 	initial_dist;
   double likelihood;              // initial value is zero
 
@@ -19,6 +20,11 @@ struct Theta
   Theta(arma::mat _beta, arma::mat _mu, arma::mat _sigma,
         arma::mat _gamma_dependent, arma::mat _gamma_independent,
         arma::mat _transition_probs, arma::colvec _initial_dist);
+
+  Theta(arma::mat _beta, arma::mat _mu, arma::mat _sigma,
+        arma::mat _gamma_dependent, arma::mat _gamma_independent,
+        arma::mat _transition_probs, arma::colvec _initial_dist,
+        arma::mat _transition_probs_extended);
 };
 
 #endif
