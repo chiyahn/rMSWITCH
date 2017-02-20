@@ -1,5 +1,5 @@
 library(testthat)
-
+library(Rcpp)
 test_that("OrderTransitionMatrix", {
   mu1.order <- order(c(1,-1))   # 2, 1
   mu2.order <- order(c(-1,1))   # 1, 2

@@ -9,15 +9,76 @@ MaximizeShortStep <- function(short.thetas,
                               maxit, epsilon,
                               transition.probs.min,
                               transition.probs.max,
-                              sigma.min)
+                              sigma.min, 
+                              z.dependent.lagged = NULL,
+                              z.independent.lagged = NULL,
+                              is.MSM = FALSE)
 {
   n <- length(y)
+  M <- ncol(as.matrix(short.thetas[[1]]$transition.probs))
+  s <- nrow(as.matrix(short.thetas[[1]]$beta)) # WARNING: assume beta exists
   
   if (is.null(z.dependent))
+  {
     z.dependent <- as.matrix(rep(0,n))
-
+    z.dependent.lagged <- matrix(0, ncol = s, nrow = n)
+  }
   if (is.null(z.independent))
+  {
     z.independent <- as.matrix(rep(0,n))
+    z.independent.lagged <- matrix(0, ncol = s, nrow = n)
+  }
+  
+  if (is.MSM)
+  {
+    state.conversion.mat <- GetStateConversionMat(M, s)
+    if (is.beta.switching)
+      if (is.sigma.switching)
+        return (lapply(short.thetas, EM.MSMAH.AR,
+                       y = y, y.lagged = y.lagged,
+                       z.dependent = z.dependent, z.independent = z.independent,
+                       z.dependent.lagged = z.dependent.lagged, 
+                       z.independent.lagged = z.independent.lagged,
+                       maxit = maxit, epsilon = epsilon,
+                       transition.probs.min = transition.probs.min,
+                       transition.probs.max = transition.probs.max,
+                       sigma.min = sigma.min,
+                       state.conversion.mat = state.conversion.mat))
+    else
+      return (lapply(short.thetas, EM.MSMA.AR,
+                     y = y, y.lagged = y.lagged,
+                     z.dependent = z.dependent, z.independent = z.independent,
+                     z.dependent.lagged = z.dependent.lagged, 
+                     z.independent.lagged = z.independent.lagged,
+                     maxit = maxit, epsilon = epsilon,
+                     transition.probs.min = transition.probs.min,
+                     transition.probs.max = transition.probs.max,
+                     sigma.min = sigma.min,
+                     state.conversion.mat = state.conversion.mat))
+    else
+      if (is.sigma.switching)
+        return (lapply(short.thetas, EM.MSMH.AR,
+                       y = y, y.lagged = y.lagged,
+                       z.dependent = z.dependent, z.independent = z.independent,
+                       z.dependent.lagged = z.dependent.lagged, 
+                       z.independent.lagged = z.independent.lagged,
+                       maxit = maxit, epsilon = epsilon,
+                       transition.probs.min = transition.probs.min,
+                       transition.probs.max = transition.probs.max,
+                       sigma.min = sigma.min,
+                       state.conversion.mat = state.conversion.mat))
+    else
+      return (lapply(short.thetas, EM.MSM.AR,
+                     y = y, y.lagged = y.lagged,
+                     z.dependent = z.dependent, z.independent = z.independent,
+                     z.dependent.lagged = z.dependent.lagged, 
+                     z.independent.lagged = z.independent.lagged,
+                     maxit = maxit, epsilon = epsilon,
+                     transition.probs.min = transition.probs.min,
+                     transition.probs.max = transition.probs.max,
+                     sigma.min = sigma.min,
+                     state.conversion.mat = state.conversion.mat))
+  }
   
   
   if (is.beta.switching)

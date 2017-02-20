@@ -163,17 +163,20 @@ NumberOfParameters <- function(theta)
 # Given a list of parameters (theta) and data, return n by M matrix
 # that contains posterior probabilities for each observation.
 EstimatePosteriorProbs <- function(theta, y, y.lagged,
-                                   z.dependent, z.independent, is.MSM = FALSE)
+                                   z.dependent, z.independent, 
+                                   z.dependent.lagged = NULL,
+                                   z.independent.lagged = NULL,
+                                   is.MSM = FALSE)
 {
-  if (is.MSM)
-    stop ("MSM models are currently not supported.")
-
+  beta <- as.matrix(theta$beta)
   M <- ncol(theta$transition.probs)
   n <- length(y)
-  is.beta.switching <- (ncol(as.matrix(theta$beta)) > 1)
+  s <- nrow(beta)
+  is.beta.switching <- (ncol(beta) > 1)
   is.sigma.switching <- (length(theta$sigma) > 1)
 
-  beta <- theta$beta
+
+
   sigma <- theta$sigma
   gamma.dependent <- matrix(rep(0, M), ncol = M)
   gamma.independent <- as.matrix(0)
@@ -189,20 +192,42 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
   if (!is.null(z.dependent))
   {
     z.dependent <- as.matrix(z.dependent)
+    if (is.null(z.dependent.lagged))
+      z.dependent.lagged <- matrix(0, nrow = n, ncol = s)
     gamma.dependent <- theta$gamma.dependent
   }
   else
+  {
     z.dependent <- as.matrix(rep(0,n))
+    z.dependent.lagged <- matrix(0, nrow = n, ncol = s)
+  }
 
   if (!is.null(z.independent))
   {
     z.independent <- as.matrix(z.independent)
+    if (is.null(z.independent.lagged))
+      z.independent.lagged <- matrix(0, nrow = n, ncol = s)
     gamma.independent <- theta$gamma.independent
   }
   else
+  {
     z.independent <- as.matrix(rep(0,n))
+    z.independent.lagged <- matrix(0, nrow = n, ncol = s)
+  }
 
 
+  if (is.MSM)
+    return (PosteriorProbsMSMAR(y, y.lagged, z.dependent, z.independent,
+                                z.dependent.lagged,
+                                z.independent.lagged,
+                                theta$transition.probs,
+                                theta$initial.dist,
+                                beta,
+                                theta$mu,
+                                sigma,
+                                gamma.dependent,
+                                gamma.independent,
+                                GetStateConversionMat(M, s)))
   return (PosteriorProbsMSIAR(y, y.lagged, z.dependent, z.independent,
                              theta$transition.probs,
                              theta$initial.dist,
@@ -588,7 +613,7 @@ SamplesToModels <- function(samples, M, s,
 
 #' Get an appropriate list of names for
 #' reduced column form of a given theta
-GetColumnNames <- function(theta)
+GetColumnNames <- function(theta, essential = FALSE)
 {
 
   M <- ncol(theta$transition.probs)
@@ -607,9 +632,11 @@ GetColumnNames <- function(theta)
   colnames.transition.probs <- apply(colnames.transition.probs, 1,
                                      function (row) paste("p",
                                      row[2], row[1], sep = ""))
-  colnames.initial.dist <- sapply(seq(1:(M-1)),
-                                  function (i) paste("initial.dist",
-                                  i, sep = ""))
+  colnames.initial.dist <- NULL
+  if (!essential)
+    colnames.initial.dist <- sapply(seq(1:(M-1)),
+                                    function (i) paste("initial.dist",
+                                    i, sep = ""))
   colnames.beta <- sapply(seq(1:s),
                           function (i) paste("beta", i, sep = ""))
   if (is.beta.switching)

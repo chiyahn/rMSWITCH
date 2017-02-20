@@ -2,7 +2,10 @@ print.msar.model <- function(x, ...) {
   n <- nrow(x$posterior.probs.filtered)
   theta <- x$theta
   
+
   coeffs <- ThetaToReducedColumn(theta)
+  if (x$is.MSM)
+    coeffs <- ThetaToEssentialColumn(theta)
   
   if (!is.null(x$fisher.estimated))
   {
@@ -16,14 +19,14 @@ print.msar.model <- function(x, ...) {
                           lb.95 = coeffs - ses * qnorm(0.975) / sqrt(n),
                           ub.95 = coeffs + ses * qnorm(0.975) / sqrt(n),
                           p.value = 2*pnorm(-abs(tvals))))
-    rownames(coeff.matrix) <- GetColumnNames(theta)
+    rownames(coeff.matrix) <- GetColumnNames(theta, essential = x$is.MSM)
     printCoefmat(coeff.matrix, P.values = TRUE, has.Pvalue = TRUE)
   }
   else
   {
     coeff.matrix <- data.frame(cbind(
       estimate = coeffs))
-    rownames(coeff.matrix) <- GetColumnNames(theta)
+    rownames(coeff.matrix) <- GetColumnNames(theta, essential = x$is.MSM)
     print(coeff.matrix)
   }
   aic <- -2*x$log.likelihood + 2*NumberOfParameters(theta)

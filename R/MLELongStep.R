@@ -5,48 +5,24 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
                              epsilon, maxit,
                              transition.probs.min,
                              transition.probs.max, 
-                             sigma.min, is.MSM, ...)
+                             sigma.min, 
+                             z.dependent.lagged = NULL,
+                             z.independent.lagged = NULL,
+                             is.MSM = FALSE)
 {
-  n <- length(y)
-  
-  if (is.null(z.dependent))
-    z.dependent <- as.matrix(rep(0,n))
-  
-  if (is.null(z.independent))
-    z.independent <- as.matrix(rep(0,n))
-  
-  if (is.beta.switching) 
-  {
-    if (is.sigma.switching)
-      long.results <- (lapply(long.thetas, EM.MSIAH.AR,
-                     y = y, y.lagged = y.lagged,
-                     z.dependent = z.dependent, z.independent = z.independent,
-                     maxit = maxit, epsilon = epsilon,
-                     transition.probs.min, transition.probs.max,
-                     sigma.min))
-    else
-      long.results <- (lapply(long.thetas, EM.MSIA.AR,
-                     y = y, y.lagged = y.lagged,
-                     z.dependent = z.dependent, z.independent = z.independent,
-                     maxit = maxit, epsilon = epsilon,
-                     transition.probs.min, transition.probs.max,
-                     sigma.min))
-  } else {
-    if (is.sigma.switching)
-      long.results <- (lapply(long.thetas, EM.MSIH.AR,
-                     y = y, y.lagged = y.lagged,
-                     z.dependent = z.dependent, z.independent = z.independent,
-                     maxit = maxit, epsilon = epsilon,
-                     transition.probs.min, transition.probs.max,
-                     sigma.min))
-    else
-      long.results <- (lapply(long.thetas, EM.MSI.AR,
-                     y = y, y.lagged = y.lagged,
-                     z.dependent = z.dependent, z.independent = z.independent,
-                     maxit = maxit, epsilon = epsilon,
-                     transition.probs.min, transition.probs.max,
-                     sigma.min))
-  }  
+  long.results <- MaximizeShortStep(short.thetas = long.thetas,
+                                    y = y, y.lagged = y.lagged,
+                                    z.dependent = z.dependent,
+                                    z.independent = z.independent,
+                                    is.beta.switching = is.beta.switching,
+                                    is.sigma.switching = is.sigma.switching,
+                                    maxit = short.iterations, epsilon = short.epsilon,
+                                    transition.probs.min = transition.probs.min,
+                                    transition.probs.max = transition.probs.max,
+                                    sigma.min = sigma.min,
+                                    z.dependent.lagged = z.dependent.lagged,
+                                    z.independent.lagged = z.independent.lagged,
+                                    is.MSM = is.MSM)
   
   long.likelihoods <- sapply(long.results, "[[", "likelihood")
   long.likelihoods[!is.finite(long.likelihoods)] <- -Inf # abnormal values
