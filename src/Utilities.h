@@ -50,7 +50,7 @@ inline arma::mat GetExtendedTransitionProbs(arma::mat transition_probs,
   arma::mat transition_probs_extended(M_extended, M_extended, arma::fill::zeros);
   for (int j = 0; j < M_extended; j++)
   {
-    int sub_index = j % M_to_s;
+    int sub_index = (j - j % M) / M;
     int last_state = state_conversion_mat.at(0, j);
 
     for (int i = 0; i < M; i++)
