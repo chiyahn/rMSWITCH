@@ -175,14 +175,20 @@ SEXP PosteriorProbsMSMAR (Rcpp::NumericVector y_rcpp,
   }
 
 	// make 'simplified' xi_n based on current states
+	arma::mat xi_k = xi_k_t.t();
 	arma::mat xi_n = xi_n_t.t();
+	arma::mat xi_k_simplified(n, M_reduced, arma::fill::zeros);
 	arma::mat xi_n_simplified(n, M_reduced, arma::fill::zeros);
 
 	for (int j = 0; j < M_reduced; j++)
 		for (int j_block = 0; j_block < M_extended_block; j_block++)
+		{
+			xi_k_simplified.col(j) += xi_k.col(j * M_extended_block + j_block);
 			xi_n_simplified.col(j) += xi_n.col(j * M_extended_block + j_block);
+		}
 
-	return Rcpp::List::create(Named("xi.k") = wrap(xi_k_t.t()),
+	return Rcpp::List::create(Named("xi.k") = wrap(xi_k_simplified),
 														Named("xi.n") = wrap(xi_n_simplified),
+														Named("xi.k.extended") = wrap(xi_k),
 														Named("xi.n.extended") = wrap(xi_n));
 }
