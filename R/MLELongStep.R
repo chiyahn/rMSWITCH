@@ -67,6 +67,7 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
 # the parameters in theta; this applies for univariate time series only.
 MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                             z.dependent, z.independent,
+                            z.dependent.lagged, z.independent.lagged,
                             epsilon, maxit,
                             transition.probs.min,
                             transition.probs.max,
@@ -88,11 +89,17 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
   if (!is.null(z.dependent))
     p.dep <- nrow(as.matrix(theta$gamma.independent))
   else
+  {
     z.dependent <- as.matrix(rep(0,n))
+    z.dependent.lagged <- matrix(0, nrow = n, ncol = s)
+  }
   if (!is.null(z.independent))
     p.indep <- nrow(as.matrix(theta$gamma.independent))
   else
+  {
     z.independent <- as.matrix(rep(0,n))
+    z.independent.lagged <- matrix(0, nrow = n, ncol = s)
+  }
 
   # this holds only for univariate time series.
   initial.dist.index <- M * (M-1) + 1 # reduced case
@@ -244,7 +251,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         # retrieve the original from the reduced form.
         transition.probs <- t(apply(transition.probs, 1,
                                     function (row) c(row, (1-sum(row)))))
-        initial.dist <- c(initial.dist, (1-initial.dist))
+        initial.dist <- c(initial.dist, (1-sum(initial.dist)))
         
         beta <- theta.vectorized[beta.index:(mu.index - 1)]
         if (!is.beta.switching) # make it as a switching parameter if not.
@@ -269,7 +276,8 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         
         # slsqp solves a minimization problem;
         # take a negative value to turn the problem into max. problem
-        -LikelihoodMSMAR(y, y.lagged, z.dependent, z.independent,
+        -LikelihoodMSMAR(y, y.lagged, z.dependent, z.independent, 
+                         z.dependent.lagged, z.independent.lagged,
                          GetExtendedTransitionProbs(transition.probs, state.conversion.mat),
                          initial.dist, # initial.dist
                          beta = beta,  # beta
@@ -316,7 +324,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       ub <- c(ub, rep(Inf, (length(theta.vectorized) - length(ub))))
       
       # sanity check for derivatives.
-      if (!LongStepSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
+      if (!NLOPTRSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
         return (list (convergence = -Inf, value = -Inf))
       
       
@@ -344,7 +352,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         # retrieve the original from the reduced form.
         transition.probs <- t(apply(transition.probs, 1,
                                     function (row) c(row, (1-sum(row)))))
-        initial.dist <- c(initial.dist, (1-initial.dist))
+        initial.dist <- c(initial.dist, (1-sum(initial.dist)))
   
         beta <- theta.vectorized[beta.index:(mu.index - 1)]
         if (!is.beta.switching) # make it as a switching parameter if not.
@@ -415,7 +423,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       ub <- c(ub, rep(Inf, (length(theta.vectorized) - length(ub))))
   
       # sanity check for derivatives.
-      if (!LongStepSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
+      if (!NLOPTRSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
         return (list (convergence = -Inf, value = -Inf))
   
       result <- slsqp(theta.vectorized,
@@ -454,7 +462,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                succeeded = TRUE))
 }
 
-LongStepSanityCheck <- function (x0, fn)
+NLOPTRSanityCheck <- function (x0, fn)
 {
   # sanity check for derivatives
   heps <- .Machine$double.eps^(1/3) # epsilon used in nloptr package
@@ -465,5 +473,4 @@ LongStepSanityCheck <- function (x0, fn)
     if (is.na(fn(x0 + hh[,i])) || is.na(fn(x0 - hh[,i])))
       return (FALSE)
   return (TRUE)
-
 }
