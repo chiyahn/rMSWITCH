@@ -145,11 +145,14 @@ GenerateSample <- function(theta = NULL, n = 100,
         state.conversion.mat <- GetStateConversionMatForR(M = M, s = s)
         M.extended <- ncol(state.conversion.mat)
         prob <- runif(1)
-        states <- state.conversion.mat[,1]
+        states <- rev(state.conversion.mat[,1])
         for (j in 2:M.extended)
           if (prob > initial.dist.cumsum[j-1] &&
               prob <= initial.dist.cumsum[j])
-            states <- state.conversion.mat[,j]
+          {
+            states <- rev(state.conversion.mat[,j])
+            break
+          }  
       }
       states <- c(states, rep(0, n))
     }
