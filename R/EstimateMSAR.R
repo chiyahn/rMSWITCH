@@ -208,9 +208,11 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     mu.order  <- order(theta$mu)
     theta$transition.probs <- OrderTransitionMatrix(theta$transition.probs,
                                                     mu.order)
-    theta$initial.dist <- theta$initial.dist[mu.order]
+
     if (is.MSM)
-      theta$initial.dist <- theta$initial.dist[rep(mu.order,each=(M^s))]
+      theta$initial.dist <- theta$initial.dist[c(sapply(mu.order, function(order) (order - 1) * (M^s) + 1:(M^s)))]
+    else
+      theta$initial.dist <- theta$initial.dist[mu.order]
     
     if (is.beta.switching)
       theta$beta <- matrix(theta$beta[,mu.order], ncol = M)
