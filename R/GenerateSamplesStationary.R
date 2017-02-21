@@ -35,11 +35,10 @@ GenerateSamplesStationary <- function (theta, n = 200, replications = 200,
     states <- rep(1,replications)
     samples <- matrix(0, ncol = replications, nrow = (n + s))
     for (i in 1:replications)
-      samples[,i] <- GenerateSampleQuick(initial.state = states[i], 
+      samples[,i] <- GenerateMSISampleQuick(initial.state = states[i], 
                                          initial.y.set = initial.y.values[,i],
                                          theta = theta,
-                                         n = n, M = M, s = s,
-                                         is.MSM = is.MSM)
+                                         n = n, M = M, s = s)
     
     return (samples)
   }
@@ -56,11 +55,10 @@ GenerateSamplesStationary <- function (theta, n = 200, replications = 200,
   
   samples <- matrix(0, ncol = replications, nrow = (n + burn.in + s))
   for (i in 1:replications)
-    samples[,i] <- GenerateSampleQuick(initial.state = states[i], 
+    samples[,i] <- GenerateMSISampleQuick(initial.state = states[i], 
                                        initial.y.set = initial.y.values[,i],
                                        theta = theta,
-                                       n = (n + burn.in), M = M, s = s,
-                                       is.MSM = is.MSM)
+                                       n = (n + burn.in), M = M, s = s)
   
   return (samples[(burn.in + 1):(nrow(samples)),])
 }

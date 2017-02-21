@@ -41,9 +41,9 @@
 #' GenerateSample(theta)
 #' GenerateSample(theta, n = 200)
 GenerateSample <- function(theta = NULL, n = 100,
-                          initial.y.set = NULL, initial.state = 1,
-                          z.dependent = NULL, z.independent = NULL,
-                          is.MSM = FALSE)
+                           initial.y.set = NULL, initial.state = 1,
+                           z.dependent = NULL, z.independent = NULL,
+                           is.MSM = FALSE)
 {
   if (is.null(theta))
     theta <- RandomTheta()
@@ -61,14 +61,14 @@ GenerateSample <- function(theta = NULL, n = 100,
   
   if (is.null(initial.y.set))
     initial.y.set <- rnorm(s)
-
+  
   if (length(initial.y.set) < s)
     stop ("EXCEPTION: The length of initial.y.set cannot be smaller than s.")
   if (length(initial.y.set) > s)
     warning ("The length of initial.y.set is greater than s;
-            only the last s observations are going to be used for
-            sample generation.")
-
+             only the last s observations are going to be used for
+             sample generation.")
+  
   # reformatting parameters & safety check
   if (ncol(beta) < M) # even if beta is not switching make it a matrix
   {
@@ -79,13 +79,13 @@ GenerateSample <- function(theta = NULL, n = 100,
   }
   if (length(sigma) < M) # even if sigma is not switching make it a matrix
     sigma <- matrix(rep(theta$sigma, M), nrow = M)
-
+  
   if (nrow(beta) > length(initial.y.set))
     stop("EXCEPTION: the initial y set must have a length greater than equal to
          the number of regressive terms in the model.")
   if (length(mu) < 2) # even if mu is not switching make it a vector
     mu <- matrix(rep(mu[1,1], M), nrow = M)
-
+  
   if (is.null(z.dependent))
     z.dependent <- as.matrix(rep(0,(s + n)),ncol=1)
   else
@@ -95,9 +95,9 @@ GenerateSample <- function(theta = NULL, n = 100,
       stop("EXCEPTION: the number of observations for z.dependent cannot be
            smaller than the length of samples, n.")
     z.dependent <- rbind(matrix(rep(NaN, (s*ncol(z.dependent))),
-                                  ncol = ncol(z.dependent)),
+                                ncol = ncol(z.dependent)),
                          as.matrix(z.dependent[(nrow(z.dependent) - n + 1):
-                                                (nrow(z.dependent)),]))
+                                                 (nrow(z.dependent)),]))
     gamma.dependent <- as.matrix(theta$gamma.dependent)
   }
   if (is.null(z.independent))
@@ -110,15 +110,15 @@ GenerateSample <- function(theta = NULL, n = 100,
            smaller than the length of samples, n.")
     z.independent <- rbind(matrix(rep(NaN, (s*ncol(z.independent))),
                                   ncol = ncol(z.independent)),
-                         as.matrix(z.independent[(nrow(z.independent) - n + 1):
-                                    (nrow(z.independent)),]))
+                           as.matrix(z.independent[(nrow(z.independent) - n + 1):
+                                                     (nrow(z.independent)),]))
     gamma.independent <- as.matrix(theta$gamma.independent)
   }
-
+  
   # initialization
   initial.y.set <- as.numeric(initial.y.set)
   initial.y.set <- initial.y.set[(length(initial.y.set) - s + 1):
-                                  length(initial.y.set)] # only last s
+                                   length(initial.y.set)] # only last s
   y <- c(initial.y.set, rep(-Inf, n))
   states <- vector()
   if (is.MSM)
@@ -137,7 +137,7 @@ GenerateSample <- function(theta = NULL, n = 100,
         prob <- runif(1)
         for (j in 2:M)
           if (prob > initial.dist.cumsum[j-1] &&
-                         prob <= initial.dist.cumsum[j])
+              prob <= initial.dist.cumsum[j])
             states[length(states)] <- j
       }
       else
@@ -152,7 +152,7 @@ GenerateSample <- function(theta = NULL, n = 100,
           {
             states <- rev(state.conversion.mat[,j])
             break
-          }  
+          }
       }
       states <- c(states, rep(0, n))
     }
@@ -185,8 +185,8 @@ GenerateSample <- function(theta = NULL, n = 100,
         # TODO: add lagged z variables in ar terms.
         lagged.state <- states[(k-lagged.index)]
         y[k] <- as.numeric(beta[lagged.index,lagged.state]) *
-                  (y[(k - lagged.index)] - mu[lagged.state]) +
-                  y[k]
+          (y[(k - lagged.index)] - mu[lagged.state]) +
+          y[k]
       }
     }
   else
@@ -209,7 +209,7 @@ GenerateSample <- function(theta = NULL, n = 100,
         rnorm(1,sd=sigma[state,1])
     }
   states <- states[initial.index:last.index]
-
+  
   posterior.probs <- matrix(rep(0,M*n), ncol = M)
   for (i in initial.index:n)
     posterior.probs[i,states[i]] = 1
@@ -226,11 +226,11 @@ GenerateSample <- function(theta = NULL, n = 100,
                      is.sigma.switching = is.sigma.switching,
                      is.MSM = is.MSM,
                      label = "msar.model")
-
+  
   lagged.and.sample <- GetLaggedAndSample(y, s)
   y.sample <- lagged.and.sample$y.sample
   y.lagged <- lagged.and.sample$y.lagged
-
+  
   
   if (is.MSM)
     return (list(y = y,
@@ -278,14 +278,12 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
                             initial.y.set = NULL,
                             is.MSM = FALSE)
 {
-  if (is.MSM)
-    stop("MSM models are currently not supported.")
-
   M <- ncol(theta$transition.probs)
   s <- nrow(as.matrix(theta$beta))
   probs <- runif(replications)
   states <- rep(1, replications)
-
+  
+  
   # Format it as a switching model if not.
   if (ncol(as.matrix(theta$beta)) < M)
     theta$beta <- matrix(rep(theta$beta, M), ncol = M)
@@ -294,35 +292,41 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
   theta$beta <- as.matrix(theta$beta)
   theta$mu <- as.matrix(theta$mu)
   theta$sigma <- as.matrix(theta$sigma)
-
+  
   initial.dist.cumsum <- cumsum(theta$initial.dist)
-  for (j in 2:M)
+  for (j in 2:(M^(s+1)))
     states[which(probs > initial.dist.cumsum[j-1] &&
-          probs <= initial.dist.cumsum[j])] <- j
-
-  samples <- sapply(states, GenerateSampleQuick,
-                    theta = theta, n = n,
-                    initial.y.set = initial.y.set, 
-                    M = M, s = s, is.MSM = is.MSM)
-
-  return (samples)
+                   probs <= initial.dist.cumsum[j])] <- j
+  if (is.MSM)
+  {
+    state.conversion.mat <- GetStateConversionMatForR(M = M, s = s)
+    return (sapply(states, function (state)
+      GenerateMSMSampleQuick(initial.states = rev(state.conversion.mat[,state]),
+                             theta = theta, n = n,
+                             initial.y.set = initial.y.set, 
+                             M = M, s = s)))
+  }
+  else
+    return (sapply(states, GenerateMSISampleQuick,
+             theta = theta, n = n,
+             initial.y.set = initial.y.set, 
+             M = M, s = s))
+  
 }
 
-GenerateSampleQuick <- function(initial.state, theta, n,
-                                initial.y.set, M, s, is.MSM = FALSE)
+GenerateMSISampleQuick <- function(initial.state, theta, n,
+                                   initial.y.set, M, s)
 {
-  if (is.MSM)
-    stop("MSM models are currently not supported.")
   if (is.null(initial.y.set))
     initial.y.set <- rnorm(s)
   y <- c(initial.y.set, rep(-Inf, n))
   states <- c(rep(-1, (s - 1)),
               initial.state,
               rep(0, n))
-
+  
   initial.index <- s + 1
   last.index <- length(initial.y.set) + n
-
+  
   for (k in initial.index:last.index)
   {
     previous.state <- states[(k-1)]
@@ -336,12 +340,52 @@ GenerateSampleQuick <- function(initial.state, theta, n,
           state <- j
           break
         }
-
+    
     states[k] <- state
     y[k] <- theta$mu[state,1] +
       t(rev(y[(k-s):(k-1)])) %*% as.numeric(theta$beta[,state]) +
       rnorm(1,sd=theta$sigma[state,1])
   }
-
+  
   return (y)
 }
+
+GenerateMSMSampleQuick <- function(initial.states, theta, n,
+                                   initial.y.set, M, s)
+{
+  if (is.null(initial.y.set))
+    initial.y.set <- rnorm(s)
+  y <- c(initial.y.set, rep(-Inf, n))
+  states <- c(initial.states,
+              rep(0, n))
+  
+  initial.index <- s + 1
+  last.index <- length(initial.y.set) + n
+  
+  for (k in initial.index:last.index)
+  {
+    previous.state <- states[(k-1)]
+    trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
+    prob <- runif(1) # decision to switch
+    state = 1
+    for (j in 2:M)
+      if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
+        state <- j
+        break
+      }
+    states[k] <- state
+    y[k] <- theta$mu[state,1] +
+      rnorm(1,sd=theta$sigma[state,1])
+    for (lagged.index in 1:s)
+    {
+      lagged.state <- states[(k-lagged.index)]
+      y[k] <- as.numeric(theta$beta[lagged.index,lagged.state]) *
+        (y[(k - lagged.index)] - theta$mu[lagged.state]) +
+        y[k]
+    }
+  }
+  
+  
+  return (y)
+}
+
