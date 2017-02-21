@@ -458,8 +458,8 @@ EstimateFisherInformation <- function(theta, y, y.lagged,
   initial.dist <- theta$initial.dist
   n <- length(y)
   M <- ncol(theta$transition.probs)
-  M.extended <- M^(s+1)
   s <- nrow(as.matrix(theta$beta))
+  M.extended <- M^(s+1)
   is.beta.switching <- (ncol(as.matrix(theta$beta)) > 1)
   is.sigma.switching <- (length(theta$sigma) > 1)
   p.dep <- 1 # even if gamma.dependent is NULL, use a zero vector
