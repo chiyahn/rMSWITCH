@@ -126,7 +126,7 @@ DiagPlot <- function(msar.model, y, details = FALSE)
                                       y1 = -Inf,
                                       y2 = abs(max(y)) * 4)
 
-  print(ggplot() +
+  return (ggplot() +
     geom_rect(data=plot.states.shades.df,
                       mapping=aes(xmin=plot.states.beginnings,
                                   xmax=plot.states.endings,
