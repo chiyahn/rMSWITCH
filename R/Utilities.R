@@ -171,6 +171,14 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
   beta <- as.matrix(theta$beta)
   M <- ncol(theta$transition.probs)
   n <- length(y)
+  
+  if (M < 2)
+  {
+    ones <- matrix(1, ncol = 1, nrow = n)
+    return (list (xi.k = ones, xi.n = ones))
+  }
+
+  
   s <- nrow(beta)
   is.beta.switching <- (ncol(beta) > 1)
   is.sigma.switching <- (length(theta$sigma) > 1)
