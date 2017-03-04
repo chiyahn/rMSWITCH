@@ -111,7 +111,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
       initial.theta$gamma.dependent <- as.matrix(initial.theta$gamma.dependent)
   }
 
-  if (M > 1)
+  if (M > 1 || is.MSM)
   {
     # 2. Run short EM
     # how many candidates would you like to find?
@@ -498,11 +498,15 @@ EstimateFisherInformation <- function(theta, y, y.lagged,
     state.conversion.mat <- GetStateConversionMatForR(M, s)
     LogLikelihoods <- function(theta.vectorized)
     {
-      transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
-                                 ncol = (M-1), byrow = T)
-      # retrieve the original from the reduced form.
-      transition.probs <- t(apply(transition.probs, 1,
-                                  function (row) c(row, (1-sum(row)))))
+      transition.probs <- as.matrix(1)
+      if (M > 1)
+      {
+        transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
+                                   ncol = (M-1), byrow = T)
+        # retrieve the original from the reduced form.
+        transition.probs <- t(apply(transition.probs, 1,
+                                    function (row) c(row, (1-sum(row)))))
+      }
 
       beta <- theta.vectorized[beta.index:(mu.index - 1)]
       if (!is.beta.switching) # make it as a switching parameter if not.
