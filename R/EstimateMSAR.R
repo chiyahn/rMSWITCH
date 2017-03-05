@@ -115,7 +115,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   {
     # 2. Run short EM
     # how many candidates would you like to find?
-    short.n.candidates <- max(floor(sqrt(log(n)*(1+s)*M)*2*short.n), M*250)
+    short.n.candidates <- max(floor(sqrt(log(n)*(1+s)*M)*2*short.n), M*250*ifelse(is.MSM,1+s,1))
     short.thetas <- lapply(1:short.n.candidates,
                           function(j) 
                             EstimateMSARInitShort(theta = initial.theta,
@@ -356,7 +356,7 @@ GetLaggedColumn <- function (j, col, s) {
 EstimateMSARInitShort <- function(theta, 
                                   transition.probs.min,
                                   transition.probs.max) {
-  beta0 <- theta$beta
+  beta0 <- as.matrix(theta$beta)
   mu0 <- theta$mu
   sigma0 <- theta$sigma
   gamma.dependent0 <- theta$gamma.dependent
@@ -378,7 +378,7 @@ EstimateMSARInitShort <- function(theta,
   initial.dist = VariationInRow(initial.dist0, 
                                 transition.probs.min,
                                 transition.probs.max)
-  beta <- beta0 # beta estimate should be accurate enough
+  beta <- beta0 + matrix(rnorm(length(beta0)), ncol = ncol(beta0), nrow = nrow(beta0))
   mu <- mu0 + rnorm(length(mu0))
   sigma <- sapply(sigma0, function(sig) max(sig + rnorm(1), sigma.epsilon))
 
