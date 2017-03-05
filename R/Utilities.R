@@ -360,7 +360,8 @@ ThetaToReducedColumn <- function(theta)
   reduced.transition.probs <- theta$transition.probs[,1:(M-1)]
   reduced.initial.dist <- theta$initial.dist[1:(M-1)]
   if (length(theta$initial.dist) > M) # if is MSM
-    reduced.initial.dist <- theta$initial.dist[1:((M^(s+1))-1)]
+    reduced.initial.dist <- theta$initial.dist[1:(length(theta$initial.dist)-1)]
+
   return (c(c(t(reduced.transition.probs)),
             c(reduced.initial.dist),
             c(theta$beta), c(theta$mu), c(theta$sigma),
