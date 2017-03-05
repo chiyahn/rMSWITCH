@@ -59,6 +59,16 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         estimate.fisher = TRUE) {
   if (test.on) # initial values controlled by test.on
     set.seed(test.seed)
+  if (M < 2) # if M = 1, non-switching assumption can be applied
+  {
+    is.beta.switching <- FALSE
+    is.sigma.switching <- FALSE
+  }
+  if (is.MSM && M < 4) # use nloptr for MSM models when M < 4.
+  {
+    short.n <- min((3+M), short.n)
+    nloptr <- TRUE
+  }
 
   p.dependent <- 0
   if (s + 1 > length(y))
