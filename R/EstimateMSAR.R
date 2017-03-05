@@ -165,8 +165,6 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                                       transition.probs.min = transition.probs.min,
                                       transition.probs.max = transition.probs.max,
                                       sigma.min = sigma.min,
-                                      z.dependent.lagged = z.dependent.lagged,
-                                      z.independent.lagged = z.independent.lagged,
                                       is.MSM = is.MSM)    
     else
       long.result <- MaximizeLongStep(long.thetas,
