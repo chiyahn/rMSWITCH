@@ -127,13 +127,18 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
 
   ReducedColumnToTheta <- function(theta.vectorized)
   {
-    transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
-                              ncol = (M-1), byrow = T)
-    # revive the original from the reduced form.
-    transition.probs <- t(apply(transition.probs, 1,
-                                function (row) c(row, (1-sum(row)))))
-    initial.dist <- theta.vectorized[initial.dist.index:(beta.index - 1)]
-    initial.dist <- c(initial.dist, (1 - sum(initial.dist)))
+    transition.probs <- as.matrix(1)
+    initial.dist <- as.matrix(1)
+    if (M > 1)
+    {
+      transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
+                                 ncol = (M-1), byrow = T)
+      # revive the original from the reduced form.
+      transition.probs <- t(apply(transition.probs, 1,
+                                  function (row) c(row, (1-sum(row)))))
+      initial.dist <- theta.vectorized[initial.dist.index:(beta.index - 1)]
+      initial.dist <- c(initial.dist, (1 - sum(initial.dist)))
+    }
     beta <- theta.vectorized[beta.index:(mu.index - 1)]
     if (is.beta.switching)
       beta <- matrix(beta, ncol = M)
@@ -221,13 +226,19 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       
       ObjectiveLogLikelihood <- function(theta.vectorized)
       {
-        transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
-                                   ncol = (M-1), byrow = T)
-        initial.dist <- c(theta.vectorized[initial.dist.index:(beta.index - 1)])
-        # retrieve the original from the reduced form.
-        transition.probs <- t(apply(transition.probs, 1,
-                                    function (row) c(row, (1-sum(row)))))
-        initial.dist <- c(initial.dist, (1-sum(initial.dist)))
+        transition.probs <- as.matrix(1)
+        initial.dist <- as.matrix(1)
+        
+        if (M > 1)
+        {
+          transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
+                                     ncol = (M-1), byrow = T)
+          initial.dist <- c(theta.vectorized[initial.dist.index:(beta.index - 1)])
+          # retrieve the original from the reduced form.
+          transition.probs <- t(apply(transition.probs, 1,
+                                      function (row) c(row, (1-sum(row)))))
+          initial.dist <- c(initial.dist, (1-sum(initial.dist)))
+        }
         
         beta <- theta.vectorized[beta.index:(mu.index - 1)]
         if (!is.beta.switching) # make it as a switching parameter if not.
@@ -264,17 +275,21 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                          state.conversion.mat.ordinary) # gamma.indep
       }
       
-      # hard constraints to prevent values from bounding off
-      # transition.probs
-      theta.vectorized[1:(initial.dist.index-1)] <- pmax(transition.probs.lb,
-                                       theta.vectorized[1:(initial.dist.index-1)])
-      theta.vectorized[1:(initial.dist.index-1)] <- pmin(transition.probs.ub,
-                                       theta.vectorized[1:(initial.dist.index-1)])
-      # initial.dist
-      theta.vectorized[initial.dist.index:(beta.index-1)] <- pmax(initial.dist.lb,
-                              theta.vectorized[initial.dist.index:(beta.index-1)])
-      theta.vectorized[initial.dist.index:(beta.index-1)] <- pmin(initial.dist.ub,
-                              theta.vectorized[initial.dist.index:(beta.index-1)])
+
+      if (M > 1)
+      {
+        # hard constraints to prevent values from bounding off
+        # transition.probs
+        theta.vectorized[1:(initial.dist.index-1)] <- pmax(transition.probs.lb,
+                                                           theta.vectorized[1:(initial.dist.index-1)])
+        theta.vectorized[1:(initial.dist.index-1)] <- pmin(transition.probs.ub,
+                                                           theta.vectorized[1:(initial.dist.index-1)])
+        # initial.dist
+        theta.vectorized[initial.dist.index:(beta.index-1)] <- pmax(initial.dist.lb,
+                                                                    theta.vectorized[initial.dist.index:(beta.index-1)])
+        theta.vectorized[initial.dist.index:(beta.index-1)] <- pmin(initial.dist.ub,
+                                                                    theta.vectorized[initial.dist.index:(beta.index-1)])
+      }
       beta <- theta.vectorized[beta.index:(mu.index - 1)]
       beta.lb <- pmin(-1, beta * (1 - 0.5 * sign(beta)))
       beta.ub <- pmax(1, beta * (1 + 0.5 * sign(beta)))
@@ -304,7 +319,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         return (list (convergence = -Inf, value = -Inf))
       
       
-      result <- slsqp(theta.vectorized,
+      result <- nloptr::slsqp(theta.vectorized,
                       fn = ObjectiveLogLikelihood,
                       lower = lb, upper = ub, hin = ConstraintMCTransition,
                       control = list(maxeval = maxit, ftol_abs = epsilon))
@@ -322,13 +337,18 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
   
       ObjectiveLogLikelihood <- function(theta.vectorized)
       {
-        transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
-                                  ncol = (M-1), byrow = T)
-        initial.dist <- c(theta.vectorized[initial.dist.index:(beta.index - 1)])
-        # retrieve the original from the reduced form.
-        transition.probs <- t(apply(transition.probs, 1,
-                                    function (row) c(row, (1-sum(row)))))
-        initial.dist <- c(initial.dist, (1-sum(initial.dist)))
+        transition.probs <- as.matrix(1)
+        initial.dist <- as.matrix(1)
+        if (M > 1)
+        {
+          transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
+                                     ncol = (M-1), byrow = T)
+          initial.dist <- c(theta.vectorized[initial.dist.index:(beta.index - 1)])
+          # retrieve the original from the reduced form.
+          transition.probs <- t(apply(transition.probs, 1,
+                                      function (row) c(row, (1-sum(row)))))
+          initial.dist <- c(initial.dist, (1-sum(initial.dist)))
+        }
   
         beta <- theta.vectorized[beta.index:(mu.index - 1)]
         if (!is.beta.switching) # make it as a switching parameter if not.
@@ -363,17 +383,20 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                         gamma.independent) # gamma.indep
       }
   
-      # hard constraints to prevent values from bounding off
-      # transition.probs
-      theta.vectorized[1:(initial.dist.index-1)] <- pmax(transition.probs.lb,
-                           theta.vectorized[1:(initial.dist.index-1)])
-      theta.vectorized[1:(initial.dist.index-1)] <- pmin(transition.probs.ub,
-                           theta.vectorized[1:(initial.dist.index-1)])
-      # initial.dist
-      theta.vectorized[initial.dist.index:(beta.index-1)] <- pmax(initial.dist.lb,
-                            theta.vectorized[initial.dist.index:(beta.index-1)])
-      theta.vectorized[initial.dist.index:(beta.index-1)] <- pmin(initial.dist.ub,
-                            theta.vectorized[initial.dist.index:(beta.index-1)])
+      if (M > 1)
+      {
+        # hard constraints to prevent values from bounding off
+        # transition.probs
+        theta.vectorized[1:(initial.dist.index-1)] <- pmax(transition.probs.lb,
+                                                           theta.vectorized[1:(initial.dist.index-1)])
+        theta.vectorized[1:(initial.dist.index-1)] <- pmin(transition.probs.ub,
+                                                           theta.vectorized[1:(initial.dist.index-1)])
+        # initial.dist
+        theta.vectorized[initial.dist.index:(beta.index-1)] <- pmax(initial.dist.lb,
+                                                                    theta.vectorized[initial.dist.index:(beta.index-1)])
+        theta.vectorized[initial.dist.index:(beta.index-1)] <- pmin(initial.dist.ub,
+                                                                    theta.vectorized[initial.dist.index:(beta.index-1)])
+      }
       beta <- theta.vectorized[beta.index:(mu.index - 1)]
       beta.lb <- pmin(-1, beta * (1 - 0.5 * sign(beta)))
       beta.ub <- pmax(1, beta * (1 + 0.5 * sign(beta)))
@@ -402,7 +425,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       if (!NLOPTRSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
         return (list (convergence = -Inf, value = -Inf))
   
-      result <- slsqp(theta.vectorized,
+      result <- nloptr::slsqp(theta.vectorized,
                       fn = ObjectiveLogLikelihood,
                       lower = lb, upper = ub, hin = ConstraintMCTransition,
                       control = list(maxeval = maxit, ftol_abs = epsilon))
