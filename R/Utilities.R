@@ -439,13 +439,20 @@ ReducedColumnsToThetas <- function(theta.matrix, theta0)
 
   ReducedColumnToThetaDynamic <- function (theta.vectorized)
   {
-    transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
-                                ncol = (M-1), byrow = T)
-    # revive the original from the reduced form.
-    transition.probs <- t(apply(transition.probs, 1,
-                                function (row) c(row, (1-sum(row)))))
-    initial.dist <- theta.vectorized[initial.dist.index:(beta.index - 1)]
-    initial.dist <- c(initial.dist, (1 - sum(initial.dist)))
+    transition.probs <- as.matrix(1)
+    initial.dist <- as.matrix(1)
+    
+    if (M > 1)
+    {
+      transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
+                                 ncol = (M-1), byrow = T)
+      # revive the original from the reduced form.
+      transition.probs <- t(apply(transition.probs, 1,
+                                  function (row) c(row, (1-sum(row)))))
+      initial.dist <- theta.vectorized[initial.dist.index:(beta.index - 1)]
+      initial.dist <- c(initial.dist, (1 - sum(initial.dist)))
+    }
+    
     beta <- theta.vectorized[beta.index:(mu.index - 1)]
     if (is.beta.switching)
       beta <- matrix(beta, ncol = M)
