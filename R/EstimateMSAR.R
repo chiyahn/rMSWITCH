@@ -21,7 +21,8 @@
 #' @param short.iterations Maximum iteration used to perform short EMs
 #' @param transition.probs.min Minimum set for transition prob. matrix
 #' @param sigma.min Minimum set for variance.
-#' @param nloptr Determines whether nonlinear optimization package is used.
+#' @param nloptr Determines whether nonlinear optimization package is used (TRUE/FALSE).
+#' If NULL is taken, default settings are used.
 #' @param estimate.fisher Determines whether the variance of each estimate is going
 #' to be computed.
 #' @return  A list with items:
@@ -55,8 +56,9 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         short.iterations = 200,
                         transition.probs.min = 0.01,
                         sigma.min = 0.02,
-                        nloptr = FALSE,
+                        nloptr = NULL,
                         estimate.fisher = TRUE) {
+
   if (test.on) # initial values controlled by test.on
     set.seed(test.seed)
   if (M < 2) # if M = 1, non-switching assumption can be applied
@@ -64,11 +66,13 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     is.beta.switching <- FALSE
     is.sigma.switching <- FALSE
   }
-  if (is.MSM && M < 4) # use nloptr for MSM models when M < 4.
+  
+  if (is.MSM && M < 4 && is.null(nloptr)) # use nloptr for MSM models when M < 4.
   {
     short.n <- min((3+M), short.n)
     nloptr <- TRUE
   }
+  nloptr <- ifelse(is.null(nloptr), FALSE, nloptr)
 
   p.dependent <- 0
   if (s + 1 > length(y))
