@@ -196,8 +196,10 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                                       is.MSM = is.MSM)
     if (!long.result$succeeded)
     {
-      print("Estimation failed. Try different settings for EM-algorithm.")
-      return (NULL)
+      print("Estimation failed. Try different settings for EM-algorithm; the estimate is invalid.")
+      estimate.fisher <- FALSE
+      params.length <- length(ThetaToEssentialColumn(long.result$theta))
+      fisher.estimated <- matrix(NA, ncol = params.length, nrow = params.length)
     }
   }
   else

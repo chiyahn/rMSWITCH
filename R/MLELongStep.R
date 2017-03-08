@@ -31,7 +31,10 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
   long.result <- long.results[[(which(long.likelihoods==
                                         max(long.likelihoods))[1])]]
   if (!is.finite(long.result$likelihood))
-    return (list (succeeded = FALSE))
+    return (list(theta = long.result$theta,
+                 log.likelihood = long.result$likelihood,
+                 long.results = long.results,
+                 succeeded = FALSE))
   return (list(theta = long.result$theta,
                log.likelihood = long.result$likelihood,
                long.results = long.results,
