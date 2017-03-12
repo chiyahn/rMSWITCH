@@ -198,8 +198,6 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     {
       print("Estimation failed. Try different settings for EM-algorithm; the estimate is invalid.")
       estimate.fisher <- FALSE
-      params.length <- length(ThetaToEssentialColumn(long.result$theta))
-      fisher.estimated <- matrix(NA, ncol = params.length, nrow = params.length)
     }
   }
   else
@@ -248,7 +246,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                       z.independent.lagged = z.independent.lagged,
                       is.MSM = is.MSM)
   states <- EstimateStates(posterior.probs$xi.n) # use smoothed probabilities
-  fisher.estimated <- NULL
+  params.length <- length(ThetaToEssentialColumn(theta))
+  fisher.estimated <- matrix(NA, ncol = params.length, nrow = params.length)
   
   if (estimate.fisher)
     fisher.estimated <- EstimateFisherInformation(theta = theta,
@@ -469,6 +468,15 @@ EstimateFisherInformation <- function(theta, y, y.lagged,
                                       eps = 1e-6, is.MSM = FALSE)
 {
   # use the first candidate to save the information about dimensions
+  x <- ThetaToEssentialColumn(theta)
+  
+  if (eps > 1e-2)
+  {
+    print("Epsilon value used for Fisher information matrix estimation is too big. 
+          Returning null estimate; try a different estimation method.")
+    return (matrix(NA, ncol = length(x), nrow = length(x)))
+  }
+  
   initial.dist <- theta$initial.dist
   n <- length(y)
   M <- ncol(theta$transition.probs)
@@ -601,7 +609,7 @@ EstimateFisherInformation <- function(theta, y, y.lagged,
                       gamma.independent) # gamma.indep
     }
   }
-  x <- ThetaToEssentialColumn(theta)
+
   # Defines a step (make sure it does not bind with the ub/lb)
   h <- pmax(eps, abs(x)) * eps ^ {2/3}
   xh <- x + h
@@ -618,5 +626,15 @@ EstimateFisherInformation <- function(theta, y, y.lagged,
   for (k in 1:n)
     H <- H + G[,k] %*% t(G[,k])
 
+  if (sum(complete.cases(H)) < length(x)) # if the estimated Fisher information mat is invalid
+  {
+    new.eps <- eps * 2
+    cat("Fisher information estimation failed. Retrying with a bigger epsilon value of", new.eps, "..")
+    return (EstimateFisherInformation(theta = theta, y = y, y.lagged = y.lagged,
+            z.dependent = z.dependent, z.independent = z.independent,
+            z.dependent.lagged = z.dependent.lagged, z.independent.lagged = z.independent.lagged,
+            eps = new.eps, is.MSM = is.MSM))
+  }
+  
   return (H / n)
 }
