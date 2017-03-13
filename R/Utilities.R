@@ -629,7 +629,7 @@ SamplesToModels <- function(samples, M, s,
 
 #' Get an appropriate list of names for
 #' reduced column form of a given theta
-GetColumnNames <- function(theta, essential = FALSE)
+GetColumnNames <- function(theta, essential = FALSE, math = FALSE)
 {
 
   M <- ncol(theta$transition.probs)
@@ -644,55 +644,110 @@ GetColumnNames <- function(theta, essential = FALSE)
     p.indep <- nrow(as.matrix(theta$gamma.independent))
 
 
-  colnames.transition.probs <- expand.grid(seq(1:(M-1)), seq(1:M))
-  colnames.transition.probs <- apply(colnames.transition.probs, 1,
-                                     function (row) paste("p",
-                                     row[2], row[1], sep = ""))
-  colnames.initial.dist <- NULL
-  if (!essential)
-    colnames.initial.dist <- sapply(seq(1:(M-1)),
-                                    function (i) paste("initial.dist",
-                                    i, sep = ""))
-  colnames.beta <- sapply(seq(1:s),
-                          function (i) paste("beta", i, sep = ""))
-  if (is.beta.switching)
+  if (math)
   {
-    # betai.j represents
-    # jth switching term in state i
-    colnames.beta <- expand.grid(seq(1:s), seq(1:M))
-    colnames.beta <- apply(colnames.beta, 1,
-                           function (row) paste("beta",
-                                                row[2], ".", row[1], sep = ""))
+    colnames.transition.probs <- expand.grid(seq(1:(M-1)), seq(1:M))
+    colnames.transition.probs <- apply(colnames.transition.probs, 1,
+                                       function (row) paste("p_{",
+                                                            row[2], row[1], "}", sep = ""))
+    colnames.initial.dist <- NULL
+    if (!essential)
+      colnames.initial.dist <- sapply(seq(1:(M-1)),
+                                      function (i) paste("\\xi^0_",
+                                                         i, sep = ""))
+    colnames.beta <- sapply(seq(1:s),
+                            function (i) paste("\\beta_", i, sep = ""))
+    if (is.beta.switching)
+    {
+      # betai.j represents
+      # jth switching term in state i
+      colnames.beta <- expand.grid(seq(1:s), seq(1:M))
+      colnames.beta <- apply(colnames.beta, 1,
+                             function (row) paste("\\beta_{",
+                                                  row[2], row[1], "}", sep = ""))
+    }
+    colnames.mu <- sapply(seq(1:M),
+                          function (i) paste("\\mu_", i, sep = ""))
+    colnames.sigma <- "\\sigma"
+    if (is.sigma.switching)
+      colnames.sigma <- sapply(seq(1:M),
+                               function (i) paste("\\sigma_", i, sep = ""))
+    colnames.gamma.dependent <- NULL
+    colnames.gamma.independent <- NULL
+    if (p.dep > 0)
+    {
+      # gamma.depi.j represents
+      # jth term in state i
+      colnames.gamma.dependent <- expand.grid(seq(1:p.dep), seq(1:M))
+      colnames.gamma.dependent <- apply(colnames.gamma.dependent, 1,
+                                        function (row) paste("\\gamma_{",
+                                                             row[2],
+                                                             row[1], "}", sep = ""))
+    }
+    if (p.indep > 0)
+      colnames.gamma.independent <- sapply(seq(1:p.indep),
+                                           function (i) paste("\\gamma_",
+                                                              i, sep = ""))
   }
-  colnames.mu <- sapply(seq(1:M),
-                        function (i) paste("mu", i, sep = ""))
-  colnames.sigma <- "sigma"
-  if (is.sigma.switching)
-    colnames.sigma <- sapply(seq(1:M),
-                             function (i) paste("sigma", i, sep = ""))
-  colnames.gamma.dependent <- NULL
-  colnames.gamma.independent <- NULL
-  if (p.dep > 0)
+  else
   {
-    # gamma.depi.j represents
-    # jth term in state i
-    colnames.gamma.dependent <- expand.grid(seq(1:p.dep), seq(1:M))
-    colnames.gamma.dependent <- apply(colnames.gamma.dependent, 1,
-                                      function (row) paste("gamma.dep",
-                                                           row[2], ".",
-                                                           row[1], sep = ""))
+    colnames.transition.probs <- expand.grid(seq(1:(M-1)), seq(1:M))
+    colnames.transition.probs <- apply(colnames.transition.probs, 1,
+                                       function (row) paste("p",
+                                                            row[2], row[1], sep = ""))
+    colnames.initial.dist <- NULL
+    if (!essential)
+      colnames.initial.dist <- sapply(seq(1:(M-1)),
+                                      function (i) paste("initial.dist",
+                                                         i, sep = ""))
+    colnames.beta <- sapply(seq(1:s),
+                            function (i) paste("beta", i, sep = ""))
+    if (is.beta.switching)
+    {
+      # betai.j represents
+      # jth switching term in state i
+      colnames.beta <- expand.grid(seq(1:s), seq(1:M))
+      colnames.beta <- apply(colnames.beta, 1,
+                             function (row) paste("beta",
+                                                  row[2], ".", row[1], sep = ""))
+    }
+    colnames.mu <- sapply(seq(1:M),
+                          function (i) paste("mu", i, sep = ""))
+    colnames.sigma <- "sigma"
+    if (is.sigma.switching)
+      colnames.sigma <- sapply(seq(1:M),
+                               function (i) paste("sigma", i, sep = ""))
+    colnames.gamma.dependent <- NULL
+    colnames.gamma.independent <- NULL
+    if (p.dep > 0)
+    {
+      # gamma.depi.j represents
+      # jth term in state i
+      colnames.gamma.dependent <- expand.grid(seq(1:p.dep), seq(1:M))
+      colnames.gamma.dependent <- apply(colnames.gamma.dependent, 1,
+                                        function (row) paste("gamma.dep",
+                                                             row[2], ".",
+                                                             row[1], sep = ""))
+    }
+    if (p.indep > 0)
+      colnames.gamma.independent <- sapply(seq(1:p.indep),
+                                           function (i) paste("gamma.indep",
+                                                              i, sep = ""))
+    
   }
-  if (p.indep > 0)
-    colnames.gamma.independent <- sapply(seq(1:p.indep),
-                                         function (i) paste("gamma.indep",
-                                                            i, sep = ""))
-
-  if (M < 2)
-    return (c(colnames.beta, colnames.mu, colnames.sigma,
-              colnames.gamma.dependent, colnames.gamma.independent))
-  return (c(colnames.transition.probs, colnames.initial.dist,
-           colnames.beta, colnames.mu, colnames.sigma,
-           colnames.gamma.dependent, colnames.gamma.independent))
+  
+  
+  names <- c(colnames.beta, colnames.mu, colnames.sigma,
+               colnames.gamma.dependent, colnames.gamma.independent)
+  if (M > 1)
+    names <- c(colnames.transition.probs, colnames.initial.dist,
+               colnames.beta, colnames.mu, colnames.sigma,
+               colnames.gamma.dependent, colnames.gamma.independent)
+  
+  if (math)
+    return (sapply(names, function (name) paste("$", name, "$", sep = '')))
+  
+  return (names)
 }
 
 ComputeStationaryDist <- function(transition.probs)
