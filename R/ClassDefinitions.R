@@ -14,8 +14,8 @@ print.msar.model <- function(x, ...) {
                           estimate = coeffs, 
                           se = ses, 
                           t.value = tvals, 
-                          lb.95 = coeffs - ses * qnorm(0.975) / sqrt(n),
-                          ub.95 = coeffs + ses * qnorm(0.975) / sqrt(n),
+                          lb.95 = coeffs - ses * qnorm(0.975),
+                          ub.95 = coeffs + ses * qnorm(0.975),
                           p.value = 2*pnorm(-abs(tvals))))
     rownames(coeff.matrix) <- GetColumnNames(theta, essential = TRUE)
     printCoefmat(coeff.matrix, P.values = TRUE, has.Pvalue = TRUE)
