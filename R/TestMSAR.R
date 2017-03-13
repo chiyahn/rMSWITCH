@@ -107,6 +107,8 @@ TestMSARSequence <- function(y, z.dependent = NULL, z.independent = NULL,
 #' @param nloptr Determines whether nonlinear optimization package is used.
 #' @param bootstrap.count The number of bootstrap samples;
 #' by default, it is set to be 199
+#' @param msar.model0 Estimated model for null hypothesis
+#' @param msar.model1 Estimated model for alternative hypothesis
 #' @return A list of class \code{msar.model} with items:
 #' \item{LRT.statistic}{An LRT statistic computed from the null M = M0 and
 #' alternative M = (M+1)}
@@ -127,30 +129,33 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                       estimate.fisher = TRUE,
                       short.n = 10,
                       nloptr = FALSE,
-                      bootstrap.count = 199)
+                      bootstrap.count = 199,
+                      msar.model0 = NULL, msar.model1 = NULL)
 {
   crit.method <- match.arg(crit.method)
 
-  msar.model0 <- EstimateMSAR(y = y,
-                              z.dependent = z.dependent,
-                              z.independent = z.independent,
-                              M = M, s = s,
-                              is.beta.switching = is.beta.switching,
-                              is.sigma.switching = is.sigma.switching,
-                              is.MSM = is.MSM,
-                              estimate.fisher = estimate.fisher,
-                              short.n = short.n,
-                              nloptr = nloptr)
-  msar.model1 <- EstimateMSAR(y = y,
-                              z.dependent = z.dependent,
-                              z.independent = z.independent,
-                              M = (M + 1), s = s,
-                              is.beta.switching = is.beta.switching,
-                              is.sigma.switching = is.sigma.switching,
-                              is.MSM = is.MSM,
-                              estimate.fisher = estimate.fisher,
-                              short.n = short.n,
-                              nloptr = nloptr)
+  if (is.null(msar.model0))
+    msar.model0 <- EstimateMSAR(y = y,
+                                z.dependent = z.dependent,
+                                z.independent = z.independent,
+                                M = M, s = s,
+                                is.beta.switching = is.beta.switching,
+                                is.sigma.switching = is.sigma.switching,
+                                is.MSM = is.MSM,
+                                estimate.fisher = estimate.fisher,
+                                short.n = short.n,
+                                nloptr = nloptr)
+  if (is.null(msar.model1))
+    msar.model1 <- EstimateMSAR(y = y,
+                                z.dependent = z.dependent,
+                                z.independent = z.independent,
+                                M = (M + 1), s = s,
+                                is.beta.switching = is.beta.switching,
+                                is.sigma.switching = is.sigma.switching,
+                                is.MSM = is.MSM,
+                                estimate.fisher = estimate.fisher,
+                                short.n = short.n,
+                                nloptr = nloptr)
 
   LRT.statistic <- 2*(msar.model1$log.likelihood - msar.model0$log.likelihood)
 
