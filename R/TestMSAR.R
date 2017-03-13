@@ -199,7 +199,8 @@ TestMSARCritBoot <- function (LRT.statistic0,
   theta0 <- msar.model0$theta
   M <- nrow(theta0$transition.probs)
   s <- nrow(as.matrix(theta0$beta))
-  bootstrap.samples <- GenerateSamples(theta = theta0, n = (n - s),
+  n <- nrow(msar.model0$posterior.probs.smoothed)
+  bootstrap.samples <- GenerateSamples(theta = theta0, n = n,
                                       replications = bootstrap.count,
                                       initial.y.set = y[1:s],
                                       is.MSM = msar.model0$is.MSM)
