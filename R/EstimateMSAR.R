@@ -160,26 +160,41 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                           is.MSM = is.MSM)
 
     short.likelihoods <- sapply(short.results, "[[", "likelihood")
+    short.valids <- sapply(short.likelihoods, is.finite) # check which candidates are valid
+    short.likelihoods <- short.likelihoods[short.valids] # use only valid results
     
     # 3. Run long step
     long.thetas <- lapply(short.results, "[[", "theta")
+    long.thetas <- long.thetas[short.valids] # use only valid results
     long.thetas <- long.thetas[order(short.likelihoods,decreasing=T)[1:
                                            min(length(long.thetas), short.n)]] 
 
     if (nloptr)
-      long.result <- MaximizeLongStepNLOPTR(long.thetas,
-                                      y = y.sample, y.lagged = y.lagged,
-                                      z.dependent = z.dependent,
-                                      z.independent = z.independent,
-                                      z.dependent.lagged = z.dependent.lagged,
-                                      z.independent.lagged = z.independent.lagged,
-                                      is.beta.switching = is.beta.switching,
-                                      is.sigma.switching = is.sigma.switching,
-                                      epsilon = epsilon, maxit = maxit,
-                                      transition.probs.min = transition.probs.min,
-                                      transition.probs.max = transition.probs.max,
-                                      sigma.min = sigma.min,
-                                      is.MSM = is.MSM)    
+    {
+      long.result <- NULL
+      tryCatch({
+        long.result <- MaximizeLongStepNLOPTR(long.thetas,
+                                              y = y.sample, y.lagged = y.lagged,
+                                              z.dependent = z.dependent,
+                                              z.independent = z.independent,
+                                              z.dependent.lagged = z.dependent.lagged,
+                                              z.independent.lagged = z.independent.lagged,
+                                              is.beta.switching = is.beta.switching,
+                                              is.sigma.switching = is.sigma.switching,
+                                              epsilon = epsilon, maxit = maxit,
+                                              transition.probs.min = transition.probs.min,
+                                              transition.probs.max = transition.probs.max,
+                                              sigma.min = sigma.min,
+                                              is.MSM = is.MSM) 
+      }, error = function(err) {
+        # error handler picks up where error was generated
+        print(paste("Exception from nloptr: ",err))
+        long.result <- list(theta = long.thetas[[1]],
+                            log.likelihood = max(short.likelihoods),
+                            long.results = list(),
+                            succeeded = FALSE)
+      })
+    }   
     else
       long.result <- MaximizeLongStep(long.thetas,
                                       y = y.sample, y.lagged = y.lagged,

@@ -456,8 +456,11 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
   # extract the one that returns the best log.likelihood
   long.result <- long.results[[(which(long.likelihoods==
                                       max(long.likelihoods))[1])]]
-  # if (!is.finite(long.result$value))
-  #   return (list (succeeded = FALSE))
+  if (!is.finite(long.result$value))
+    return (list(theta = long.thetas[[1]],
+                 log.likelihood = long.result$value,
+                 long.results = long.results,
+                 succeeded = FALSE))
   return (list(theta = ReducedColumnToTheta(long.result$par),
                log.likelihood = long.result$value,
                long.results = long.results,
