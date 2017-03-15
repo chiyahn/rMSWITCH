@@ -45,11 +45,14 @@ print.msar.test <- function(x, ...) {
   
   cat(sprintf("1. Estimated model under the null hypothesis of %d regime(s):\n", M0))
   print(x$msar.model0)
-  cat(sprintf("\n2. Testing the null hypothesis of %d regime(s):\n", M0))
+  cat(sprintf("\n2. Estimated model under the alternative hypothesis of %d regime(s):\n", (M0+1)))
+  print(x$msar.model1)
+  cat(sprintf("\n3. Testing the null hypothesis of %d regime(s):\n", M0))
   cat(c("LRT test statistic: ",sprintf('%.3f ', x$LRT.statistic)),"\n")
   if (x$crit.method == "asy") {
     cat(c("asymptotic p-value: ",sprintf('%.3f ', x$pval)),"\n")
   } else if (x$crit.method == "bootstrap") {
+    cat(c("critical value (10%, 5%, 1%): ", sprintf('%.3f ', x$crit)),"\n")
     cat(c("bootstrap p-value: ",sprintf('%.3f ', x$pval)),"\n")
   }
 }
