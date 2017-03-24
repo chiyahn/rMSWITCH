@@ -177,12 +177,14 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
     crit.result <- list()
     crit.result$crit <- rep(NA, 3)
     crit.result$pval <- NA
+    crit.result$bootstrap.statistics <- NULL
     crit.result$bootstrap.estimates.null <- NULL
   }
   msar.test <- list(LRT.statistic = LRT.statistic,
                     crit = crit.result$crit,
                     pval = crit.result$pval,
                     msar.model0 = msar.model0, msar.model1 = msar.model1,
+                    bootstrap.statistics = crit.result$bootstrap.statistics,
                     bootstrap.estimates.null = crit.result$bootstrap.estimates.null,
                     crit.method = crit.method)
   class(msar.test) <- "msar.test"
@@ -257,9 +259,10 @@ TestMSARCritBoot <- function (LRT.statistic0,
   crit <- LRT.statistics[qs]
   pval <- mean(LRT.statistics > LRT.statistic0)
   
+  bootstrap.statistics <- sapply(test.results, "[[", "LRT.statistic")
   bootstrap.estimates.null <- t(sapply(test.results, "[[", "bootstrap.estimate.null"))
-  bootstrap.estimates.null <- apply(bootstrap.estimates.null, 2, sort)
 
   return (list(crit = crit, pval = pval, 
-               bootstrap.estimates.null = bootstrap.estimates.null))
+               bootstrap.estimates.null = bootstrap.estimates.null,
+               bootstrap.statistics = bootstrap.statistics))
 }
