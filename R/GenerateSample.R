@@ -265,6 +265,7 @@ GenerateSample <- function(theta = NULL, n = 100,
 #' @param replications The number of replications for samples.
 #' @param is.MSM Determines whether the model follows MSM-AR. If it is set to be
 #' TRUE, the model is assumed to be MSM-AR. 
+#' @param burn.in counts for burn-in samples.
 #' @return  A list with items:
 #' \item{samples}{(n + length(initial.y.set)) by 1 column that represents
 #' a sample appended with previous values used to estimate autoregressive terms}
@@ -276,12 +277,13 @@ GenerateSample <- function(theta = NULL, n = 100,
 #' GenerateSamples(theta, n = 800)
 GenerateSamples <- function(theta, n = 200, replications = 200,
                             initial.y.set = NULL,
-                            is.MSM = FALSE)
+                            is.MSM = FALSE, burn.in = 800)
 {
   M <- ncol(theta$transition.probs)
   s <- nrow(as.matrix(theta$beta))
   probs <- runif(replications)
   states <- rep(1, replications)
+  n.plus.burn.in <- n + burn.in
   
   
   # Format it as a switching model if not.
@@ -301,16 +303,17 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
   {
     state.conversion.mat <- GetStateConversionMatForR(M = M, s = s)
     return (sapply(states, function (state)
-      GenerateMSMSampleQuick(initial.states = rev(state.conversion.mat[,state]),
-                             theta = theta, n = n,
-                             initial.y.set = initial.y.set, 
-                             M = M, s = s)))
+      tail(GenerateMSMSampleQuick(initial.states = rev(state.conversion.mat[,state]),
+                                  theta = theta, n = n.plus.burn.in,
+                                  initial.y.set = initial.y.set, 
+                                  M = M, s = s), n)))
   }
   else
-    return (sapply(states, GenerateMSISampleQuick,
-             theta = theta, n = n,
+    return (sapply(states, function (state) 
+      tail(GenerateMSISampleQuick(initial.state = state,
+             theta = theta, n = n.plus.burn.in,
              initial.y.set = initial.y.set, 
-             M = M, s = s))
+             M = M, s = s), n)))
   
 }
 
