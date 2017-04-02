@@ -58,9 +58,6 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         sigma.min = 0.02,
                         nloptr = NULL,
                         estimate.fisher = TRUE) {
-
-  if (test.on) # initial values controlled by test.on
-    set.seed(test.seed)
   if (M < 2) # if M = 1, non-switching assumption can be applied
   {
     is.beta.switching <- FALSE
@@ -111,6 +108,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   # 1. Get initial parameter using regmix if initial.theta is not given
   if (is.null(initial.theta) || M == 1)
   {
+    set.seed(8888577)
     initial.params <- GetInitialParams(y.sample, y.lagged,
                                        z.dependent, z.independent,
                                        M = M, s = s, p.dependent = p.dependent,
