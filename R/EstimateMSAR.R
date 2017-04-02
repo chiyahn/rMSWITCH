@@ -52,7 +52,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         is.MSM = FALSE,
                         initial.theta = NULL,
                         epsilon = 1e-08, maxit = 2000,
-                        short.n = 10, short.epsilon = 1e-03,
+                        short.n = 5, short.epsilon = 1e-03,
                         short.iterations = 200,
                         transition.probs.min = 0.01,
                         sigma.min = 0.02,
@@ -67,10 +67,11 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     is.sigma.switching <- FALSE
   }
   
-  if (is.MSM && M < 4 && is.null(nloptr)) # use nloptr for MSM models when M < 4.
+  if (is.MSM) # use nloptr for MSM models when M < 4.
   {
-    short.n <- min((3+M), short.n)
-    nloptr <- TRUE
+    short.n <- min((8+M), short.n)
+    if (M < 4 && is.null(nloptr))
+      nloptr <- TRUE
   }
   nloptr <- ifelse(is.null(nloptr), FALSE, nloptr)
 
