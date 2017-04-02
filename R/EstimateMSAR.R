@@ -69,7 +69,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   
   if (is.MSM) # use nloptr for MSM models when M < 4.
   {
-    short.n <- min((8+M), short.n)
+    short.n <- max((8+M), short.n)
     if (M < 4 && is.null(nloptr))
       nloptr <- TRUE
   }
@@ -130,7 +130,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   {
     # 2. Run short EM
     # how many candidates would you like to find?
-    short.n.candidates <- max(floor(sqrt(log(n)*(1+s)*M)*2*short.n), M*250*ifelse(is.MSM,1+s,1))
+    short.n.candidates <- max(floor(sqrt(log(n)*(1+s)*M)*2*short.n), 
+                              M*50*ifelse(is.MSM,(4*(1+s)),1))
     short.thetas <- lapply(1:short.n.candidates,
                           function(j) 
                             EstimateMSARInitShort(theta = initial.theta,
