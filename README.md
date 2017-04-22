@@ -2,6 +2,7 @@ rMSWITCH
 ============================================
 
 <img src = "https://raw.githubusercontent.com/chiyahn/rMSWITCH/master/vignettes/plot01.png" />
+<img src = "https://raw.githubusercontent.com/chiyahn/rMSWITCH/master/vignettes/1960Q12014Q4.png" />
 
 Overview
 --------
