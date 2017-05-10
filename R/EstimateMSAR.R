@@ -39,6 +39,8 @@
 #' in estimation.}
 #' \item{estimate.fisher}{Determines whether the variance of each estimate is going
 #' to be computed.}
+#' \item{estimate.model}{Determines whether parameters of a model are computed.
+#' If estimate.model is set FALSE, initial.theta has to be given.}
 #' @examples
 #' theta <- RandomTheta()
 #' y <- GenerateSample(theta = theta)$y
@@ -57,7 +59,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         transition.probs.min = 0.01,
                         sigma.min = 0.02,
                         nloptr = NULL,
-                        estimate.fisher = TRUE) {
+                        estimate.fisher = TRUE,
+                        estimate.model = TRUE) {
   if (M < 2) # if M = 1, non-switching assumption can be applied
   {
     is.beta.switching <- FALSE
@@ -76,6 +79,11 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   if (s + 1 > length(y))
   {
     print ("EXCEPTION: The length of observations must be greater than s.")
+    return (NULL)
+  }
+  if (!estimate.model && is.null(initial.theta))
+  {
+    print ("EXCEPTION: initial.theta has to be given if estimate.model is set FALSE.")
     return (NULL)
   }
 
@@ -124,7 +132,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
       initial.theta$gamma.dependent <- as.matrix(initial.theta$gamma.dependent)
   }
 
-  if (M > 1 || is.MSM)
+  if ((M > 1 || is.MSM) && estimate.model)
   {
     # 2. Run short EM
     # how many candidates would you like to find?
@@ -219,6 +227,18 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   {
     long.result <- list(log.likelihood = initial.params$log.likelihood,
                         theta = initial.params$theta)
+    if (!estimate.model)
+    {
+      log.likelihood <- EvaluateLikelihood(theta = initial.theta, 
+                                           y = y.sample, y.lagged = y.lagged,
+                                          z.dependent = z.dependent, 
+                                          z.independent = z.independent, 
+                                          z.dependent.lagged = z.dependent.lagged,
+                                          z.independent.lagged = z.independent.lagged,
+                                          is.MSM = is.MSM)
+      long.result <- list(log.likelihood = log.likelihood,
+                          theta = initial.theta)
+    }
   }
 
   # 4. Final formatting
