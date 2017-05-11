@@ -189,24 +189,27 @@ Theta MaximizationStepARMSIH (arma::colvec* py,
     }
 
   // 2-3. beta (non-switching)
-  arma::mat 		beta_part_one(s, s, arma::fill::zeros);
-  arma::colvec 	beta_part_two(s, arma::fill::zeros);
-  for (int k = 0; k < n; k++)
+  if (!SetToZeroIfAlmostZero(&ptheta0->beta)) // validity check
   {
-    double prop_sum = 0;
-    for (int j = 0; j < M; j++)
+    arma::mat 		beta_part_one(s, s, arma::fill::zeros);
+    arma::colvec 	beta_part_two(s, arma::fill::zeros);
+    for (int k = 0; k < n; k++)
     {
-      double prop = pxi_n->at(k,j) / (ptheta0->sigma(j) * ptheta0->sigma(j));
-      prop_sum += prop;
-      beta_part_two += prop * py_lagged_t->col(k) *
-        (py->at(k) -
-        pz_independent->row(k) * ptheta0->gamma_independent -
-        pz_dependent->row(k) * gamma_dependent.col(j) - mu(j));
+      double prop_sum = 0;
+      for (int j = 0; j < M; j++)
+      {
+        double prop = pxi_n->at(k,j) / (ptheta0->sigma(j) * ptheta0->sigma(j));
+        prop_sum += prop;
+        beta_part_two += prop * py_lagged_t->col(k) *
+          (py->at(k) -
+          pz_independent->row(k) * ptheta0->gamma_independent -
+          pz_dependent->row(k) * gamma_dependent.col(j) - mu(j));
+      }
+      beta_part_one += prop_sum *
+        (py_lagged_t->col(k) * (py_lagged->row(k)));
     }
-    beta_part_one += prop_sum *
-      (py_lagged_t->col(k) * (py_lagged->row(k)));
+    beta = solve(beta_part_one, beta_part_two);
   }
-  beta = solve(beta_part_one, beta_part_two);
 
   // 2-4. gamma_independent
   if (!SetToZeroIfAlmostZero(&ptheta0->gamma_independent)) // validity check

@@ -16,17 +16,20 @@ MaximizeShortStep <- function(short.thetas,
 {
   n <- length(y)
   M <- ncol(as.matrix(short.thetas[[1]]$transition.probs))
-  s <- nrow(as.matrix(short.thetas[[1]]$beta)) # WARNING: assume beta exists
-  
+  s <- 0
+  if (!is.null(short.thetas[[1]]$beta))
+  {
+    s <- nrow(as.matrix(short.thetas[[1]]$beta)) 
+  }
   if (is.null(z.dependent))
   {
     z.dependent <- as.matrix(rep(0,n))
-    z.dependent.lagged <- matrix(0, ncol = s, nrow = n)
+    z.dependent.lagged <- matrix(0, ncol = max(0, s), nrow = n)
   }
   if (is.null(z.independent))
   {
     z.independent <- as.matrix(rep(0,n))
-    z.independent.lagged <- matrix(0, ncol = s, nrow = n)
+    z.independent.lagged <- matrix(0, ncol = max(0, s), nrow = n)
   }
   
   if (is.MSM)

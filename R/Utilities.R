@@ -168,7 +168,7 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
                                    z.independent.lagged = NULL,
                                    is.MSM = FALSE)
 {
-  beta <- as.matrix(theta$beta)
+
   M <- ncol(theta$transition.probs)
   n <- length(y)
   
@@ -178,8 +178,12 @@ EstimatePosteriorProbs <- function(theta, y, y.lagged,
     return (list (xi.k = ones, xi.n = ones))
   }
 
-  
-  s <- nrow(beta)
+  beta <- as.matrix(0)
+  if (!is.null(theta$beta))
+  {
+    beta <- as.matrix(theta$beta)
+    s <- nrow(beta)
+  }
   is.beta.switching <- (ncol(beta) > 1)
   is.sigma.switching <- (length(theta$sigma) > 1)
 
@@ -807,8 +811,13 @@ GetColumnNames <- function(theta, essential = FALSE, math = FALSE)
 {
 
   M <- ncol(theta$transition.probs)
-  s <- nrow(as.matrix(theta$beta))
-  is.beta.switching <- (ncol(as.matrix(theta$beta)) > 1)
+  s <- 0
+  is.beta.switching <- FALSE
+  if (!is.null(theta$beta))
+  {
+    s <- nrow(as.matrix(theta$beta))
+    is.beta.switching <- (ncol(as.matrix(theta$beta)) > 1)
+  }
   is.sigma.switching <- (length(theta$sigma) > 1)
   p.dep <- 0
   p.indep <- 0
@@ -829,16 +838,20 @@ GetColumnNames <- function(theta, essential = FALSE, math = FALSE)
       colnames.initial.dist <- sapply(seq(1:(M-1)),
                                       function (i) paste("\\xi^0_",
                                                          i, sep = ""))
-    colnames.beta <- sapply(seq(1:s),
-                            function (i) paste("\\beta_", i, sep = ""))
-    if (is.beta.switching)
+    colnames.beta <- NULL
+    if (s > 0)
     {
-      # betai.j represents
-      # jth switching term in state i
-      colnames.beta <- expand.grid(seq(1:s), seq(1:M))
-      colnames.beta <- apply(colnames.beta, 1,
-                             function (row) paste("\\beta_{",
-                                                  row[2], row[1], "}", sep = ""))
+      colnames.beta <- sapply(seq(1:s),
+                              function (i) paste("\\beta_", i, sep = ""))
+      if (is.beta.switching)
+      {
+        # betai.j represents
+        # jth switching term in state i
+        colnames.beta <- expand.grid(seq(1:s), seq(1:M))
+        colnames.beta <- apply(colnames.beta, 1,
+                               function (row) paste("\\beta_{",
+                                                    row[2], row[1], "}", sep = ""))
+      }
     }
     colnames.mu <- sapply(seq(1:M),
                           function (i) paste("\\mu_", i, sep = ""))
@@ -874,17 +887,23 @@ GetColumnNames <- function(theta, essential = FALSE, math = FALSE)
       colnames.initial.dist <- sapply(seq(1:(M-1)),
                                       function (i) paste("initial.dist",
                                                          i, sep = ""))
-    colnames.beta <- sapply(seq(1:s),
-                            function (i) paste("beta", i, sep = ""))
-    if (is.beta.switching)
+    
+    colnames.beta <- NULL
+    if (s > 0)
     {
-      # betai.j represents
-      # jth switching term in state i
-      colnames.beta <- expand.grid(seq(1:s), seq(1:M))
-      colnames.beta <- apply(colnames.beta, 1,
-                             function (row) paste("beta",
-                                                  row[2], ".", row[1], sep = ""))
+      colnames.beta <- sapply(seq(1:s),
+                              function (i) paste("beta", i, sep = ""))
+      if (is.beta.switching)
+      {
+        # betai.j represents
+        # jth switching term in state i
+        colnames.beta <- expand.grid(seq(1:s), seq(1:M))
+        colnames.beta <- apply(colnames.beta, 1,
+                               function (row) paste("beta",
+                                                    row[2], ".", row[1], sep = ""))
+      }
     }
+    
     colnames.mu <- sapply(seq(1:M),
                           function (i) paste("mu", i, sep = ""))
     colnames.sigma <- "sigma"

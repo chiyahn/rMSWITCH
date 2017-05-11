@@ -189,19 +189,22 @@ Theta MaximizationStepARMSIAH (arma::colvec* py,
     }
 
   // 2-3. beta (switching)
-  for (int j = 0; j < M; j++)
+  if (!SetToZeroIfAlmostZero(&ptheta0->beta)) // validity check
   {
-    arma::mat 		beta_part_one(s, s, arma::fill::zeros);
-    arma::colvec 	beta_part_two(s, arma::fill::zeros);
-    for (int k = 0; k < n; k++)
+    for (int j = 0; j < M; j++)
     {
-      beta_part_one += pxi_n->at(k,j) *
-        (py_lagged_t->col(k) * py_lagged->row(k));
-      beta_part_two += pxi_n->at(k,j) * py_lagged_t->col(k) *
-        (py->at(k) - pz_dependent->row(k) * gamma_dependent.col(j) -
-        pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
+      arma::mat 		beta_part_one(s, s, arma::fill::zeros);
+      arma::colvec 	beta_part_two(s, arma::fill::zeros);
+      for (int k = 0; k < n; k++)
+      {
+        beta_part_one += pxi_n->at(k,j) *
+          (py_lagged_t->col(k) * py_lagged->row(k));
+        beta_part_two += pxi_n->at(k,j) * py_lagged_t->col(k) *
+          (py->at(k) - pz_dependent->row(k) * gamma_dependent.col(j) -
+          pz_independent->row(k) * ptheta0->gamma_independent - mu(j));
+      }
+      beta.col(j) = solve(beta_part_one, beta_part_two);
     }
-    beta.col(j) = solve(beta_part_one, beta_part_two);
   }
 
   // 2-4. gamma_independent
