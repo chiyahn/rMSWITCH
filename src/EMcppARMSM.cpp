@@ -160,7 +160,7 @@ Theta MaximizationStepARMSM (arma::colvec* py,
 
   arma::mat 		transition_probs(M_reduced, M_reduced, arma::fill::zeros);
   arma::mat 		transition_probs_extended(M, M, arma::fill::zeros);
-  arma::colvec 	beta(s, arma::fill::zeros); // s by M_reduced matrix WATCH: A case?
+  arma::colvec 	beta(s, arma::fill::zeros); // s by 1 matrix WATCH: A case?
   arma::colvec 	mu(M_reduced, arma::fill::zeros);  // M_reduced-length vec
   arma::colvec 	sigma(1, arma::fill::zeros); // M_reduced-length vec WATCH: H case?
   arma::mat 		gamma_dependent(p_dep, M_reduced, arma::fill::zeros); // p_dep by M_reduced mat
@@ -277,7 +277,6 @@ Theta MaximizationStepARMSM (arma::colvec* py,
   }
   mu = mu_numerators / mu_divisors;
 
-  //
   // // update remainders
   // for (int j = 0; j < M; j++)
   // {
