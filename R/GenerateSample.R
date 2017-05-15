@@ -51,9 +51,12 @@ GenerateSample <- function(theta = NULL, n = 100,
   mu <- as.matrix(theta$mu)
   sigma <- as.matrix(theta$sigma)
   beta <- as.matrix(0)
+  s <- 1
   if (!is.null(theta$beta))
+  {
     beta <- as.matrix(theta$beta)
-  s <- nrow(beta)
+    s <- nrow(beta)
+  }
   gamma.dependent <- matrix(rep(0,M), ncol = M)
   gamma.independent <- as.matrix(0)
   is.beta.switching = (ncol(as.matrix(beta)) > 1)
@@ -280,20 +283,29 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
                             is.MSM = FALSE, burn.in = 800)
 {
   M <- ncol(theta$transition.probs)
-  s <- nrow(as.matrix(theta$beta))
+  theta.for.samples <- theta
+  if (!is.null(theta$beta))
+  {
+    s <- nrow(as.matrix(theta$beta))
+    # Format it as a switching model if not.
+    theta$beta <- as.matrix(theta$beta)
+    if (ncol(as.matrix(theta$beta)) < M)
+      theta.for.samples$beta <- matrix(rep(theta$beta, M), ncol = M)
+  }
+  else
+  {
+    s <- 1
+    theta.for.samples$beta <- matrix(rep(0, M), ncol = M)
+  }
+  
   probs <- runif(replications)
   states <- rep(1, replications)
   n.plus.burn.in <- n + burn.in
   
-  
-  # Format it as a switching model if not.
-  if (ncol(as.matrix(theta$beta)) < M)
-    theta$beta <- matrix(rep(theta$beta, M), ncol = M)
   if (length(theta$sigma) < M)
-    theta$sigma <- rep(theta$sigma, M)
-  theta$beta <- as.matrix(theta$beta)
-  theta$mu <- as.matrix(theta$mu)
-  theta$sigma <- as.matrix(theta$sigma)
+    theta.for.samples$sigma <- rep(theta$sigma, M)
+  theta.for.samples$mu <- as.matrix(theta$mu)
+  theta.for.samples$sigma <- as.matrix(theta$sigma)
   
   initial.dist.cumsum <- cumsum(theta$initial.dist)
   for (j in 2:(M^(s+1)))
@@ -304,14 +316,14 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
     state.conversion.mat <- GetStateConversionMatForR(M = M, s = s)
     return (sapply(states, function (state)
       tail(GenerateMSMSampleQuick(initial.states = rev(state.conversion.mat[,state]),
-                                  theta = theta, n = n.plus.burn.in,
+                                  theta = theta.for.samples, n = n.plus.burn.in,
                                   initial.y.set = initial.y.set, 
                                   M = M, s = s), n)))
   }
   else
     return (sapply(states, function (state) 
       tail(GenerateMSISampleQuick(initial.state = state,
-             theta = theta, n = n.plus.burn.in,
+             theta = theta.for.samples, n = n.plus.burn.in,
              initial.y.set = initial.y.set, 
              M = M, s = s), n)))
   
@@ -379,12 +391,15 @@ GenerateMSMSampleQuick <- function(initial.states, theta, n,
     states[k] <- state
     y[k] <- theta$mu[state,1] +
       rnorm(1,sd=theta$sigma[state,1])
-    for (lagged.index in 1:s)
+    if (s > 0)
     {
-      lagged.state <- states[(k-lagged.index)]
-      y[k] <- as.numeric(theta$beta[lagged.index,lagged.state]) *
-        (y[(k - lagged.index)] - theta$mu[lagged.state]) +
-        y[k]
+      for (lagged.index in 1:s)
+      {
+        lagged.state <- states[(k-lagged.index)]
+        y[k] <- as.numeric(theta$beta[lagged.index,lagged.state]) *
+          (y[(k - lagged.index)] - theta$mu[lagged.state]) +
+          y[k]
+      }
     }
   }
   

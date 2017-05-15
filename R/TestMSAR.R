@@ -54,7 +54,8 @@ TestMSARSequence <- function(y, z.dependent = NULL, z.independent = NULL,
     cat("LRT statistic ", sprintf('%.3f', LRT.statistics[M]), "\n")
     
     crit.result <- TestMSARCritBoot(LRT.statistic0 = LRT.statistics[M],
-                                    msar.model0 = msar.model0, 
+                                    msar.model0 = msar.model0,
+                                    s = s,
                                     is.beta.switching,
                                     is.sigma.switching,
                                     y = y,
@@ -186,6 +187,7 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
   if (crit.method == "bootstrap") {
     crit.result <- TestMSARCritBoot(LRT.statistic0 = LRT.statistic,
                                     msar.model0 = msar.model0, 
+                                    s = s,
                                     is.beta.switching,
                                     is.sigma.switching,
                                     y = y,
@@ -220,7 +222,7 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
 #' Calculate p-values and critical value given a LRT.statistic based on
 #' a bootstrapping method.
 TestMSARCritBoot <- function (LRT.statistic0, 
-                              msar.model0,
+                              msar.model0, s,
                               is.beta.switching,
                               is.sigma.switching,
                               y, z.dependent, z.independent,
@@ -233,7 +235,6 @@ TestMSARCritBoot <- function (LRT.statistic0,
 {
   theta0 <- msar.model0$theta
   M <- nrow(theta0$transition.probs)
-  s <- nrow(as.matrix(theta0$beta))
   n <- nrow(msar.model0$posterior.probs.smoothed)
   bootstrap.samples <- GenerateSamples(theta = theta0, n = n,
                                       replications = bootstrap.count,

@@ -10,7 +10,9 @@ GenerateSamplesStationary <- function (theta, n = 200, replications = 200,
   { if (sum(abs(col)) >= 1)
     stop("The corresponding model is not stationary as the autoregressive
          coefficients are not located inside a unit circle.") })
-  s <- nrow(as.matrix(theta$beta))
+  s <- 0
+  if (!is.null(theta$beta))
+    s <- nrow(as.matrix(theta$beta))
   probs <- runif(replications)
   states <- rep(1, replications)
   initial.y.values <- matrix(0, ncol = replications, nrow = s)
