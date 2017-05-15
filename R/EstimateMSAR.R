@@ -287,7 +287,6 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                       z.independent.lagged = z.independent.lagged,
                       is.MSM = is.MSM)
   states <- EstimateStates(posterior.probs$xi.n) # use smoothed probabilities
-  params.length <- length(ThetaToEssentialColumn(theta))
   
   if (s == 0)
     theta$beta <- NULL
@@ -295,6 +294,8 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     theta$gamma.dependent <- NULL
   if (is.null(z.independent))
     theta$gamma.independent <- NULL
+  
+  params.length <- length(ThetaToEssentialColumn(theta))
   
   fisher.estimated <- matrix(NA, ncol = params.length, nrow = params.length)
   if (estimate.fisher)
