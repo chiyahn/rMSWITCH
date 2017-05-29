@@ -361,7 +361,7 @@ GenerateMSISampleQuick <- function(initial.state, theta, n,
     states[k] <- state
     y[k] <- theta$mu[state,1] +
       t(rev(y[(k-s):(k-1)])) %*% as.numeric(theta$beta[,state]) +
-      rnorm(1,sd=theta$sigma[state,1])
+      rnorm(1,sd=theta$sigma[state])
   }
   
   return (y)
@@ -396,7 +396,7 @@ GenerateMSMSampleQuick <- function(initial.states, theta, n,
     }
     states[k] <- state
     y[k] <- theta$mu[state,1] +
-      rnorm(1,sd=theta$sigma[state,1])
+      rnorm(1,sd=theta$sigma[state])
     if (s > 0)
     {
       for (lagged.index in 1:s)
