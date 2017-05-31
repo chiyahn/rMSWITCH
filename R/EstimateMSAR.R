@@ -374,10 +374,10 @@ GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent,
                                 z = z.independent, m = M, vcov.method="none")
     regmix.mu <- regmix.result$parlist$mubeta[1,]
     regmix.theta <- regmix.result$parlist
-    regmix.beta <- mean(regmix.theta$mubeta[2:(s+1),])
-    if (is.beta.switching) # estimate for state-dependent. beta
-      regmix.beta <- matrix(regmix.theta$mubeta[2:(s+1),], ncol = M)
-    regmix.beta <- apply(as.matrix(regmix.theta$mubeta[2:(s+1),]), 1, mean)
+    regmix.beta <- matrix(regmix.theta$mubeta[2:(s+1),], ncol = M)
+    if (!is.beta.switching) # estimate for state-independent by taking simple mean
+      regmix.beta <- apply(matrix(regmix.theta$mubeta[2:(s+1),], ncol = M), 1, mean)
+    
     regmix.beta <- as.matrix(regmix.beta)
   }
 
