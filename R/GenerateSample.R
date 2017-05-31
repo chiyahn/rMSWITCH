@@ -139,7 +139,7 @@ GenerateSample <- function(theta = NULL, n = 100,
         states <- c(states, 1)
         prob <- runif(1)
         for (j in 2:M)
-          if (prob > initial.dist.cumsum[j-1] &&
+          if (prob > initial.dist.cumsum[j-1] &
               prob <= initial.dist.cumsum[j])
             states[length(states)] <- j
       }
@@ -150,7 +150,7 @@ GenerateSample <- function(theta = NULL, n = 100,
         prob <- runif(1)
         states <- rev(state.conversion.mat[,1])
         for (j in 2:M.extended)
-          if (prob > initial.dist.cumsum[j-1] &&
+          if (prob > initial.dist.cumsum[j-1] &
               prob <= initial.dist.cumsum[j])
           {
             states <- rev(state.conversion.mat[,j])
@@ -309,7 +309,7 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
   
   initial.dist.cumsum <- cumsum(theta$initial.dist)
   for (j in 2:(M^(s+1)))
-    states[which(probs > initial.dist.cumsum[j-1] &&
+    states[which(probs > initial.dist.cumsum[j-1] &
                    probs <= initial.dist.cumsum[j])] <- j
   if (is.MSM)
   {
