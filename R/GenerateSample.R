@@ -288,7 +288,7 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
   {
     s <- nrow(as.matrix(theta$beta))
     # Format it as a switching model if not.
-    theta$beta <- as.matrix(theta$beta)
+    theta.for.samples$beta <- as.matrix(theta$beta)
     if (ncol(as.matrix(theta$beta)) < M)
       theta.for.samples$beta <- matrix(rep(theta$beta, M), ncol = M)
   }
