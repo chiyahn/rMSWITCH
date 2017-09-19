@@ -88,7 +88,14 @@ EM.MSMA.AR <- function (theta, y, y.lagged,
                         transition.probs.min, transition.probs.max,
                         sigma.min, state.conversion.mat)
 {
-  stop("MSMA models are currently not supported.")
+  EMcppARMSMA(y, y.lagged, z.dependent, z.independent,
+               z.dependent.lagged, z.independent.lagged,
+               theta$beta, theta$mu, theta$sigma,
+               theta$gamma.dependent, theta$gamma.independent,
+               theta$transition.probs, theta$initial.dist,
+               maxit, epsilon,
+               transition.probs.min, transition.probs.max,
+               sigma.min, state.conversion.mat)
 }
 
 EM.MSM.AR <- function (theta, y, y.lagged,
