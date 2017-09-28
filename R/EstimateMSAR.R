@@ -142,7 +142,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     # 2. Run short EM
     # how many candidates would you like to find?
     short.n.candidates <- max(floor(sqrt(log(n)*(1+s)*M)*2*short.n), 
-                              M*50*ifelse(is.MSM,(4*(1+s)),1))
+                              M*(M-1)*5*ifelse(is.MSM,(4*(1+s)),1))
     short.thetas <- lapply(1:short.n.candidates,
                           function(j) 
                             EstimateMSARInitShort(theta = initial.theta,
