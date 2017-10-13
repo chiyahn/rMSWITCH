@@ -25,6 +25,11 @@
 #' If NULL is taken, default settings are used.
 #' @param estimate.fisher Determines whether the variance of each estimate is going
 #' to be computed.
+#' @param estimate.model Determines whether a model is estimated or not.
+#' @param force.persistence Determines whether transition probability matrices
+#' satisfy constraints imposed in Qu and Zhuo (2017), i.e., the sum of diagonal
+#' members are greater than or eqaul to 1 + epsilon for small epsilon (0.001 by default.)
+#' when nloptr or is.MSM option is turned on, this constraint will not be imposed.
 #' @return  A list with items:
 #' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
 #' \item{mu}{M by 1 column that contains state-dependent mu}
@@ -48,23 +53,25 @@
 #'              is.beta.switching = FALSE,
 #'              is.sigma.switching = TRUE)
 EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
-                        M = 2, s = 2,
-                        is.beta.switching = FALSE,
-                        is.sigma.switching = TRUE,
-                        is.MSM = FALSE,
-                        initial.theta = NULL,
-                        epsilon = 1e-08, maxit = 2000,
-                        short.n = 5, short.epsilon = 1e-03,
-                        short.iterations = 200,
-                        transition.probs.min = 0.01,
-                        sigma.min = 0.02,
-                        nloptr = NULL,
-                        estimate.fisher = TRUE,
-                        estimate.model = TRUE) {
+                         M = 2, s = 2,
+                         is.beta.switching = FALSE,
+                         is.sigma.switching = TRUE,
+                         is.MSM = FALSE,
+                         initial.theta = NULL,
+                         epsilon = 1e-08, maxit = 2000,
+                         short.n = 5, short.epsilon = 1e-03,
+                         short.iterations = 200,
+                         transition.probs.min = 0.01,
+                         sigma.min = 0.02,
+                         nloptr = NULL,
+                         estimate.fisher = TRUE,
+                         estimate.model = TRUE,
+                         force.persistence = FALSE) {
   if (M < 2) # if M = 1, non-switching assumption can be applied
   {
     is.beta.switching <- FALSE
     is.sigma.switching <- FALSE
+    force.persistence <- FALSE # constraint p >= 1 + epsilon cannot be achieved
   }
   if (s < 1)
     is.MSM <- FALSE
@@ -76,7 +83,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
       nloptr <- TRUE
   }
   nloptr <- ifelse(is.null(nloptr), FALSE, nloptr)
-
+  
   p.dependent <- 0
   if (s + 1 > length(y))
   {
@@ -88,7 +95,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     print ("EXCEPTION: initial.theta has to be given if estimate.model is set FALSE.")
     return (NULL)
   }
-
+  
   # formatting dataset
   transition.probs.max <- 1 - (M-1)*transition.probs.min
   
@@ -100,10 +107,10 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     y.lagged <- as.matrix(rep(0, n))
   z.dependent.lagged <- NULL
   z.independent.lagged <- NULL
-
-
+  
+  
   initial.params <- NULL
-
+  
   # remove first s rows of z.dependent and z.independent
   if (!is.null(z.dependent))
   {
@@ -117,7 +124,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     z.independent <- z.independent.lagged.and.sample$y.sample
     z.independent.lagged <- z.independent.lagged.and.sample$y.lagged
   }
-
+  
   # 1. Get initial parameter using regmix if initial.theta is not given
   if (is.null(initial.theta) || M == 1)
   {
@@ -136,26 +143,26 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     if (!is.null(initial.theta$gamma.dependent))
       initial.theta$gamma.dependent <- as.matrix(initial.theta$gamma.dependent)
   }
-
+  
   if ((M > 1 || is.MSM) && estimate.model)
   {
     # 2. Run short EM
     # how many candidates would you like to find?
-    short.n.candidates <- max(floor(sqrt(log(n)*(1+s)*M)*2*short.n), 
+    short.n.candidates <- max(floor(sqrt(log(n)*(1+s)*M)*2*short.n),
                               M*(M-1)*5*ifelse(is.MSM,(4*(1+s)),1))
     short.thetas <- lapply(1:short.n.candidates,
-                          function(j) 
-                            EstimateMSARInitShort(theta = initial.theta,
-                                                  transition.probs.min =
-                                                    transition.probs.min,
-                                                  transition.probs.max =
-                                                    transition.probs.max,
-                                                  is.beta.switching =
-                                                    is.beta.switching))
+                           function(j)
+                             EstimateMSARInitShort(theta = initial.theta,
+                                                   transition.probs.min =
+                                                     transition.probs.min,
+                                                   transition.probs.max =
+                                                     transition.probs.max,
+                                                   is.beta.switching =
+                                                     is.beta.switching))
     # For compatibility with cpp codes, change beta/gammas to
     # appropriate zero vectors. After computation, they will be returned NULL.
     if (s == 0)
-      initial.theta$beta <- as.matrix(ifelse(is.beta.switching, 
+      initial.theta$beta <- as.matrix(ifelse(is.beta.switching,
                                              matrix(0, ncol = M, nrow = 1),
                                              as.matrix(0)))
     if (is.null(z.dependent))
@@ -165,19 +172,19 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     # include the original theta
     short.thetas[[length(short.thetas) + 1]] <- initial.theta
     short.results <- MaximizeShortStep(short.thetas = short.thetas,
-                          y = y.sample, y.lagged = y.lagged,
-                          z.dependent = z.dependent,
-                          z.independent = z.independent,
-                          is.beta.switching = is.beta.switching,
-                          is.sigma.switching = is.sigma.switching,
-                          maxit = short.iterations, epsilon = short.epsilon,
-                          transition.probs.min = transition.probs.min,
-                          transition.probs.max = transition.probs.max,
-                          sigma.min = sigma.min,
-                          z.dependent.lagged = z.dependent.lagged,
-                          z.independent.lagged = z.independent.lagged,
-                          is.MSM = is.MSM)
-
+                                       y = y.sample, y.lagged = y.lagged,
+                                       z.dependent = z.dependent,
+                                       z.independent = z.independent,
+                                       is.beta.switching = is.beta.switching,
+                                       is.sigma.switching = is.sigma.switching,
+                                       maxit = short.iterations, epsilon = short.epsilon,
+                                       transition.probs.min = transition.probs.min,
+                                       transition.probs.max = transition.probs.max,
+                                       sigma.min = sigma.min,
+                                       z.dependent.lagged = z.dependent.lagged,
+                                       z.independent.lagged = z.independent.lagged,
+                                       is.MSM = is.MSM, force.persistence = force.persistence)
+    
     short.likelihoods <- sapply(short.results, "[[", "likelihood")
     short.valids <- sapply(short.likelihoods, is.finite) # check which candidates are valid
     short.likelihoods <- short.likelihoods[short.valids] # use only valid results
@@ -186,8 +193,9 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     long.thetas <- lapply(short.results, "[[", "theta")
     long.thetas <- long.thetas[short.valids] # use only valid results
     long.thetas <- long.thetas[order(short.likelihoods,decreasing=T)[1:
-                                           min(length(long.thetas), short.n)]] 
-
+                                                                       min(length(long.thetas), short.n)]]
+    long.thetas[[(length(long.thetas) + 1)]] <- initial.theta # force initial.theta to be added
+    
     if (nloptr)
     {
       long.result <- NULL
@@ -204,7 +212,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                                               transition.probs.min = transition.probs.min,
                                               transition.probs.max = transition.probs.max,
                                               sigma.min = sigma.min,
-                                              is.MSM = is.MSM) 
+                                              is.MSM = is.MSM)
       }, error = function(err) {
         # error handler picks up where error was generated
         print(paste("Exception from nloptr: ",err))
@@ -213,7 +221,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                             long.results = list(),
                             succeeded = FALSE)
       })
-    }   
+    }
     else
       long.result <- MaximizeLongStep(long.thetas,
                                       y = y.sample, y.lagged = y.lagged,
@@ -227,7 +235,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                                       sigma.min = sigma.min,
                                       z.dependent.lagged = z.dependent.lagged,
                                       z.independent.lagged = z.independent.lagged,
-                                      is.MSM = is.MSM)
+                                      is.MSM = is.MSM, force.persistence = force.persistence)
     if (!long.result$succeeded)
     {
       print("Estimation failed. Try different settings for EM-algorithm; the estimate is invalid.")
@@ -240,22 +248,22 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                         theta = initial.params$theta)
     if (!estimate.model)
     {
-      log.likelihood <- EvaluateLikelihood(theta = initial.theta, 
+      log.likelihood <- EvaluateLikelihood(theta = initial.theta,
                                            y = y.sample, y.lagged = y.lagged,
-                                          z.dependent = z.dependent, 
-                                          z.independent = z.independent, 
-                                          z.dependent.lagged = z.dependent.lagged,
-                                          z.independent.lagged = z.independent.lagged,
-                                          is.MSM = is.MSM)
+                                           z.dependent = z.dependent,
+                                           z.independent = z.independent,
+                                           z.dependent.lagged = z.dependent.lagged,
+                                           z.independent.lagged = z.independent.lagged,
+                                           is.MSM = is.MSM)
       long.result <- list(log.likelihood = log.likelihood,
                           theta = initial.theta)
     }
   }
-
+  
   # 4. Final formatting
   theta <- long.result$theta
   theta$initial.dist <- theta$initial.dist / sum(theta$initial.dist)
-
+  
   # 4.1. Sort them based on mu
   if (M > 1)
   {
@@ -275,17 +283,17 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
     if (!is.null(theta$gamma.dependent))
       theta$gamma.dependent <- theta$gamma.dependent[,mu.order]
   }
-
+  
   # 4.2. Basic information
   log.likelihood <- long.result$log.likelihood
-
+  
   # 4-3. Based on formatted dataset, get posterior probabilities
   posterior.probs <- EstimatePosteriorProbs(theta = theta,
-                      y = y.sample, y.lagged = y.lagged,
-                      z.dependent = z.dependent, z.independent = z.independent,
-                      z.dependent.lagged = z.dependent.lagged, 
-                      z.independent.lagged = z.independent.lagged,
-                      is.MSM = is.MSM)
+                                            y = y.sample, y.lagged = y.lagged,
+                                            z.dependent = z.dependent, z.independent = z.independent,
+                                            z.dependent.lagged = z.dependent.lagged,
+                                            z.independent.lagged = z.independent.lagged,
+                                            is.MSM = is.MSM)
   states <- EstimateStates(posterior.probs$xi.n) # use smoothed probabilities
   
   if (s == 0)
@@ -300,11 +308,11 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   fisher.estimated <- matrix(NA, ncol = params.length, nrow = params.length)
   if (estimate.fisher)
     fisher.estimated <- EstimateFisherInformation(theta = theta, s = s,
-                          y = y.sample, y.lagged = y.lagged,
-                          z.dependent = z.dependent, z.independent = z.independent,
-                          z.dependent.lagged = z.dependent.lagged,
-                          z.independent.lagged = z.independent.lagged,
-                          is.MSM = is.MSM)
+                                                  y = y.sample, y.lagged = y.lagged,
+                                                  z.dependent = z.dependent, z.independent = z.independent,
+                                                  z.dependent.lagged = z.dependent.lagged,
+                                                  z.independent.lagged = z.independent.lagged,
+                                                  is.MSM = is.MSM)
   
   msar.model <- list(theta = theta,
                      log.likelihood = log.likelihood,
@@ -316,7 +324,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                      is.MSM = is.MSM,
                      label = "msar.model")
   class(msar.model) <- "msar.model"
-
+  
   return (msar.model)
 }
 
@@ -327,25 +335,25 @@ GetLaggedAndSample <- function(y, s)
   y.sample <- vector()
   y.lagged <- matrix()
   if (s == 0)
-    return (list (y.lagged = matrix(NA, ncol = ncol(y), nrow = nrow(y)), 
+    return (list (y.lagged = matrix(NA, ncol = ncol(y), nrow = nrow(y)),
                   y.sample = y))
   if (is(y, "matrix"))
   {
     p <- ncol(y)
-    y.lagged <- vector("list", s) 
+    y.lagged <- vector("list", s)
     for (i in 1:p)
     {
       y.combined <- sapply(seq(0,s), GetLaggedColumn, y[,i], s) # (n-s) by s matrix
       y.sample.slice <- as.matrix(y.combined[,1])
       y.lagged.slice <- as.matrix(y.combined[,-1])
       
-      y.sample <- cbind(y.sample, y.sample.slice)      
+      y.sample <- cbind(y.sample, y.sample.slice)
       for (lag in 1:s)
         y.lagged[[lag]] <- cbind(y.lagged[[lag]], y.lagged.slice[,lag])
     }
     y.lagged <- matrix(unlist(y.lagged), nrow = nrow(y.sample), byrow = FALSE)
   }
-  else 
+  else
   {
     y <- as.numeric(y)
     y.combined <- sapply(seq(0,s), GetLaggedColumn, y, s) # (n-s) by s matrix
@@ -364,10 +372,10 @@ GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent,
   if (s == 0 && is.null(z.dependent))
   {
     regmix.result <- normalmixPMLE(y = y.sample,
-                                   z = z.independent, m = M, vcov.method="none") 
+                                   z = z.independent, m = M, vcov.method="none")
     regmix.mu <- regmix.result$parlist$mu
     regmix.beta <- NULL
-  }   
+  }
   else
   {
     regmix.result <- regmixPMLE(y = y.sample, x = cbind(y.lagged, z.dependent),
@@ -380,32 +388,32 @@ GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent,
     
     regmix.beta <- as.matrix(regmix.beta)
   }
-
+  
   regmix.theta <- regmix.result$parlist
   regmix.transition.probs <- StatesToTransitionProbs(states =
-                                                regmix.result$components, M = M,
-                                                transition.probs.min = transition.probs.min)
+                                                       regmix.result$components, M = M,
+                                                     transition.probs.min = transition.probs.min)
   
   regmix.sigma <- 1
   regmix.gamma.dependent <- NULL
   regmix.gamma.independent <- regmix.theta$gamma
-
+  
   regmix.initial.dist <- pmax(StatesToInitialDist(states = regmix.result$components,
-                                            M = M), transition.probs.min)
+                                                  M = M), transition.probs.min)
   regmix.initial.dist <- regmix.initial.dist / sum(regmix.initial.dist)
-
+  
   if (is.MSM)
   {
     M.to.s <- M^s
     regmix.initial.dist <- c(sapply(regmix.initial.dist, function (x) rep(x,M.to.s))) / M.to.s
   }
-
+  
   
   if (is.sigma.switching)
     regmix.sigma <- regmix.theta$sigma
   else
     regmix.sigma <- sqrt(sum(regmix.theta$alpha * regmix.theta$alpha *
-                            regmix.theta$sigma * regmix.theta$sigma))
+                               regmix.theta$sigma * regmix.theta$sigma))
   if (p.dependent > 0)
   {
     # estimate for state-dep. gamma
@@ -417,7 +425,7 @@ GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent,
   }
   if (!is.null(regmix.gamma.independent))
     regmix.gamma.independent <- as.matrix(regmix.gamma.independent)
-
+  
   regmix.theta <- list(beta = regmix.beta,
                        mu = regmix.mu,
                        sigma = regmix.sigma,
@@ -425,7 +433,7 @@ GetInitialParams <- function (y.sample, y.lagged, z.dependent, z.independent,
                        gamma.independent = regmix.gamma.independent,
                        transition.probs = regmix.transition.probs,
                        initial.dist = regmix.initial.dist)
-
+  
   return(list(log.likelihood = regmix.result$loglik, theta = regmix.theta))
 }
 
@@ -437,7 +445,7 @@ GetLaggedColumn <- function (j, col, s) {
 }
 
 # Gives variation in theta given
-EstimateMSARInitShort <- function(theta, 
+EstimateMSARInitShort <- function(theta,
                                   transition.probs.min,
                                   transition.probs.max,
                                   is.beta.switching) {
@@ -449,18 +457,18 @@ EstimateMSARInitShort <- function(theta,
   transition.probs0 = theta$transition.probs
   initial.dist0 = theta$initial.dist
   M <- ncol(transition.probs0)
-
+  
   sigma.epsilon <- 0.6 # minimum sigma
-
+  
   transition.probs <- matrix(0, ncol = M, nrow = M)
   for (i in 1:M)
   {
     transition.probs[i,i] <- runif(1, (transition.probs.max * 0.7), transition.probs.max)
-    transition.probs[i,][-i] <- runif((M-1), transition.probs.min, transition.probs[i,i])  
+    transition.probs[i,][-i] <- runif((M-1), transition.probs.min, transition.probs[i,i])
     transition.probs[i,] <- transition.probs[i,] / sum(transition.probs[i,])
   }
-
-  initial.dist = VariationInRow(initial.dist0, 
+  
+  initial.dist = VariationInRow(initial.dist0,
                                 transition.probs.min,
                                 transition.probs.max)
   
@@ -468,22 +476,22 @@ EstimateMSARInitShort <- function(theta,
   # appropriate zero vectors. After computation, they will be returned NULL.
   if (!is.null(beta0))
   {
-    beta <- as.matrix(beta0) + 
-            matrix(rnorm(length(beta0)), ncol = ncol(beta0), nrow = nrow(beta0))
+    beta <- as.matrix(beta0) +
+      matrix(rnorm(length(beta0)), ncol = ncol(beta0), nrow = nrow(beta0))
     beta <- as.matrix(beta)
-  }  
+  }
   else
-    beta <- as.matrix(ifelse(is.beta.switching, 
-                             matrix(0, ncol = M, nrow = 1), 
+    beta <- as.matrix(ifelse(is.beta.switching,
+                             matrix(0, ncol = M, nrow = 1),
                              as.matrix(0)))
   
   mu <- mu0 + rnorm(length(mu0))
   sigma <- sapply(sigma0, function(sig) max(sig + rnorm(1), sigma.epsilon))
-
+  
   # gamma estimates should be accurate enough
   gamma.dependent <- gamma.dependent0
   gamma.independent <- gamma.independent0
-
+  
   # For compatibility with cpp codes, change gammas to
   # appropriate zero vectors. After computation, they will be returned NULL.
   if (!is.null(gamma.dependent))
@@ -494,7 +502,7 @@ EstimateMSARInitShort <- function(theta,
     gamma.independent = as.matrix(gamma.independent)
   else
     gamma.independent = as.matrix(0)
-
+  
   theta <- list(beta = beta,
                 mu = mu,
                 sigma = sigma,
@@ -555,7 +563,7 @@ EstimateFisherInformation <- function(theta, s, y, y.lagged,
   
   if (eps > 1e-2)
   {
-    print("Epsilon value used for Fisher information matrix estimation is too big. 
+    print("Epsilon value used for Fisher information matrix estimation is too big.
           Returning null estimate; try a different estimation method.")
     return (matrix(NA, ncol = length(x), nrow = length(x)))
   }
@@ -596,7 +604,7 @@ EstimateFisherInformation <- function(theta, s, y, y.lagged,
   # if gamma.independent does not exist,
   # should have the same value as length(theta.vectorized) + 1
   gamma.indep.index <- p.dep * M + gamma.dep.index
-
+  
   LogLikelihoods <- NULL
   if (is.MSM) # Determine which function is appropriate
   {
@@ -639,10 +647,10 @@ EstimateFisherInformation <- function(theta, s, y, y.lagged,
       if (gamma.indep.index <= length(theta.vectorized))
         gamma.independent <- theta.vectorized[gamma.indep.index:
                                                 length(theta.vectorized)]
-
+      
       # slsqp solves a minimization problem;
       # take a negative value to turn the problem into max. problem
-      LikelihoodsMSMAR(y, y.lagged, z.dependent, z.independent, 
+      LikelihoodsMSMAR(y, y.lagged, z.dependent, z.independent,
                        z.dependent.lagged, z.independent.lagged,
                        transition.probs,
                        initial.dist, # initial.dist
@@ -662,7 +670,7 @@ EstimateFisherInformation <- function(theta, s, y, y.lagged,
       if (M > 1)
       {
         transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
-                                  ncol = (M-1), byrow = T)
+                                   ncol = (M-1), byrow = T)
         transition.probs <- t(apply(transition.probs, 1,
                                     function (row) c(row, (1-sum(row)))))
       }
@@ -680,7 +688,7 @@ EstimateFisherInformation <- function(theta, s, y, y.lagged,
       sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)]
       if (!is.sigma.switching) # make it as a switching parameter if not.
         sigma <- rep(sigma, M)
-  
+      
       gamma.dependent <- t(rep(0,M))
       gamma.independent <- 0
       # i.e. gamma.dependent exists
@@ -691,43 +699,43 @@ EstimateFisherInformation <- function(theta, s, y, y.lagged,
       # i.e. gamma.independent exists
       if (gamma.indep.index <= length(theta.vectorized))
         gamma.independent <- theta.vectorized[gamma.indep.index:
-                                              length(theta.vectorized)]
-  
+                                                length(theta.vectorized)]
+      
       LikelihoodsMSIAR(y, y.lagged, z.dependent, z.independent,
-                      transition.probs,
-                      initial.dist,  # initial.dist
-                      beta = beta,  # beta
-                      theta.vectorized[mu.index:(sigma.index - 1)],  # mu
-                      sigma,    # sigma
-                      gamma.dependent,
-                      gamma.independent) # gamma.indep
+                       transition.probs,
+                       initial.dist,  # initial.dist
+                       beta = beta,  # beta
+                       theta.vectorized[mu.index:(sigma.index - 1)],  # mu
+                       sigma,    # sigma
+                       gamma.dependent,
+                       gamma.independent) # gamma.indep
     }
   }
-
+  
   # Defines a step (make sure it does not bind with the ub/lb)
   h <- pmax(eps, abs(x)) * eps ^ {2/3}
   xh <- x + h
   h <- xh - x
   h.diag <- diag(h)
-
+  
   G <- matrix(0, nrow = length(x), ncol = n)
   H <- matrix(0, nrow = length(x), ncol = length(x))
-
+  
   for (i in 1:length(x))
     G[i,] <- (LogLikelihoods(x + h.diag[i,]) - LogLikelihoods(x - h.diag[i,])) /
-              (2 * h[i])
-
+    (2 * h[i])
+  
   for (k in 1:n)
     H <- H + G[,k] %*% t(G[,k])
-
+  
   if (sum(complete.cases(H)) < length(x)) # if the estimated Fisher information mat is invalid
   {
     new.eps <- eps * 2
     cat("Fisher information estimation failed. Retrying with a bigger epsilon value of", new.eps, "..")
     return (EstimateFisherInformation(theta = theta, s = s, y = y, y.lagged = y.lagged,
-            z.dependent = z.dependent, z.independent = z.independent,
-            z.dependent.lagged = z.dependent.lagged, z.independent.lagged = z.independent.lagged,
-            eps = new.eps, is.MSM = is.MSM))
+                                      z.dependent = z.dependent, z.independent = z.independent,
+                                      z.dependent.lagged = z.dependent.lagged, z.independent.lagged = z.independent.lagged,
+                                      eps = new.eps, is.MSM = is.MSM))
   }
   
   return (H / n)

@@ -302,10 +302,11 @@ GenerateSamples <- function(theta, n = 200, replications = 200,
   states <- rep(1, replications)
   n.plus.burn.in <- n + burn.in
   
+  theta.for.samples$sigma <- as.matrix(theta$sigma)
   if (length(theta$sigma) < M)
     theta.for.samples$sigma <- rep(theta$sigma, M)
   theta.for.samples$mu <- as.matrix(theta$mu)
-  theta.for.samples$sigma <- as.matrix(theta$sigma)
+  theta.for.samples$sigma <- as.matrix(theta.for.samples$sigma)
   
   initial.dist.cumsum <- cumsum(theta$initial.dist)
   for (j in 2:(M^(s+1)))

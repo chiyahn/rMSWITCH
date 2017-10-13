@@ -4,11 +4,12 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
                              is.sigma.switching = is.sigma.switching,
                              epsilon, maxit,
                              transition.probs.min,
-                             transition.probs.max, 
-                             sigma.min, 
+                             transition.probs.max,
+                             sigma.min,
                              z.dependent.lagged = NULL,
                              z.independent.lagged = NULL,
-                             is.MSM = FALSE)
+                             is.MSM = FALSE,
+                             force.persistence = FALSE)
 {
   long.results <- MaximizeShortStep(short.thetas = long.thetas,
                                     y = y, y.lagged = y.lagged,
@@ -22,12 +23,12 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
                                     sigma.min = sigma.min,
                                     z.dependent.lagged = z.dependent.lagged,
                                     z.independent.lagged = z.independent.lagged,
-                                    is.MSM = is.MSM)
-  
+                                    is.MSM = is.MSM, force.persistence = force.persistence)
+
   long.likelihoods <- sapply(long.results, "[[", "likelihood")
   long.likelihoods[!is.finite(long.likelihoods)] <- -Inf # abnormal values
   # extract the one that returns the best log.likelihood
-  
+
   long.result <- long.results[[(which(long.likelihoods==
                                         max(long.likelihoods))[1])]]
   if (!is.finite(long.result$likelihood))
@@ -92,7 +93,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
   # if gamma.independent does not exist,
   # should have the same value as length(theta.vectorized) + 1
   gamma.indep.index <- p.dep * M + gamma.dep.index
-  
+
   # hard constraints
   transition.probs.lb <- rep(transition.probs.min, M*(M-1))
   transition.probs.ub <- rep(transition.probs.max, M*(M-1))
@@ -167,11 +168,11 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
   }
   ConstraintMCTransition <- NULL
   if (is.MSM)
-  { 
+  {
     ConstraintMCTransition <- function(theta.vectorized)
     {
       constraint.vectorized <- vector()
-      
+
       # transition.probs
       for (i in 1:M)
       {
@@ -180,19 +181,19 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         constraint.vectorized <- c(constraint.vectorized,
                                    (1-transition.probs.min)-sum.ith)
       }
-      
+
       # initial.dist (indices are M*(M-1)+1:M*(M-1)+(M.extended-1))
       constraint.vectorized <- c(constraint.vectorized,
                                  ub.prob.density-
                                    sum(theta.vectorized[(M*(M-1)+1):(M*M-M+M.extended-1)]))
-      
+
       return (constraint.vectorized)
     }
   } else {
     ConstraintMCTransition <- function(theta.vectorized)
     {
       constraint.vectorized <- vector()
-      
+
       # transition.probs
       for (i in 1:M)
       {
@@ -201,16 +202,16 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         constraint.vectorized <- c(constraint.vectorized,
                                    (1-transition.probs.min)-sum.ith)
       }
-      
+
       # initial.dist (indices are M*(M-1)+1:M*(M-1)+(M-1))
       constraint.vectorized <- c(constraint.vectorized,
                                  ub.prob.density-
                                    sum(theta.vectorized[(M*(M-1)+1):(M*M-1)]))
-      
+
       return (constraint.vectorized)
     }
   }
-    
+
   SLSQPMSIAR <- NULL
   SLSQPMSMAR <- NULL
 
@@ -226,12 +227,12 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       # sanity check; if a candidate contains a singularity, you must not use it.
       if (anyNA(theta.vectorized) || is.null(theta.vectorized))
         return (list(convergence = -3, value = -Inf))
-      
+
       ObjectiveLogLikelihood <- function(theta.vectorized)
       {
         transition.probs <- as.matrix(1)
         initial.dist <- as.matrix(1)
-        
+
         if (M > 1)
         {
           transition.probs <- matrix(theta.vectorized[1:(M*(M-1))],
@@ -242,16 +243,16 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                                       function (row) c(row, (1-sum(row)))))
           initial.dist <- c(initial.dist, (1-sum(initial.dist)))
         }
-        
+
         beta <- theta.vectorized[beta.index:(mu.index - 1)]
         if (!is.beta.switching) # make it as a switching parameter if not.
           beta <- rep(beta, M)
         beta <- matrix(beta, ncol = M)
-        
+
         sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)]
         if (!is.sigma.switching) # make it as a switching parameter if not.
           sigma <- rep(sigma, M)
-        
+
         gamma.dependent <- t(rep(0,M))
         gamma.independent <- 0
         # i.e. gamma.dependent exists
@@ -263,10 +264,10 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         if (gamma.indep.index <= length(theta.vectorized))
           gamma.independent <- theta.vectorized[gamma.indep.index:
                                                   length(theta.vectorized)]
-        
+
         # slsqp solves a minimization problem;
         # take a negative value to turn the problem into max. problem
-        -LikelihoodMSMAR(y, y.lagged, z.dependent, z.independent, 
+        -LikelihoodMSMAR(y, y.lagged, z.dependent, z.independent,
                          z.dependent.lagged, z.independent.lagged,
                          transition.probs,
                          initial.dist, # initial.dist
@@ -277,7 +278,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                          gamma.independent,
                          state.conversion.mat.ordinary) # gamma.indep
       }
-      
+
 
       if (M > 1)
       {
@@ -301,7 +302,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       mu.ub <- pmax(1, mu * (1 + 0.8 * sign(mu)))
       sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)]
       sigma.ub <- sigma * 8
-      
+
       # hard constraints on
       # transtion.probs (ub & lb), initial.dist (ub & lb), and sigma (lb)
       lb <- c(transition.probs.lb, initial.dist.lb,
@@ -316,12 +317,12 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
               mu.ub,
               sigma.ub)
       ub <- c(ub, rep(Inf, (length(theta.vectorized) - length(ub))))
-      
+
       # sanity check for derivatives.
       if (!NLOPTRSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
         return (list (convergence = -Inf, value = -Inf))
-      
-      
+
+
       result <- nloptr::slsqp(theta.vectorized,
                       fn = ObjectiveLogLikelihood,
                       lower = lb, upper = ub, hin = ConstraintMCTransition,
@@ -337,7 +338,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       # sanity check; if a candidate contains a singularity, you must not use it.
       if (anyNA(theta.vectorized) || is.null(theta.vectorized))
         return (list(convergence = -3, value = -Inf))
-  
+
       ObjectiveLogLikelihood <- function(theta.vectorized)
       {
         transition.probs <- as.matrix(1)
@@ -352,16 +353,16 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                                       function (row) c(row, (1-sum(row)))))
           initial.dist <- c(initial.dist, (1-sum(initial.dist)))
         }
-  
+
         beta <- theta.vectorized[beta.index:(mu.index - 1)]
         if (!is.beta.switching) # make it as a switching parameter if not.
           beta <- rep(beta, M)
         beta <- matrix(beta, ncol = M)
-  
+
         sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)]
         if (!is.sigma.switching) # make it as a switching parameter if not.
           sigma <- rep(sigma, M)
-  
+
         gamma.dependent <- t(rep(0,M))
         gamma.independent <- 0
         # i.e. gamma.dependent exists
@@ -373,7 +374,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
         if (gamma.indep.index <= length(theta.vectorized))
           gamma.independent <- theta.vectorized[gamma.indep.index:
                                                 length(theta.vectorized)]
-  
+
         # slsqp solves a minimization problem;
         # take a negative value to turn the problem into max. problem
         -LikelihoodMSIAR(y, y.lagged, z.dependent, z.independent,
@@ -385,7 +386,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                         gamma.dependent,
                         gamma.independent) # gamma.indep
       }
-  
+
       if (M > 1)
       {
         # hard constraints to prevent values from bounding off
@@ -408,7 +409,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
       mu.ub <- pmax(1, mu * (1 + 0.8 * sign(mu)))
       sigma <- theta.vectorized[sigma.index:(gamma.dep.index - 1)]
       sigma.ub <- sigma * 8
-  
+
       # hard constraints on
       # transtion.probs (ub & lb), initial.dist (ub & lb), and sigma (lb)
       lb <- c(transition.probs.lb, initial.dist.lb,
@@ -423,11 +424,11 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
               mu.ub,
               sigma.ub)
       ub <- c(ub, rep(Inf, (length(theta.vectorized) - length(ub))))
-  
+
       # sanity check for derivatives.
       if (!NLOPTRSanityCheck(x0 = theta.vectorized, fn = ObjectiveLogLikelihood))
         return (list (convergence = -Inf, value = -Inf))
-  
+
       result <- nloptr::slsqp(theta.vectorized,
                       fn = ObjectiveLogLikelihood,
                       lower = lb, upper = ub, hin = ConstraintMCTransition,

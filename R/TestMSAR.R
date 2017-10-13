@@ -142,7 +142,7 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                       M = 1, s = 1,
                       is.beta.switching = FALSE,
                       is.sigma.switching = TRUE,
-                      is.MSM = FALSE,
+                      is.MSM = FALSE, force.persistence = FALSE,
                       cl = NULL, parallel = TRUE,
                       crit.method = c('bootstrap', 'none'),
                       estimate.fisher = TRUE,
@@ -151,7 +151,9 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                       sigma.min = 0.02,
                       nloptr = FALSE,
                       bootstrap.count = 199,
-                      msar.model0 = NULL, msar.model1 = NULL)
+                      msar.model0 = NULL, msar.model1 = NULL,
+                      msar.model0.initial.theta = NULL,
+                      msar.model1.initial.theta = NULL)
 {
   crit.method <- match.arg(crit.method)
 
@@ -163,11 +165,13 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                                 is.beta.switching = is.beta.switching,
                                 is.sigma.switching = is.sigma.switching,
                                 is.MSM = is.MSM,
+                                force.persistence = force.persistence,
                                 estimate.fisher = estimate.fisher,
                                 short.n = short.n,
                                 transition.probs.min = transition.probs.min,
                                 sigma.min = sigma.min,
-                                nloptr = nloptr)
+                                nloptr = nloptr,
+                                initial.theta = msar.model0.initial.theta)
   if (is.null(msar.model1))
     msar.model1 <- EstimateMSAR(y = y,
                                 z.dependent = z.dependent,
@@ -176,23 +180,30 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                                 is.beta.switching = is.beta.switching,
                                 is.sigma.switching = is.sigma.switching,
                                 is.MSM = is.MSM,
+                                force.persistence = force.persistence,
                                 estimate.fisher = estimate.fisher,
                                 short.n = short.n,
                                 transition.probs.min = transition.probs.min,
                                 sigma.min = sigma.min,
-                                nloptr = nloptr)
+                                nloptr = nloptr,
+                                initial.theta = msar.model1.initial.theta)
 
+  n <- nrow(msar.model0$posterior.probs.smoothed)
   LRT.statistic <- 2*(msar.model1$log.likelihood - msar.model0$log.likelihood)
 
   if (crit.method == "bootstrap") {
     crit.result <- TestMSARCritBoot(LRT.statistic0 = LRT.statistic,
-                                    msar.model0 = msar.model0, 
+                                    msar.model0.initial.theta = msar.model0$theta, 
+                                    msar.model1.initial.theta = msar.model1$theta,
+                                    n = n,
                                     s = s,
                                     is.beta.switching,
                                     is.sigma.switching,
                                     y = y,
                                     z.dependent = z.dependent,
                                     z.independent = z.independent,
+                                    is.MSM = is.MSM,
+                                    force.persistence = force.persistence,
                                     cl = cl, parallel = parallel,
                                     bootstrap.count = bootstrap.count,
                                     short.n = short.n,
@@ -222,10 +233,12 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
 #' Calculate p-values and critical value given a LRT.statistic based on
 #' a bootstrapping method.
 TestMSARCritBoot <- function (LRT.statistic0, 
-                              msar.model0, s,
+                              msar.model0.initial.theta,
+                              msar.model1.initial.theta, n, s,
                               is.beta.switching,
                               is.sigma.switching,
                               y, z.dependent, z.independent,
+                              is.MSM = FALSE, force.persistence = FALSE,
                               cl = NULL, parallel = TRUE,
                               bootstrap.count = 199,
                               short.n = 5,
@@ -233,13 +246,12 @@ TestMSARCritBoot <- function (LRT.statistic0,
                               sigma.min = 0.02,
                               nloptr = FALSE)
 {
-  theta0 <- msar.model0$theta
-  M <- nrow(theta0$transition.probs)
-  n <- nrow(msar.model0$posterior.probs.smoothed)
-  bootstrap.samples <- GenerateSamples(theta = theta0, n = n,
+  M <- nrow(msar.model0.initial.theta$transition.probs)
+  bootstrap.samples <- GenerateSamples(theta = msar.model0.initial.theta, n = n,
                                       replications = bootstrap.count,
                                       initial.y.set = y[1:s],
-                                      is.MSM = msar.model0$is.MSM)
+                                      is.MSM = is.MSM)
+  
 
   test.results <- list()
   if (parallel) {
@@ -254,13 +266,15 @@ TestMSARCritBoot <- function (LRT.statistic0,
                   M = M, s = s,
                   is.beta.switching = is.beta.switching,
                   is.sigma.switching = is.sigma.switching,
-                  is.MSM = msar.model0$is.MSM,
+                  is.MSM = is.MSM, force.persistence = force.persistence,
                   cl = NULL, parallel = FALSE,
                   crit.method = 'none', estimate.fisher = FALSE,
                   short.n = short.n,
                   transition.probs.min = transition.probs.min,
                   sigma.min = sigma.min,
-                  nloptr = nloptr)
+                  nloptr = nloptr,
+                  msar.model0.initial.theta = msar.model0.initial.theta,
+                  msar.model1.initial.theta = msar.model1.initial.theta)
         return (list(LRT.statistic = test.result$LRT.statistic,
                      bootstrap.estimate.null = 
                        ThetaToReducedColumn((test.result$msar.model0)$theta)))
@@ -275,13 +289,15 @@ TestMSARCritBoot <- function (LRT.statistic0,
                               M = M, s = s,
                               is.beta.switching = is.beta.switching,
                               is.sigma.switching = is.sigma.switching,
-                              is.MSM = msar.model0$is.MSM,
+                              is.MSM = is.MSM, force.persistence = force.persistence,
                               cl = NULL, parallel = FALSE,
                               crit.method = 'none', estimate.fisher = FALSE,
                               short.n = short.n,
                               transition.probs.min = transition.probs.min,
                               sigma.min = sigma.min,
-                              nloptr = nloptr)
+                              nloptr = nloptr,
+                              msar.model0.initial.theta = msar.model0.initial.theta,
+                              msar.model1.initial.theta = msar.model1.initial.theta)
       return (list(LRT.statistic = test.result$LRT.statistic,
                    bootstrap.estimate.null = 
                      ThetaToReducedColumn((test.result$msar.model0)$theta)))  

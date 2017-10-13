@@ -63,6 +63,38 @@ EM.MSIH.AR <- function (theta, y, y.lagged,
               sigma.min)
 }
 
+EM.MSI.AR.QuZhuo <- function (theta, y, y.lagged,
+                       z.dependent, z.independent, 
+                       maxit, epsilon, 
+                       transition.probs.min, transition.probs.max,
+                       sigma.min)
+{
+  
+  EMcppARMSIQuZhuo(y, y.lagged, z.dependent, z.independent,
+             theta$beta, theta$mu, theta$sigma,
+             theta$gamma.dependent, theta$gamma.independent,
+             theta$transition.probs, theta$initial.dist,
+             maxit, epsilon,
+             transition.probs.min, transition.probs.max,
+             sigma.min)
+}
+
+EM.MSIH.AR.QuZhuo <- function (theta, y, y.lagged,
+                        z.dependent, z.independent, 
+                        maxit, epsilon, 
+                        transition.probs.min, transition.probs.max,
+                        sigma.min)
+{
+  
+  EMcppARMSIHQuZhuo(y, y.lagged, z.dependent, z.independent,
+              theta$beta, theta$mu, theta$sigma,
+              theta$gamma.dependent, theta$gamma.independent,
+              theta$transition.probs, theta$initial.dist,
+              maxit, epsilon,
+              transition.probs.min, transition.probs.max,
+              sigma.min)
+}
+
 EM.MSMAH.AR <- function (theta, y, y.lagged,
                          z.dependent, z.independent, 
                          z.dependent.lagged, z.independent.lagged,
