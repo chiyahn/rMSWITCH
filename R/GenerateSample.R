@@ -138,10 +138,11 @@ GenerateSample <- function(theta = NULL, n = 100,
         states <- sample(1:M, s, replace = T)
         states <- c(states, 1)
         prob <- runif(1)
-        for (j in 2:M)
-          if (prob > initial.dist.cumsum[j-1] &
-              prob <= initial.dist.cumsum[j])
-            states[length(states)] <- j
+        if (M > 1)
+          for (j in 2:M)
+            if (prob > initial.dist.cumsum[j-1] &
+                prob <= initial.dist.cumsum[j])
+              states[length(states)] <- j
       }
       else
       {
@@ -149,13 +150,14 @@ GenerateSample <- function(theta = NULL, n = 100,
         M.extended <- ncol(state.conversion.mat)
         prob <- runif(1)
         states <- rev(state.conversion.mat[,1])
-        for (j in 2:M.extended)
-          if (prob > initial.dist.cumsum[j-1] &
-              prob <= initial.dist.cumsum[j])
-          {
-            states <- rev(state.conversion.mat[,j])
-            break
-          }
+        if (M > 1)
+          for (j in 2:M.extended)
+            if (prob > initial.dist.cumsum[j-1] &
+                prob <= initial.dist.cumsum[j])
+            {
+              states <- rev(state.conversion.mat[,j])
+              break
+            }
       }
       states <- c(states, rep(0, n))
     }
@@ -173,11 +175,12 @@ GenerateSample <- function(theta = NULL, n = 100,
       trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
       prob <- runif(1) # decision to switch
       state = 1
-      for (j in 2:M)
-        if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
-          state <- j
-          break
-        }
+      if (M > 1)
+        for (j in 2:M)
+          if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
+            state <- j
+            break
+          }
       states[k] <- state
       y[k] <- mu[state,1] +
         z.dependent[k,] %*% as.matrix(gamma.dependent[,state]) +
@@ -199,11 +202,12 @@ GenerateSample <- function(theta = NULL, n = 100,
       trans.cumsum <- cumsum(theta$transition.probs[previous.state,])
       prob <- runif(1) # decision to switch
       state = 1
-      for (j in 2:M)
-        if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
-          state <- j
-          break
-        }
+      if (M > 1)
+        for (j in 2:M)
+          if (prob > trans.cumsum[j-1] && prob <= trans.cumsum[j]) {
+            state <- j
+            break
+          }
       states[k] <- state
       y[k] <- mu[state,1] +
         t(rev(y[(k-s):(k-1)])) %*% as.numeric(beta[,state]) +

@@ -10,10 +10,12 @@ MaximizeShortStep <- function(short.thetas,
                               transition.probs.min,
                               transition.probs.max,
                               sigma.min, 
+                              sigma0, 
                               z.dependent.lagged = NULL,
                               z.independent.lagged = NULL,
                               is.MSM = FALSE,
-                              force.persistence = FALSE)
+                              force.persistence = FALSE,
+                              penalty.term = 0)
 {
   n <- length(y)
   M <- ncol(as.matrix(short.thetas[[1]]$transition.probs))
@@ -83,6 +85,7 @@ MaximizeShortStep <- function(short.thetas,
                      sigma.min = sigma.min,
                      state.conversion.mat = state.conversion.mat))
   }
+  
   if (force.persistence)
     if (is.sigma.switching)
       return (lapply(short.thetas, EM.MSIH.AR.QuZhuo,
@@ -100,6 +103,18 @@ MaximizeShortStep <- function(short.thetas,
                      transition.probs.min = transition.probs.min,
                      transition.probs.max = transition.probs.max,
                      sigma.min = sigma.min))
+  
+  
+  if (penalty.term > 0)
+    if (is.sigma.switching)
+      return (lapply(short.thetas, EM.MSIH.AR.Penalized,
+                     y = y, y.lagged = y.lagged,
+                     z.dependent = z.dependent, z.independent = z.independent,
+                     maxit = maxit, epsilon = epsilon,
+                     transition.probs.min = transition.probs.min,
+                     transition.probs.max = transition.probs.max,
+                     sigma.min = sigma.min, sigma0 = sigma0,
+                     penalty.term = penalty.term))
   
   if (is.beta.switching)
     if (is.sigma.switching)

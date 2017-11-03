@@ -257,7 +257,8 @@ EvaluateLikelihood <- function(theta, y, y.lagged,
                                z.dependent = NULL, z.independent = NULL, 
                                z.dependent.lagged = NULL,
                                z.independent.lagged = NULL,
-                               is.MSM = FALSE)
+                               is.MSM = FALSE,
+                               penalty.term = 0)
 {
   beta <- as.matrix(theta$beta)
   M <- ncol(theta$transition.probs)
@@ -314,6 +315,18 @@ EvaluateLikelihood <- function(theta, y, y.lagged,
     z.independent.lagged <- matrix(0, nrow = n, ncol = s)
   }
   
+  sigma0 <- rep(0, M)
+  if (penalty.term > 0)
+  {
+    # estimate m = 1 model first
+    initial.params <- GetInitialParams(y, y.lagged,
+                                       z.dependent, z.independent,
+                                       M = 1, s = s, p.dependent = ncol(z.dependent),
+                                       is.beta.switching = FALSE,
+                                       is.sigma.switching = FALSE,
+                                       is.MSM = is.MSM)
+    sigma0 <- rep(initial.params$theta$sigma, M)
+  }
   
   if (is.MSM)
     return (LikelihoodMSMAR(y, y.lagged, z.dependent, z.independent,
@@ -334,7 +347,9 @@ EvaluateLikelihood <- function(theta, y, y.lagged,
                           theta$mu,
                           sigma,
                           gamma.dependent,
-                          gamma.independent))
+                          gamma.independent,
+                          sigma0,
+                          penalty.term))
 }
 
 
@@ -344,7 +359,8 @@ EvaluateLikelihoods <- function(theta, y, y.lagged,
                                z.dependent = NULL, z.independent = NULL, 
                                z.dependent.lagged = NULL,
                                z.independent.lagged = NULL,
-                               is.MSM = FALSE)
+                               is.MSM = FALSE,
+                               penalty.term = 0)
 {
   beta <- as.matrix(theta$beta)
   M <- ncol(theta$transition.probs)
@@ -421,7 +437,8 @@ EvaluateLikelihoods <- function(theta, y, y.lagged,
                           theta$mu,
                           sigma,
                           gamma.dependent,
-                          gamma.independent))
+                          gamma.independent,
+                          penalty.term))
 }
 
 #' Returns a valid theta that represents parameters of a random MS-AR model with
@@ -956,92 +973,6 @@ ComputeStationaryDist <- function(transition.probs)
   stationary.dist <- eigen.vectors[,stationary.dist.index]
   stationary.dist <- abs(stationary.dist) / sum(abs(stationary.dist));
   return (stationary.dist)
-}
-
-# Given a list of parameters (theta) and data, 
-# return likelihood evaluated.
-EvaluateLikelihood <- function(theta, y, y.lagged,
-                               z.dependent = NULL, z.independent = NULL, 
-                               z.dependent.lagged = NULL,
-                               z.independent.lagged = NULL,
-                               is.MSM = FALSE)
-{
-  beta <- as.matrix(theta$beta)
-  M <- ncol(theta$transition.probs)
-  n <- length(y)
-  
-  if (M < 2)
-  {
-    ones <- matrix(1, ncol = 1, nrow = n)
-    return (list (xi.k = ones, xi.n = ones))
-  }
-  
-  
-  s <- nrow(beta)
-  is.beta.switching <- (ncol(beta) > 1)
-  is.sigma.switching <- (length(theta$sigma) > 1)
-  
-  
-  
-  sigma <- theta$sigma
-  gamma.dependent <- matrix(rep(0, M), ncol = M)
-  gamma.independent <- as.matrix(0)
-  
-  # even if beta/sigma is not switching, make it like a switching parameter
-  # by creating a matrix with a duplicated column so that we can use a single
-  # code to estimate posterior probabilities.
-  if (!is.beta.switching)
-    beta <- matrix(replicate(M, beta), ncol = M)
-  if (!is.sigma.switching)
-    sigma <- replicate(M, sigma)
-  
-  if (!is.null(z.dependent))
-  {
-    z.dependent <- as.matrix(z.dependent)
-    if (is.null(z.dependent.lagged))
-      z.dependent.lagged <- matrix(0, nrow = n, ncol = s)
-    gamma.dependent <- theta$gamma.dependent
-  }
-  else
-  {
-    z.dependent <- as.matrix(rep(0,n))
-    z.dependent.lagged <- matrix(0, nrow = n, ncol = s)
-  }
-  
-  if (!is.null(z.independent))
-  {
-    z.independent <- as.matrix(z.independent)
-    if (is.null(z.independent.lagged))
-      z.independent.lagged <- matrix(0, nrow = n, ncol = s)
-    gamma.independent <- theta$gamma.independent
-  }
-  else
-  {
-    z.independent <- as.matrix(rep(0,n))
-    z.independent.lagged <- matrix(0, nrow = n, ncol = s)
-  }
-  
-  
-  if (is.MSM)
-    return (LikelihoodMSMAR(y, y.lagged, z.dependent, z.independent,
-                            z.dependent.lagged,
-                            z.independent.lagged,
-                            theta$transition.probs,
-                            theta$initial.dist,
-                            beta,
-                            theta$mu,
-                            sigma,
-                            gamma.dependent,
-                            gamma.independent,
-                            GetStateConversionMat(M, s)))
-  return (LikelihoodMSIAR(y, y.lagged, z.dependent, z.independent,
-                          theta$transition.probs,
-                          theta$initial.dist,
-                          beta,
-                          theta$mu,
-                          sigma,
-                          gamma.dependent,
-                          gamma.independent))
 }
 
 ThetaToModel <- function(theta,  y,

@@ -8,7 +8,8 @@ TestMSARSequence <- function(y, z.dependent = NULL, z.independent = NULL,
                              transition.probs.min = 0.01,
                              sigma.min = 0.02,
                              nloptr = FALSE,
-                             bootstrap.count = 199)
+                             bootstrap.count = 199,
+                             penalty.term = 0)
 {
   initial.theta <- NULL
   aic <- bic <- double(max.M)
@@ -40,13 +41,14 @@ TestMSARSequence <- function(y, z.dependent = NULL, z.independent = NULL,
                                 short.n = short.n,
                                 transition.probs.min = transition.probs.min,
                                 sigma.min = sigma.min,
-                                nloptr = nloptr,
+                                nloptr = nloptr, penalty.term = penalty.term,
                                 crit.method = NULL)
     
     aic[M] <- -2*x$log.likelihood + 2*NumberOfParameters(msar.model0$theta)
     bic[M] <- -2*x$log.likelihood + log(n)*NumberOfParameters(msar.model0$theta)
     
-    LRT.statistics[M] <- 2*(msar.model1$log.likelihood - msar.model0$log.likelihood)
+    # if penalty.term = 0 (by default), penalized likelihood is the same as ordinary one.
+    LRT.statistics[M] <- 2*(msar.model1$log.likelihood.penalized - msar.model0$log.likelihood)
     initial.theta <- msar.model1$theta
     print(sprintf("%d-regime switching model estimate:\n", M))
     print(msar.model0)
@@ -123,6 +125,8 @@ TestMSARSequence <- function(y, z.dependent = NULL, z.independent = NULL,
 #' @param short.n Number of initial draws for EM estimation
 #' @param transition.probs.min Minimum set for transition prob. matrix
 #' @param sigma.min Minimum set for variance.
+#' @param penalty.term penalty.term to be used for penalized log-lik function
+#' in alternative hypothesis.
 #' @param nloptr Determines whether nonlinear optimization package is used.
 #' @param bootstrap.count The number of bootstrap samples;
 #' by default, it is set to be 199
@@ -149,6 +153,7 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                       short.n = 5,
                       transition.probs.min = 0.01,
                       sigma.min = 0.02,
+                      penalty.term = 0,
                       nloptr = FALSE,
                       bootstrap.count = 199,
                       msar.model0 = NULL, msar.model1 = NULL,
@@ -186,10 +191,12 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                                 transition.probs.min = transition.probs.min,
                                 sigma.min = sigma.min,
                                 nloptr = nloptr,
-                                initial.theta = msar.model1.initial.theta)
+                                initial.theta = msar.model1.initial.theta,
+                                penalty.term = penalty.term)
 
   n <- nrow(msar.model0$posterior.probs.smoothed)
-  LRT.statistic <- 2*(msar.model1$log.likelihood - msar.model0$log.likelihood)
+  # if penalty.term = 0 (by default), penalized likelihood is the same as ordinary one.
+  LRT.statistic <- 2*(msar.model1$log.likelihood.penalized - msar.model0$log.likelihood)
 
   if (crit.method == "bootstrap") {
     crit.result <- TestMSARCritBoot(LRT.statistic0 = LRT.statistic,
@@ -209,7 +216,7 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                                     short.n = short.n,
                                     transition.probs.min = transition.probs.min,
                                     sigma.min = sigma.min,
-                                    nloptr = nloptr)
+                                    nloptr = nloptr, penalty.term = penalty.term)
   }
 
   else {
@@ -225,7 +232,8 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                     msar.model0 = msar.model0, msar.model1 = msar.model1,
                     bootstrap.statistics = crit.result$bootstrap.statistics,
                     bootstrap.estimates.null = crit.result$bootstrap.estimates.null,
-                    crit.method = crit.method)
+                    crit.method = crit.method,
+                    penalty.term = penalty.term)
   class(msar.test) <- "msar.test"
   return (msar.test)
 }
@@ -244,7 +252,8 @@ TestMSARCritBoot <- function (LRT.statistic0,
                               short.n = 5,
                               transition.probs.min = 0.01,
                               sigma.min = 0.02,
-                              nloptr = FALSE)
+                              nloptr = FALSE,
+                              penalty.term = 0)
 {
   M <- nrow(msar.model0.initial.theta$transition.probs)
   bootstrap.samples <- GenerateSamples(theta = msar.model0.initial.theta, n = n,
@@ -274,7 +283,8 @@ TestMSARCritBoot <- function (LRT.statistic0,
                   sigma.min = sigma.min,
                   nloptr = nloptr,
                   msar.model0.initial.theta = msar.model0.initial.theta,
-                  msar.model1.initial.theta = msar.model1.initial.theta)
+                  msar.model1.initial.theta = msar.model1.initial.theta,
+                  penalty.term = penalty.term)
         return (list(LRT.statistic = test.result$LRT.statistic,
                      bootstrap.estimate.null = 
                        ThetaToReducedColumn((test.result$msar.model0)$theta)))
@@ -297,7 +307,8 @@ TestMSARCritBoot <- function (LRT.statistic0,
                               sigma.min = sigma.min,
                               nloptr = nloptr,
                               msar.model0.initial.theta = msar.model0.initial.theta,
-                              msar.model1.initial.theta = msar.model1.initial.theta)
+                              msar.model1.initial.theta = msar.model1.initial.theta,
+                              penalty.term = penalty.term)
       return (list(LRT.statistic = test.result$LRT.statistic,
                    bootstrap.estimate.null = 
                      ThetaToReducedColumn((test.result$msar.model0)$theta)))  

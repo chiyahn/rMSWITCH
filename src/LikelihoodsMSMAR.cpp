@@ -75,13 +75,13 @@ SEXP LikelihoodsMSMAR (Rcpp::NumericVector y_rcpp,
 	arma::mat transition_probs_extended = GetExtendedTransitionProbs(
                               transition_probs, state_conversion_mat);
   arma::mat transition_probs_extended_t = transition_probs_extended.t();
-  arma::colvec likelihoods(n);
+  arma::colvec likelihoods(n, arma::fill::zeros);
 
 	int M_extended = transition_probs_extended_t.n_rows;
 	int M = gamma_dependent.n_cols;
 	int s = beta.n_rows;
 	int M_extended_block = IntPower(M, s);
-	arma::mat xi_k_t(M_extended, n, arma::fill::zeros); // make a transpose first for col operations.
+	arma::mat* xi_k_t = new arma::mat(M_extended, n, arma::fill::zeros); // make a transpose first for col operations.
 
 	// partition blocks
 	int p = gamma_dependent.n_rows;
@@ -110,7 +110,7 @@ SEXP LikelihoodsMSMAR (Rcpp::NumericVector y_rcpp,
 
 		arma::colvec xi_past;
 		if (k > 0)
-			xi_past = transition_probs_extended_t * xi_k_t.col(k-1);
+			xi_past = transition_probs_extended_t * exp(xi_k_t->col(k-1));
 		else
 			xi_past = initial_dist_extended;
     xi_past /= arma::sum(xi_past);
@@ -120,52 +120,57 @@ SEXP LikelihoodsMSMAR (Rcpp::NumericVector y_rcpp,
 			for (int j_extra = 0; j_extra < M_extended_block; j_extra++)
 			{
 				int j = j_M * M_extended_block + j_extra;
-				arma::colvec xi_k_t_jk = y.row(k) -
-		      z_dependent.row(k) * gamma_dependent.col(j_M) -
-		      z_independent.row(k) * gamma_independent - mu(j_M);
+				arma::colvec xi_k_t_jk = y.row(k);
+				// arma::colvec xi_k_t_jk = y.row(k) -
+		    //   z_dependent.row(k) * gamma_dependent.col(j_M) -
+		    //   z_independent.row(k) * gamma_independent - mu(j_M);
 				for (int lag = 0; lag < s; lag++)
 				{
 					int lagged_index = state_conversion_mat.at((lag + 1), j);
+					xi_k_t_jk -= beta.at(lag, j_M) *
+												(y_lagged.at(k, lag) -
+												mu(lagged_index));
 					xi_k_t_jk -= beta.at(lag, j_M) *
 												(y_lagged.at(k, lag) -
 												z_dependent_lagged_blocks[lag].row(k) * gamma_dependent.col(lagged_index) -
 												z_independent_lagged_blocks[lag].row(k) * gamma_independent -
 												mu(lagged_index));
 				}
-				xi_k_t(j,k) = xi_k_t_jk(0); // explicit gluing
-		    xi_k_t(j,k) *= xi_k_t(j,k);
-				xi_k_t(j,k) = xi_k_t(j,k) / (2 * (sigma(j_M) * sigma(j_M)));
+				xi_k_t->at(j,k) = xi_k_t_jk(0); // explicit gluing
+		    xi_k_t->at(j,k) *= xi_k_t->at(j,k);
+				xi_k_t->at(j,k) = xi_k_t->at(j,k) / (2 * (sigma(j_M) * sigma(j_M)));
 
-				if (min_value > xi_k_t(j,k))
+				if (min_value > xi_k_t->at(j,k))
 				{
-					min_value = xi_k_t(j,k);
+					min_value = xi_k_t->at(j,k);
 					min_index = j;
 				}
 				// SQRT2PI only matters in calculation of eta;
 				// you can remove it in the final log-likelihood.
 				ratios[j] = xi_past(j) / sigma(j_M);
+
 			}
 		}
 
 		for (int j = 0; j < M_extended; j++)
 		{
 			if (j == min_index)
-				xi_k_t(j,k) = 1.0;
+				row_sum += 1.0;
 			else
-				xi_k_t(j,k) = (ratios[j] / ratios[min_index]) *
-											exp(min_value - xi_k_t(j,k));
-			row_sum += xi_k_t(j,k);
+				row_sum += (ratios[j] / ratios[min_index]) *
+											exp(min_value - xi_k_t->at(j,k));
+			xi_k_t->at(j,k) += log(ratios[j]);
 		}
-		xi_k_t.col(k) /= row_sum;
 
 		likelihoods(k) = log(row_sum) - min_value + log(ratios[min_index]) - LOG2PI_OVERTWO;
 
 		delete[] ratios; // clear memory
 	}
-
+	arma::exp(xi_k_t->cols(1,4)).t().print();
 	// clear memory for blocks
 	delete[] z_dependent_lagged_blocks;
 	delete[] z_independent_lagged_blocks;
+	delete xi_k_t;
 
 	return (wrap(likelihoods));
 }

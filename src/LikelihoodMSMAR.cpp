@@ -107,7 +107,7 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 
 		arma::colvec xi_past;
 		if (k > 0)
-			xi_past = transition_probs_extended_t * xi_k_t.col(k-1);
+			xi_past = transition_probs_extended_t * exp(xi_k_t.col(k-1));
 		else
 			xi_past = initial_dist_extended;
     xi_past /= arma::sum(xi_past);
@@ -147,14 +147,13 @@ SEXP LikelihoodMSMAR (Rcpp::NumericVector y_rcpp,
 		for (int j = 0; j < M_extended; j++)
 		{
 			if (j == min_index)
-				xi_k_t(j,k) = 1.0;
+				row_sum += 1.0;
 			else
-				xi_k_t(j,k) = (ratios[j] / ratios[min_index]) *
-											exp(min_value - xi_k_t(j,k));
-			row_sum += xi_k_t(j,k);
+				row_sum += (ratios[j] / ratios[min_index]) *
+									 exp(min_value - xi_k_t(j,k));
+ 			xi_k_t(j,k) = -xi_k_t(j,k);
+			xi_k_t(j,k) += log(ratios[j]);
 		}
-		xi_k_t.col(k) /= row_sum;
-
 		likelihood += log(row_sum) - min_value + log(ratios[min_index]);
 
 		delete[] ratios; // clear memory

@@ -63,6 +63,21 @@ EM.MSIH.AR <- function (theta, y, y.lagged,
               sigma.min)
 }
 
+EM.MSIH.AR.Penalized <- function (theta, y, y.lagged,
+                                  z.dependent, z.independent, 
+                                  maxit, epsilon, 
+                                  transition.probs.min, transition.probs.max,
+                                  sigma.min, sigma0, penalty.term)
+{
+  EMcppARMSIHPenalized(y, y.lagged, z.dependent, z.independent,
+              theta$beta, theta$mu, theta$sigma,
+              theta$gamma.dependent, theta$gamma.independent,
+              theta$transition.probs, theta$initial.dist,
+              maxit, epsilon,
+              transition.probs.min, transition.probs.max,
+              sigma.min, sigma0, penalty.term)
+}
+
 EM.MSI.AR.QuZhuo <- function (theta, y, y.lagged,
                        z.dependent, z.independent, 
                        maxit, epsilon, 

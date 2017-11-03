@@ -17,6 +17,10 @@ EMcppARMSIH <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_r
     .Call('_rMSWITCH_EMcppARMSIH', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max, sigma_min)
 }
 
+EMcppARMSIHPenalized <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max, sigma_min, sigma_null_rcpp, penalty_term) {
+    .Call('_rMSWITCH_EMcppARMSIHPenalized', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max, sigma_min, sigma_null_rcpp, penalty_term)
+}
+
 EMcppARMSIHQuZhuo <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max, sigma_min) {
     .Call('_rMSWITCH_EMcppARMSIHQuZhuo', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max, sigma_min)
 }
@@ -37,8 +41,8 @@ EMcppARMSMH <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_r
     .Call('_rMSWITCH_EMcppARMSMH', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, z_dependent_lagged_rcpp, z_independent_lagged_rcpp, beta0_rcpp, mu0_rcpp, sigma0_rcpp, gamma_dependent0_rcpp, gamma_independent0_rcpp, transition_probs0_rcpp, initial_dist0_rcpp, maxit, epsilon, transition_probs_min, transition_probs_max, sigma_min, state_conversion_mat_rcpp)
 }
 
-LikelihoodMSIAR <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp) {
-    .Call('_rMSWITCH_LikelihoodMSIAR', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp)
+LikelihoodMSIAR <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, sigma0_rcpp, penalty_term) {
+    .Call('_rMSWITCH_LikelihoodMSIAR', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, sigma0_rcpp, penalty_term)
 }
 
 LikelihoodMSIAROld <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp) {
@@ -53,8 +57,8 @@ LikelihoodMSMAROld <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_indepe
     .Call('_rMSWITCH_LikelihoodMSMAROld', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, z_dependent_lagged_rcpp, z_independent_lagged_rcpp, transition_probs_rcpp, initial_dist_extended_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, state_conversion_mat_rcpp)
 }
 
-LikelihoodsMSIAR <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp) {
-    .Call('_rMSWITCH_LikelihoodsMSIAR', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp)
+LikelihoodsMSIAR <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, sigma0_rcpp, penalty_term) {
+    .Call('_rMSWITCH_LikelihoodsMSIAR', PACKAGE = 'rMSWITCH', y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, sigma0_rcpp, penalty_term)
 }
 
 LikelihoodsMSIAROld <- function(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp) {

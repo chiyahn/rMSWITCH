@@ -6,10 +6,12 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
                              transition.probs.min,
                              transition.probs.max,
                              sigma.min,
+                             sigma0,
                              z.dependent.lagged = NULL,
                              z.independent.lagged = NULL,
                              is.MSM = FALSE,
-                             force.persistence = FALSE)
+                             force.persistence = FALSE,
+                             penalty.term = 0)
 {
   long.results <- MaximizeShortStep(short.thetas = long.thetas,
                                     y = y, y.lagged = y.lagged,
@@ -21,9 +23,11 @@ MaximizeLongStep <- function(long.thetas, y, y.lagged,
                                     transition.probs.min = transition.probs.min,
                                     transition.probs.max = transition.probs.max,
                                     sigma.min = sigma.min,
+                                    sigma0 = sigma0,
                                     z.dependent.lagged = z.dependent.lagged,
                                     z.independent.lagged = z.independent.lagged,
-                                    is.MSM = is.MSM, force.persistence = force.persistence)
+                                    is.MSM = is.MSM, force.persistence = force.persistence,
+                                    penalty.term = penalty.term)
 
   long.likelihoods <- sapply(long.results, "[[", "likelihood")
   long.likelihoods[!is.finite(long.likelihoods)] <- -Inf # abnormal values
@@ -53,7 +57,7 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                             transition.probs.max,
                             lb.prob.density = 10e-6,
                             ub.prob.density = (1-10e-6),
-                            sigma.min, is.MSM, ...)
+                            sigma.min, sigma0, is.MSM, penalty.term, ...)
 {
   # use the first candidate to save the information about dimensions
   theta <- long.thetas[[1]]
@@ -384,7 +388,9 @@ MaximizeLongStepNLOPTR <- function(long.thetas, y, y.lagged,
                         theta.vectorized[mu.index:(sigma.index - 1)],  # mu
                         sigma,    # sigma
                         gamma.dependent,
-                        gamma.independent) # gamma.indep
+                        gamma.independent,
+                        sigma0,
+                        penalty.term) # gamma.indep
       }
 
       if (M > 1)

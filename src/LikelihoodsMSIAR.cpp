@@ -5,7 +5,7 @@ using namespace Rcpp;
 const double SQRT2PI = 2.50662827463; // sqrt(2*pi)
 const double LOG2PI_OVERTWO = 0.91893853320467274178; // (log(2*pi) / 2)
 
-// Returns an n by 1 column that represents the likelihoods of
+// Returns an n by 1 column that represents the penalized likelihoods of
 // an estimated univariate MS-AR model for each k where 1 \leq k \leq n where
 // beta is switching.
 // Note that even if beta is non-switching, setting beta as a s by M matrix with
@@ -22,8 +22,9 @@ SEXP LikelihoodsMSIAR (Rcpp::NumericVector y_rcpp,
 					Rcpp::NumericVector mu_rcpp,
 					Rcpp::NumericVector sigma_rcpp,
 					Rcpp::NumericMatrix gamma_dependent_rcpp,
-					Rcpp::NumericVector gamma_independent_rcpp
-					)
+					Rcpp::NumericVector gamma_independent_rcpp,
+					Rcpp::NumericVector sigma0_rcpp,
+					double penalty_term)
 {
 	int n = y_rcpp.size();
 	int M = transition_probs_rcpp.ncol();
@@ -53,9 +54,10 @@ SEXP LikelihoodsMSIAR (Rcpp::NumericVector y_rcpp,
 								gamma_dependent_rcpp.ncol(), false);
 	arma::colvec gamma_independent(gamma_independent_rcpp.begin(),
 								gamma_independent_rcpp.size(), false);
+	arma::colvec sigma0(sigma0_rcpp.begin(), sigma0_rcpp.size(), false);
 
 	arma::mat transition_probs_t = transition_probs.t();
-	arma::colvec likelihoods(n);
+	arma::colvec likelihoods(n, arma::fill::zeros);
 
 	for (int k = 0; k < n; k++)
 	{
@@ -73,7 +75,7 @@ SEXP LikelihoodsMSIAR (Rcpp::NumericVector y_rcpp,
 		else
 			xi_past = initial_dist;
 		xi_past /= arma::sum(xi_past);
-		
+
 		for (int j = 0; j < M; j++)
 		{
 			arma::colvec xi_k_t_jk = y.row(k) - y_lagged.row(k) * beta.col(j) -
@@ -104,11 +106,17 @@ SEXP LikelihoodsMSIAR (Rcpp::NumericVector y_rcpp,
 
 		xi_k_t.col(k) /= row_sum;
 
-		likelihoods(k) = log(row_sum) - min_value + log(ratios[min_index]) -
-											LOG2PI_OVERTWO;
+		likelihoods(k) = log(row_sum) - min_value + log(ratios[min_index]);
 
 		delete[] ratios; // clear memory
 	}
+
+  likelihoods -= LOG2PI_OVERTWO;
+	if (penalty_term > 0)
+	  for (int j=0; j<M; j++) {
+	    double s0j = sigma0(j)/sigma(j);
+	    likelihoods -= penalty_term*(s0j*s0j - 2.0*log(s0j) -1.0) / n;
+	  }
 
 	return (wrap(likelihoods));
 }
