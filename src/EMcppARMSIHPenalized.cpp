@@ -33,6 +33,7 @@ Xi FilterARMSIHPenalized (arma::colvec* py,
   arma::mat transition_probs_t = (ptheta->transition_probs).t();
 
   double likelihood = 0;
+  double s0j = 0;
 
   for (int k = 0; k < n; k++)
   {
@@ -88,7 +89,7 @@ Xi FilterARMSIHPenalized (arma::colvec* py,
   
   if (penalty_term > 0)
     for (int j=0; j<M; j++) {
-      double s0j = sigma_null(j)/ptheta->sigma(j);
+      s0j = sigma_null(j)/ptheta->sigma(j);
       likelihood -= penalty_term*(s0j*s0j - 2.0*log(s0j) -1.0);
     }
   
@@ -267,7 +268,7 @@ Theta MaximizationStepARMSIHPenalized (arma::colvec* py,
     sigma(j) = sigma(j) + 2.0*penalty_term*sigma_null(j)*sigma_null(j);
     sigma(j) /= sum(pxi_n->col(j)) + 2.0*penalty_term;
     // impose the hard constraint
-    sigma(j) = std::max(sqrt(sigma(j)), sigma_min);
+    sigma(j) = std::max(sqrt(sigma(j)), sigma_min*sigma_null(j));
   }
 
   // 2-6. initial_dist
