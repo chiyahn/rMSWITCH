@@ -176,7 +176,8 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
                                 transition.probs.min = transition.probs.min,
                                 sigma.min = sigma.min,
                                 nloptr = nloptr,
-                                initial.theta = msar.model0.initial.theta)
+                                initial.theta = msar.model0.initial.theta,
+                                penalty.term = NULL)
   if (is.null(msar.model1))
     msar.model1 <- EstimateMSAR(y = y,
                                 z.dependent = z.dependent,
@@ -196,7 +197,7 @@ TestMSAR <- function(y, z.dependent = NULL, z.independent = NULL,
 
   n <- nrow(msar.model0$posterior.probs.smoothed)
   # if penalty.term = 0 (by default), penalized likelihood is the same as ordinary one.
-  LRT.statistic <- 2*(msar.model1$log.likelihood.penalized - msar.model0$log.likelihood)
+  LRT.statistic <- 2*(msar.model1$log.likelihood.penalized - msar.model0$log.likelihood.penalized)
 
   if (crit.method == "bootstrap") {
     crit.result <- TestMSARCritBoot(LRT.statistic0 = LRT.statistic,

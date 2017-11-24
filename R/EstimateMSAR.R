@@ -67,12 +67,13 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                          estimate.fisher = TRUE,
                          estimate.model = TRUE,
                          force.persistence = FALSE,
-                         penalty.term = 0) {
+                         penalty.term = NULL) {
   if (M < 2) # if M = 1, non-switching assumption can be applied
   {
     is.beta.switching <- FALSE
     is.sigma.switching <- FALSE
     force.persistence <- FALSE # constraint p >= 1 + epsilon cannot be achieved
+    penalty.term <- 0
   }
   if (s < 1)
     is.MSM <- FALSE
@@ -109,6 +110,9 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   z.dependent.lagged <- NULL
   z.independent.lagged <- NULL
   
+  if (M > 1 && is.null(penalty.term)){
+    penalty.term <- 1/n
+  }
   
   initial.params <- NULL
   
