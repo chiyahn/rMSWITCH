@@ -30,6 +30,9 @@
 #' satisfy constraints imposed in Qu and Zhuo (2017), i.e., the sum of diagonal
 #' members are greater than or eqaul to 1 + epsilon for small epsilon (0.001 by default.)
 #' when nloptr or is.MSM option is turned on, this constraint will not be imposed.
+#' @param penalty.divide.by.M Determines the tuning parameter of the penalty term.
+#  If \code{TRUE}, an is set to an = n^(-1/M).
+#  If \code{FALSE}, an is set to an = n^(-1).
 #' @return  A list with items:
 #' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
 #' \item{mu}{M by 1 column that contains state-dependent mu}
@@ -67,7 +70,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                          estimate.fisher = TRUE,
                          estimate.model = TRUE,
                          force.persistence = FALSE,
-                         penalty.term = NULL) {
+                         penalty.divide.by.M = FALSE) {
   if (M < 2) # if M = 1, non-switching assumption can be applied
   {
     is.beta.switching <- FALSE
@@ -110,8 +113,12 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   z.dependent.lagged <- NULL
   z.independent.lagged <- NULL
   
-  if (M > 1 && is.null(penalty.term)){
-    penalty.term <- 1/n
+  if (M > 1 && !penalty.divide.by.M) {
+    penalty.term <- n^(-1)
+  }
+  
+  if (M > 1 && penalty.divide.by.M) {
+      penalty.term <- n^(-1/M)
   }
   
   initial.params <- NULL
