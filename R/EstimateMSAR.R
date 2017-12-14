@@ -32,7 +32,7 @@
 #' when nloptr or is.MSM option is turned on, this constraint will not be imposed.
 #' @param penalty.divide.by.M Determines the tuning parameter of the penalty term.
 #  If \code{TRUE}, an is set to an = n^(-1/M).
-#  If \code{FALSE}, an is set to an = n^(-1).
+#  If \code{FALSE}, an is set to an = n^(-1/2).
 #' @return  A list with items:
 #' \item{beta}{s by 1 column for state-independent coefficients on AR(s)}
 #' \item{mu}{M by 1 column that contains state-dependent mu}
@@ -114,7 +114,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
   z.independent.lagged <- NULL
   
   if (M > 1 && !penalty.divide.by.M) {
-    penalty.term <- n^(-1)
+    penalty.term <- n^(-1/2)
   }
   
   if (M > 1 && penalty.divide.by.M) {
