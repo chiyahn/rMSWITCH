@@ -70,7 +70,7 @@ EstimateMSAR <- function(y = y, z.dependent = NULL, z.independent = NULL,
                          estimate.fisher = TRUE,
                          estimate.model = TRUE,
                          force.persistence = FALSE,
-                         penalty.divide.by.M = FALSE) {
+                         penalty.divide.by.M = TRUE) {
   if (M < 2) # if M = 1, non-switching assumption can be applied
   {
     is.beta.switching <- FALSE
