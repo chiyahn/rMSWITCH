@@ -300,27 +300,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// LikelihoodMSIAROld
-SEXP LikelihoodMSIAROld(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix transition_probs_rcpp, Rcpp::NumericVector initial_dist_rcpp, Rcpp::NumericMatrix beta_rcpp, Rcpp::NumericVector mu_rcpp, Rcpp::NumericVector sigma_rcpp, Rcpp::NumericMatrix gamma_dependent_rcpp, Rcpp::NumericVector gamma_independent_rcpp);
-RcppExport SEXP _rMSWITCH_LikelihoodMSIAROld(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP transition_probs_rcppSEXP, SEXP initial_dist_rcppSEXP, SEXP beta_rcppSEXP, SEXP mu_rcppSEXP, SEXP sigma_rcppSEXP, SEXP gamma_dependent_rcppSEXP, SEXP gamma_independent_rcppSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y_rcpp(y_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type y_lagged_rcpp(y_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_dependent_rcpp(z_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_independent_rcpp(z_independent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type transition_probs_rcpp(transition_probs_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist_rcpp(initial_dist_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type beta_rcpp(beta_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mu_rcpp(mu_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sigma_rcpp(sigma_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type gamma_dependent_rcpp(gamma_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma_independent_rcpp(gamma_independent_rcppSEXP);
-    rcpp_result_gen = Rcpp::wrap(LikelihoodMSIAROld(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp));
-    return rcpp_result_gen;
-END_RCPP
-}
 // LikelihoodMSMAR
 SEXP LikelihoodMSMAR(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix z_dependent_lagged_rcpp, Rcpp::NumericMatrix z_independent_lagged_rcpp, Rcpp::NumericMatrix transition_probs_rcpp, Rcpp::NumericVector initial_dist_extended_rcpp, Rcpp::NumericMatrix beta_rcpp, Rcpp::NumericVector mu_rcpp, Rcpp::NumericVector sigma_rcpp, Rcpp::NumericMatrix gamma_dependent_rcpp, Rcpp::NumericVector gamma_independent_rcpp, Rcpp::IntegerMatrix state_conversion_mat_rcpp);
 RcppExport SEXP _rMSWITCH_LikelihoodMSMAR(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP z_dependent_lagged_rcppSEXP, SEXP z_independent_lagged_rcppSEXP, SEXP transition_probs_rcppSEXP, SEXP initial_dist_extended_rcppSEXP, SEXP beta_rcppSEXP, SEXP mu_rcppSEXP, SEXP sigma_rcppSEXP, SEXP gamma_dependent_rcppSEXP, SEXP gamma_independent_rcppSEXP, SEXP state_conversion_mat_rcppSEXP) {
@@ -342,30 +321,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma_independent_rcpp(gamma_independent_rcppSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type state_conversion_mat_rcpp(state_conversion_mat_rcppSEXP);
     rcpp_result_gen = Rcpp::wrap(LikelihoodMSMAR(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, z_dependent_lagged_rcpp, z_independent_lagged_rcpp, transition_probs_rcpp, initial_dist_extended_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, state_conversion_mat_rcpp));
-    return rcpp_result_gen;
-END_RCPP
-}
-// LikelihoodMSMAROld
-SEXP LikelihoodMSMAROld(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix z_dependent_lagged_rcpp, Rcpp::NumericMatrix z_independent_lagged_rcpp, Rcpp::NumericMatrix transition_probs_rcpp, Rcpp::NumericVector initial_dist_extended_rcpp, Rcpp::NumericMatrix beta_rcpp, Rcpp::NumericVector mu_rcpp, Rcpp::NumericVector sigma_rcpp, Rcpp::NumericMatrix gamma_dependent_rcpp, Rcpp::NumericVector gamma_independent_rcpp, Rcpp::IntegerMatrix state_conversion_mat_rcpp);
-RcppExport SEXP _rMSWITCH_LikelihoodMSMAROld(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP z_dependent_lagged_rcppSEXP, SEXP z_independent_lagged_rcppSEXP, SEXP transition_probs_rcppSEXP, SEXP initial_dist_extended_rcppSEXP, SEXP beta_rcppSEXP, SEXP mu_rcppSEXP, SEXP sigma_rcppSEXP, SEXP gamma_dependent_rcppSEXP, SEXP gamma_independent_rcppSEXP, SEXP state_conversion_mat_rcppSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y_rcpp(y_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type y_lagged_rcpp(y_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_dependent_rcpp(z_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_independent_rcpp(z_independent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_dependent_lagged_rcpp(z_dependent_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_independent_lagged_rcpp(z_independent_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type transition_probs_rcpp(transition_probs_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist_extended_rcpp(initial_dist_extended_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type beta_rcpp(beta_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mu_rcpp(mu_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sigma_rcpp(sigma_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type gamma_dependent_rcpp(gamma_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma_independent_rcpp(gamma_independent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type state_conversion_mat_rcpp(state_conversion_mat_rcppSEXP);
-    rcpp_result_gen = Rcpp::wrap(LikelihoodMSMAROld(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, z_dependent_lagged_rcpp, z_independent_lagged_rcpp, transition_probs_rcpp, initial_dist_extended_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, state_conversion_mat_rcpp));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -392,27 +347,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// LikelihoodsMSIAROld
-SEXP LikelihoodsMSIAROld(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix transition_probs_rcpp, Rcpp::NumericVector initial_dist_rcpp, Rcpp::NumericMatrix beta_rcpp, Rcpp::NumericVector mu_rcpp, Rcpp::NumericVector sigma_rcpp, Rcpp::NumericMatrix gamma_dependent_rcpp, Rcpp::NumericVector gamma_independent_rcpp);
-RcppExport SEXP _rMSWITCH_LikelihoodsMSIAROld(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP transition_probs_rcppSEXP, SEXP initial_dist_rcppSEXP, SEXP beta_rcppSEXP, SEXP mu_rcppSEXP, SEXP sigma_rcppSEXP, SEXP gamma_dependent_rcppSEXP, SEXP gamma_independent_rcppSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y_rcpp(y_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type y_lagged_rcpp(y_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_dependent_rcpp(z_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_independent_rcpp(z_independent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type transition_probs_rcpp(transition_probs_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist_rcpp(initial_dist_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type beta_rcpp(beta_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mu_rcpp(mu_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sigma_rcpp(sigma_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type gamma_dependent_rcpp(gamma_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma_independent_rcpp(gamma_independent_rcppSEXP);
-    rcpp_result_gen = Rcpp::wrap(LikelihoodsMSIAROld(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, transition_probs_rcpp, initial_dist_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp));
-    return rcpp_result_gen;
-END_RCPP
-}
 // LikelihoodsMSMAR
 SEXP LikelihoodsMSMAR(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix z_dependent_lagged_rcpp, Rcpp::NumericMatrix z_independent_lagged_rcpp, Rcpp::NumericMatrix transition_probs_rcpp, Rcpp::NumericVector initial_dist_extended_rcpp, Rcpp::NumericMatrix beta_rcpp, Rcpp::NumericVector mu_rcpp, Rcpp::NumericVector sigma_rcpp, Rcpp::NumericMatrix gamma_dependent_rcpp, Rcpp::NumericVector gamma_independent_rcpp, Rcpp::IntegerMatrix state_conversion_mat_rcpp);
 RcppExport SEXP _rMSWITCH_LikelihoodsMSMAR(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP z_dependent_lagged_rcppSEXP, SEXP z_independent_lagged_rcppSEXP, SEXP transition_probs_rcppSEXP, SEXP initial_dist_extended_rcppSEXP, SEXP beta_rcppSEXP, SEXP mu_rcppSEXP, SEXP sigma_rcppSEXP, SEXP gamma_dependent_rcppSEXP, SEXP gamma_independent_rcppSEXP, SEXP state_conversion_mat_rcppSEXP) {
@@ -434,30 +368,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma_independent_rcpp(gamma_independent_rcppSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type state_conversion_mat_rcpp(state_conversion_mat_rcppSEXP);
     rcpp_result_gen = Rcpp::wrap(LikelihoodsMSMAR(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, z_dependent_lagged_rcpp, z_independent_lagged_rcpp, transition_probs_rcpp, initial_dist_extended_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, state_conversion_mat_rcpp));
-    return rcpp_result_gen;
-END_RCPP
-}
-// LikelihoodsMSMAROld
-SEXP LikelihoodsMSMAROld(Rcpp::NumericVector y_rcpp, Rcpp::NumericMatrix y_lagged_rcpp, Rcpp::NumericMatrix z_dependent_rcpp, Rcpp::NumericMatrix z_independent_rcpp, Rcpp::NumericMatrix z_dependent_lagged_rcpp, Rcpp::NumericMatrix z_independent_lagged_rcpp, Rcpp::NumericMatrix transition_probs_rcpp, Rcpp::NumericVector initial_dist_extended_rcpp, Rcpp::NumericMatrix beta_rcpp, Rcpp::NumericVector mu_rcpp, Rcpp::NumericVector sigma_rcpp, Rcpp::NumericMatrix gamma_dependent_rcpp, Rcpp::NumericVector gamma_independent_rcpp, Rcpp::IntegerMatrix state_conversion_mat_rcpp);
-RcppExport SEXP _rMSWITCH_LikelihoodsMSMAROld(SEXP y_rcppSEXP, SEXP y_lagged_rcppSEXP, SEXP z_dependent_rcppSEXP, SEXP z_independent_rcppSEXP, SEXP z_dependent_lagged_rcppSEXP, SEXP z_independent_lagged_rcppSEXP, SEXP transition_probs_rcppSEXP, SEXP initial_dist_extended_rcppSEXP, SEXP beta_rcppSEXP, SEXP mu_rcppSEXP, SEXP sigma_rcppSEXP, SEXP gamma_dependent_rcppSEXP, SEXP gamma_independent_rcppSEXP, SEXP state_conversion_mat_rcppSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y_rcpp(y_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type y_lagged_rcpp(y_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_dependent_rcpp(z_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_independent_rcpp(z_independent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_dependent_lagged_rcpp(z_dependent_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type z_independent_lagged_rcpp(z_independent_lagged_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type transition_probs_rcpp(transition_probs_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type initial_dist_extended_rcpp(initial_dist_extended_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type beta_rcpp(beta_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mu_rcpp(mu_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sigma_rcpp(sigma_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type gamma_dependent_rcpp(gamma_dependent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gamma_independent_rcpp(gamma_independent_rcppSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type state_conversion_mat_rcpp(state_conversion_mat_rcppSEXP);
-    rcpp_result_gen = Rcpp::wrap(LikelihoodsMSMAROld(y_rcpp, y_lagged_rcpp, z_dependent_rcpp, z_independent_rcpp, z_dependent_lagged_rcpp, z_independent_lagged_rcpp, transition_probs_rcpp, initial_dist_extended_rcpp, beta_rcpp, mu_rcpp, sigma_rcpp, gamma_dependent_rcpp, gamma_independent_rcpp, state_conversion_mat_rcpp));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -519,13 +429,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rMSWITCH_EMcppARMSMAH", (DL_FUNC) &_rMSWITCH_EMcppARMSMAH, 19},
     {"_rMSWITCH_EMcppARMSMH", (DL_FUNC) &_rMSWITCH_EMcppARMSMH, 19},
     {"_rMSWITCH_LikelihoodMSIAR", (DL_FUNC) &_rMSWITCH_LikelihoodMSIAR, 13},
-    {"_rMSWITCH_LikelihoodMSIAROld", (DL_FUNC) &_rMSWITCH_LikelihoodMSIAROld, 11},
     {"_rMSWITCH_LikelihoodMSMAR", (DL_FUNC) &_rMSWITCH_LikelihoodMSMAR, 14},
-    {"_rMSWITCH_LikelihoodMSMAROld", (DL_FUNC) &_rMSWITCH_LikelihoodMSMAROld, 14},
     {"_rMSWITCH_LikelihoodsMSIAR", (DL_FUNC) &_rMSWITCH_LikelihoodsMSIAR, 13},
-    {"_rMSWITCH_LikelihoodsMSIAROld", (DL_FUNC) &_rMSWITCH_LikelihoodsMSIAROld, 11},
     {"_rMSWITCH_LikelihoodsMSMAR", (DL_FUNC) &_rMSWITCH_LikelihoodsMSMAR, 14},
-    {"_rMSWITCH_LikelihoodsMSMAROld", (DL_FUNC) &_rMSWITCH_LikelihoodsMSMAROld, 14},
     {"_rMSWITCH_PosteriorProbsMSIAR", (DL_FUNC) &_rMSWITCH_PosteriorProbsMSIAR, 11},
     {"_rMSWITCH_PosteriorProbsMSMAR", (DL_FUNC) &_rMSWITCH_PosteriorProbsMSMAR, 14},
     {NULL, NULL, 0}
