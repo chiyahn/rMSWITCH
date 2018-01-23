@@ -5,7 +5,7 @@ rMSWITCH
 
 Overview
 --------
-rMSWITCH is an R package for robust and dynamic estimation of various Markov regime-switching models, for both regime-switching in intercept (MSI) and in mean (MSM) cases. The package is currently under development.
+rMSWITCH is an R package for estimation and statistical testing for the number regimes of various Markov regime-switching models, including both regime-switching in intercept (MSI) and in mean (MSM) models. The package is currently under development.
 
 Installing rMSWITCH
 ------------
